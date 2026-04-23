@@ -174,6 +174,12 @@ extension SAVIWebViewModel: WKNavigationDelegate, WKUIDelegate, WKScriptMessageH
                 return
             }
 
+            if type == "syncFolders",
+               let payload = body["payload"] as? [String: Any] {
+                syncFoldersFromWeb(payload)
+                return
+            }
+
             if type == "share",
                let payload = body["payload"] as? [String: Any] {
                 presentShareSheet(payload)
@@ -183,6 +189,52 @@ extension SAVIWebViewModel: WKNavigationDelegate, WKUIDelegate, WKScriptMessageH
 }
 
 private extension SAVIWebViewModel {
+    func syncFoldersFromWeb(_ payload: [String: Any]) {
+        guard let folders = payload["folders"] as? [[String: Any]] else { return }
+
+        let normalized: [SharedFolder] = folders.enumerated().compactMap { index, raw in
+            guard let id = raw["id"] as? String, !id.isEmpty,
+                  let name = raw["name"] as? String, !name.isEmpty
+            else {
+                return nil
+            }
+
+            let system = (raw["system"] as? Bool) ?? false
+            if id == "f-all" { return nil }
+
+            let color = raw["color"] as? String
+            let symbolName = folderSymbolName(for: id, name: name, system: system)
+
+            return SharedFolder(
+                id: id,
+                name: name,
+                color: color,
+                system: system,
+                symbolName: symbolName,
+                order: index
+            )
+        }
+
+        guard !normalized.isEmpty else { return }
+        try? shareStore.saveFolders(normalized)
+    }
+
+    func folderSymbolName(for id: String, name: String, system: Bool) -> String {
+        let key = "\(id) \(name)".lowercased()
+        if key.contains("vault") || key.contains("private") || key.contains("passport") || key.contains("insurance") { return "lock.fill" }
+        if key.contains("growth") || key.contains("career") || key.contains("business") || key.contains("productivity") { return "bolt.fill" }
+        if key.contains("wtf") || key.contains("wild") || key.contains("favorites") { return "sparkles" }
+        if key.contains("tinfoil") || key.contains("conspiracy") || key.contains("alien") { return "eye.fill" }
+        if key.contains("lmao") || key.contains("meme") || key.contains("funny") || key.contains("lol") { return "theatermasks.fill" }
+        if key.contains("health") || key.contains("fitness") || key.contains("wellness") { return "heart.fill" }
+        if key.contains("recipe") || key.contains("food") || key.contains("cook") { return "fork.knife" }
+        if key.contains("travel") || key.contains("place") || key.contains("map") || key.contains("trip") { return "airplane" }
+        if key.contains("design") || key.contains("inspo") || key.contains("brand") || key.contains("ui") || key.contains("ux") { return "paintpalette.fill" }
+        if key.contains("research") || key.contains("study") || key.contains("paper") { return "magnifyingglass" }
+        if key.contains("must") || key.contains("later") || key.contains("watch") || key.contains("read") { return "bookmark.fill" }
+        return system ? "folder.fill" : "folder"
+    }
+
     func presentShareSheet(_ payload: [String: Any]) {
         DispatchQueue.main.async {
             var activityItems: [Any] = []
@@ -242,6 +294,50 @@ private extension SAVIWebViewModel {
         window.webkit.messageHandlers.savi.postMessage({ type: type, payload: payload || {} });
       } catch (error) {}
     };
+    window.SAVINative.publishFolders = function() {
+      var STORAGE_KEY = 'savi_v1';
+      var state;
+      try { state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch (error) { state = {}; }
+      var folders = Array.isArray(state.folders) ? state.folders.filter(function(folder) {
+        return folder && folder.id && folder.id !== 'f-all';
+      }).map(function(folder) {
+        return {
+          id: folder.id || '',
+          name: folder.name || '',
+          color: folder.color || '',
+          system: Boolean(folder.system)
+        };
+      }) : [];
+      if (folders.length) {
+        window.SAVINative.postMessage('syncFolders', { folders: folders });
+      }
+      return folders.length;
+    };
+
+    (function() {
+      var originalSetItem = localStorage.setItem.bind(localStorage);
+      localStorage.setItem = function(key, value) {
+        originalSetItem(key, value);
+        if (key === 'savi_v1') {
+          try { window.SAVINative.publishFolders(); } catch (error) {}
+        }
+      };
+
+      var queuePublish = function() {
+        try { window.SAVINative.publishFolders(); } catch (error) {}
+      };
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          setTimeout(queuePublish, 50);
+        });
+      } else {
+        setTimeout(queuePublish, 50);
+      }
+
+      window.addEventListener('savi:native-import', queuePublish);
+    })();
+
     window.SAVINative.importShares = function(shares) {
       var STORAGE_KEY = 'savi_v1';
       var ONBOARDED_KEY = 'savi_onboarded';

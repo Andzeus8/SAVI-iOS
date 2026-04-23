@@ -252,22 +252,50 @@ struct FolderPreset {
     let id: String
     let name: String
     let symbolName: String
+    let colorHex: String?
 }
 
 extension ShareItemExtractor {
-    static let folderPresets: [FolderPreset] = [
-        .init(id: "f-private-vault", name: "Private Vault", symbolName: "lock.fill"),
-        .init(id: "f-growth", name: "Growth Hacks", symbolName: "bolt.fill"),
-        .init(id: "f-wtf-favorites", name: "WTF Favorites", symbolName: "sparkles"),
-        .init(id: "f-tinfoil", name: "Tinfoil Hat Club", symbolName: "eye.fill"),
-        .init(id: "f-lmao", name: "LMAO", symbolName: "theatermasks.fill"),
-        .init(id: "f-health", name: "Health Hacks", symbolName: "heart.fill"),
-        .init(id: "f-recipes", name: "Recipes & Food", symbolName: "fork.knife"),
-        .init(id: "f-travel", name: "Travel & Places", symbolName: "airplane"),
-        .init(id: "f-design", name: "Design Inspo", symbolName: "paintpalette.fill"),
-        .init(id: "f-research", name: "Research", symbolName: "magnifyingglass"),
-        .init(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill"),
+    static let defaultFolderPresets: [FolderPreset] = [
+        .init(id: "f-private-vault", name: "Private Vault", symbolName: "lock.fill", colorHex: "#6C63FF"),
+        .init(id: "f-growth", name: "Growth Hacks", symbolName: "bolt.fill", colorHex: "#1CB5A3"),
+        .init(id: "f-wtf-favorites", name: "WTF Favorites", symbolName: "sparkles", colorHex: "#F15BB5"),
+        .init(id: "f-tinfoil", name: "Tinfoil Hat Club", symbolName: "eye.fill", colorHex: "#6D4AFF"),
+        .init(id: "f-lmao", name: "LMAO", symbolName: "theatermasks.fill", colorHex: "#FF7A59"),
+        .init(id: "f-health", name: "Health Hacks", symbolName: "heart.fill", colorHex: "#1CBF75"),
+        .init(id: "f-recipes", name: "Recipes & Food", symbolName: "fork.knife", colorHex: "#FF6B57"),
+        .init(id: "f-travel", name: "Travel & Places", symbolName: "airplane", colorHex: "#3498FF"),
+        .init(id: "f-design", name: "Design Inspo", symbolName: "paintpalette.fill", colorHex: "#FF4DC4"),
+        .init(id: "f-research", name: "Research", symbolName: "magnifyingglass", colorHex: "#7B61FF"),
+        .init(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill", colorHex: "#F7C948"),
     ]
+
+    static func folderPresets() -> [FolderPreset] {
+        let sharedFolders = PendingShareStore.shared.loadFolders()
+        guard !sharedFolders.isEmpty else { return defaultFolderPresets }
+
+        let defaultsById = Dictionary(uniqueKeysWithValues: defaultFolderPresets.map { ($0.id, $0) })
+
+        let normalized = sharedFolders
+            .filter { $0.id != "f-all" }
+            .sorted { lhs, rhs in
+                if lhs.order == rhs.order {
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+                return lhs.order < rhs.order
+            }
+            .map { shared in
+                let fallback = defaultsById[shared.id]
+                return FolderPreset(
+                    id: shared.id,
+                    name: shared.name,
+                    symbolName: shared.symbolName ?? fallback?.symbolName ?? inferredSymbolName(for: shared.name, id: shared.id),
+                    colorHex: shared.color ?? fallback?.colorHex
+                )
+            }
+
+        return normalized.isEmpty ? defaultFolderPresets : normalized
+    }
 }
 
 private extension ShareItemExtractor {
@@ -406,6 +434,20 @@ private extension ShareItemExtractor {
         if haystack.matches("mind-blowing|wild|space|discovery|crazy|mystery") {
             return "f-wtf-favorites"
         }
+
+        let customMatch = folderPresets()
+            .filter { preset in
+                let key = preset.name.lowercased()
+                return !["private vault", "growth hacks", "wtf favorites", "tinfoil hat club", "lmao", "health hacks", "recipes & food", "travel & places", "design inspo", "research", "must see"].contains(key)
+            }
+            .max { lhs, rhs in
+                score(folderName: lhs.name, haystack: haystack) < score(folderName: rhs.name, haystack: haystack)
+            }
+
+        if let customMatch, score(folderName: customMatch.name, haystack: haystack) > 0 {
+            return customMatch.id
+        }
+
         return "f-must-see"
     }
 
@@ -433,6 +475,34 @@ private extension ShareItemExtractor {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .filter { seen.insert($0.lowercased()).inserted }
+    }
+
+    static func inferredSymbolName(for name: String, id: String) -> String {
+        let key = "\(id) \(name)".lowercased()
+        if key.contains("vault") || key.contains("private") || key.contains("passport") || key.contains("insurance") { return "lock.fill" }
+        if key.contains("growth") || key.contains("career") || key.contains("business") || key.contains("productivity") { return "bolt.fill" }
+        if key.contains("wtf") || key.contains("wild") || key.contains("favorite") || key.contains("crazy") { return "sparkles" }
+        if key.contains("tinfoil") || key.contains("conspiracy") || key.contains("alien") { return "eye.fill" }
+        if key.contains("lmao") || key.contains("meme") || key.contains("funny") || key.contains("lol") { return "theatermasks.fill" }
+        if key.contains("health") || key.contains("fitness") || key.contains("wellness") { return "heart.fill" }
+        if key.contains("recipe") || key.contains("food") || key.contains("cook") { return "fork.knife" }
+        if key.contains("travel") || key.contains("place") || key.contains("map") || key.contains("trip") { return "airplane" }
+        if key.contains("design") || key.contains("inspo") || key.contains("brand") || key.contains("ui") || key.contains("ux") { return "paintpalette.fill" }
+        if key.contains("research") || key.contains("study") || key.contains("paper") { return "magnifyingglass" }
+        if key.contains("must") || key.contains("later") || key.contains("watch") || key.contains("read") { return "bookmark.fill" }
+        return "folder"
+    }
+
+    static func score(folderName: String, haystack: String) -> Int {
+        let tokens = folderName
+            .lowercased()
+            .replacingOccurrences(of: "[^a-z0-9\\s-]", with: " ", options: .regularExpression)
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber && $0 != "-" })
+            .map(String.init)
+            .filter { $0.count > 2 }
+        return tokens.reduce(0) { partial, token in
+            partial + (haystack.contains(token) ? max(1, token.count - 2) : 0)
+        }
     }
 
     static func fetchRemoteMetadata(for url: URL) async -> RemoteMetadata? {

@@ -4,6 +4,7 @@ enum SAVISharedContainer {
     static let appGroupIdentifier = "group.com.savi.shared"
     static let pendingSharesDirectory = "pending_shares"
     static let pendingAssetsDirectory = "pending_assets"
+    static let foldersFileName = "folders.json"
 }
 
 struct PendingShare: Codable, Identifiable {
@@ -37,6 +38,24 @@ struct PendingShare: Codable, Identifiable {
         case itemDescription = "description"
         case folderId = "folder_id"
         case tags
+    }
+}
+
+struct SharedFolder: Codable, Identifiable {
+    var id: String
+    var name: String
+    var color: String?
+    var system: Bool
+    var symbolName: String?
+    var order: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case color
+        case system
+        case symbolName = "symbol_name"
+        case order
     }
 }
 
@@ -92,6 +111,10 @@ final class PendingShareStore {
         return directory
     }
 
+    func foldersFileURL() throws -> URL {
+        try containerURL().appendingPathComponent(SAVISharedContainer.foldersFileName)
+    }
+
     @discardableResult
     func save(_ share: PendingShare) throws -> URL {
         let directory = try pendingSharesDirectoryURL()
@@ -123,6 +146,33 @@ final class PendingShareStore {
                 guard let data = try? Data(contentsOf: url) else { return nil }
                 return try? decoder.decode(PendingShare.self, from: data)
             }
+    }
+
+    func saveFolders(_ folders: [SharedFolder]) throws {
+        let fileURL = try foldersFileURL()
+        let data = try encoder.encode(folders.sorted { lhs, rhs in
+            if lhs.order == rhs.order {
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+            return lhs.order < rhs.order
+        })
+        try data.write(to: fileURL, options: .atomic)
+    }
+
+    func loadFolders() -> [SharedFolder] {
+        guard let fileURL = try? foldersFileURL(),
+              let data = try? Data(contentsOf: fileURL),
+              let folders = try? decoder.decode([SharedFolder].self, from: data)
+        else {
+            return []
+        }
+
+        return folders.sorted { lhs, rhs in
+            if lhs.order == rhs.order {
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+            return lhs.order < rhs.order
+        }
     }
 
     func remove(_ share: PendingShare) {

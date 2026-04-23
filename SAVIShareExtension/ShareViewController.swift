@@ -36,6 +36,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private let cancelButton = UIButton(type: .system)
 
     private var pendingShare: PendingShare?
+    private var availableFolders: [FolderPreset] = ShareItemExtractor.folderPresets()
     private var selectedFolderId = "f-must-see"
     private var selectedTags: [String] = []
     private var suggestedTags: [String] = []
@@ -120,6 +121,9 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         [previewCard, folderSection, titleSection, tagsSection, notesSection].forEach { contentStack.addArrangedSubview($0) }
 
         setNotesExpanded(false, animated: false)
+        if let firstFolder = availableFolders.first?.id, !firstFolder.isEmpty {
+            selectedFolderId = firstFolder
+        }
         rebuildFolderButtons()
         rebuildTagViews()
         updateSaveButton(isReady: false)
@@ -554,9 +558,10 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private func rebuildFolderButtons() {
         clearArrangedSubviews(of: folderGridStack)
 
-        let presets = ShareItemExtractor.folderPresets
-        let selectedPreset = presets.first(where: { $0.id == selectedFolderId }) ?? FolderPreset(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill")
-        let theme = folderTheme(for: selectedPreset.id)
+        availableFolders = ShareItemExtractor.folderPresets()
+        let presets = availableFolders
+        let selectedPreset = presets.first(where: { $0.id == selectedFolderId }) ?? FolderPreset(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill", colorHex: "#F7C948")
+        let theme = folderTheme(for: selectedPreset)
 
         folderSummaryCard.backgroundColor = theme.color.withAlphaComponent(0.09)
         folderSummaryCard.layer.borderColor = theme.color.withAlphaComponent(0.18).cgColor
@@ -592,7 +597,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     }
 
     private func makeFolderButton(for preset: FolderPreset) -> UIButton {
-        let theme = folderTheme(for: preset.id)
+        let theme = folderTheme(for: preset)
         let isSelected = preset.id == selectedFolderId
 
         var config = UIButton.Configuration.filled()
@@ -612,7 +617,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         button.layer.borderWidth = 1
         button.layer.borderColor = (isSelected ? theme.color.withAlphaComponent(0.22) : UIColor.separator.withAlphaComponent(0.22)).cgColor
         button.heightAnchor.constraint(equalToConstant: 52).isActive = true
-        button.tag = ShareItemExtractor.folderPresets.firstIndex(where: { $0.id == preset.id }) ?? 0
+        button.tag = availableFolders.firstIndex(where: { $0.id == preset.id }) ?? 0
         button.addTarget(self, action: #selector(folderTapped(_:)), for: .touchUpInside)
         return button
     }
@@ -670,8 +675,12 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         return dedupeTags(tags)
     }
 
-    private func folderTheme(for id: String) -> (color: UIColor, glow: UIColor) {
-        switch id {
+    private func folderTheme(for preset: FolderPreset) -> (color: UIColor, glow: UIColor) {
+        if let colorHex = preset.colorHex, let parsed = UIColor(hex: colorHex) {
+            return (parsed, parsed.withAlphaComponent(0.18))
+        }
+
+        switch preset.id {
         case "f-private-vault":
             return (.systemIndigo, UIColor.systemIndigo.withAlphaComponent(0.18))
         case "f-growth":
@@ -794,8 +803,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     }
 
     @objc private func folderTapped(_ sender: UIButton) {
-        guard ShareItemExtractor.folderPresets.indices.contains(sender.tag) else { return }
-        selectedFolderId = ShareItemExtractor.folderPresets[sender.tag].id
+        guard availableFolders.indices.contains(sender.tag) else { return }
+        selectedFolderId = availableFolders[sender.tag].id
         rebuildFolderButtons()
     }
 
@@ -839,5 +848,25 @@ private extension UIFont {
 private extension String {
     var nilIfEmpty: String? {
         isEmpty ? nil : self
+    }
+}
+
+private extension UIColor {
+    convenience init?(hex: String) {
+        let cleaned = hex
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "#", with: "")
+
+        guard cleaned.count == 6 || cleaned.count == 8 else { return nil }
+        var value: UInt64 = 0
+        guard Scanner(string: cleaned).scanHexInt64(&value) else { return nil }
+
+        let hasAlpha = cleaned.count == 8
+        let red = CGFloat((value >> (hasAlpha ? 24 : 16)) & 0xFF) / 255
+        let green = CGFloat((value >> (hasAlpha ? 16 : 8)) & 0xFF) / 255
+        let blue = CGFloat((value >> (hasAlpha ? 8 : 0)) & 0xFF) / 255
+        let alpha = hasAlpha ? CGFloat(value & 0xFF) / 255 : 1
+
+        self.init(red: red, green: green, blue: blue, alpha: alpha)
     }
 }
