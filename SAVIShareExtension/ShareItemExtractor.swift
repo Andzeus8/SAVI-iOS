@@ -35,23 +35,24 @@ enum ShareItemExtractor {
 
         if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
             let url = try await provider.loadURL()
-            let fallbackTitle = url.lastPathComponent.isEmpty ? url.absoluteString : url.lastPathComponent
-            let type = inferredType(for: url.absoluteString)
+            let canonicalURLString = canonicalizedURLString(from: url.absoluteString)
+            let fallbackTitle = fallbackTitleForURLString(canonicalURLString)
+            let type = inferredType(for: canonicalURLString)
             return PendingShare(
                 id: UUID().uuidString,
-                url: url.absoluteString,
+                url: canonicalURLString,
                 title: itemTitle ?? fallbackTitle,
                 type: type,
                 thumbnail: nil,
                 timestamp: timestamp,
-                sourceApp: sourceLabel(from: sourceBundleID, sharedURL: url.absoluteString),
+                sourceApp: sourceLabel(from: sourceBundleID, sharedURL: canonicalURLString),
                 text: itemText,
                 fileName: nil,
                 filePath: nil,
                 mimeType: nil,
                 itemDescription: itemText,
-                folderId: suggestedFolderId(type: type, url: url.absoluteString, title: itemTitle, description: itemText),
-                tags: inferredTags(type: type, url: url.absoluteString, title: itemTitle, description: itemText, source: sourceBundleID)
+                folderId: suggestedFolderId(type: type, url: canonicalURLString, title: itemTitle, description: itemText),
+                tags: inferredTags(type: type, url: canonicalURLString, title: itemTitle, description: itemText, source: sourceBundleID)
             )
         }
 
@@ -151,6 +152,10 @@ enum ShareItemExtractor {
         let cleanTitle = resolved.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if cleanTitle.isEmpty {
             resolved.title = fallbackTitle(for: resolved)
+        }
+
+        if let urlString = resolved.url {
+            resolved.url = canonicalizedURLString(from: urlString)
         }
 
         guard let urlString = resolved.url,
@@ -267,7 +272,15 @@ extension ShareItemExtractor {
 private extension ShareItemExtractor {
     static func fallbackTitle(for share: PendingShare) -> String {
         if let fileName = share.fileName, !fileName.isEmpty { return fileName }
-        if let url = share.url, let parsed = URL(string: url), !parsed.lastPathComponent.isEmpty { return parsed.lastPathComponent }
+        if let url = share.url { return fallbackTitleForURLString(url) }
+        return "Shared item"
+    }
+
+    static func fallbackTitleForURLString(_ urlString: String) -> String {
+        guard let url = URL(string: urlString) else { return "Shared item" }
+        if isYouTubeURL(url) { return "YouTube video" }
+        if let host = hostDisplayName(for: url), !host.isEmpty { return "\(host) save" }
+        if !url.lastPathComponent.isEmpty { return url.lastPathComponent }
         return "Shared item"
     }
 
@@ -329,6 +342,10 @@ private extension ShareItemExtractor {
         return current.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || currentLower.hasPrefix("http")
             || currentLower == "shared item"
+            || currentLower == "youtube video"
+            || currentLower == "youtube save"
+            || currentLower == "watch"
+            || currentLower == "share"
             || currentLower.contains("youtube.com")
             || currentLower.contains("maps.google")
     }
@@ -434,12 +451,14 @@ private extension ShareItemExtractor {
     }
 
     static func fetchYouTubeMetadata(for url: URL) async throws -> RemoteMetadata {
-        if let metadata = try? await fetchYouTubeOEmbed(for: url) {
+        let canonicalURL = canonicalYouTubeURL(from: url)
+
+        if let metadata = try? await fetchYouTubeOEmbed(for: canonicalURL) {
             if let richer = try? await fetchHTMLMetadata(for: url) {
                 return RemoteMetadata(
                     title: metadata.title ?? richer.title,
                     description: richer.description ?? metadata.description,
-                    imageURL: metadata.imageURL ?? richer.imageURL,
+                    imageURL: metadata.imageURL ?? richer.imageURL ?? youtubeThumbnailURL(for: canonicalURL),
                     provider: metadata.provider ?? richer.provider ?? "YouTube",
                     tags: dedupeTags(metadata.tags + richer.tags)
                 )
@@ -447,18 +466,18 @@ private extension ShareItemExtractor {
             return RemoteMetadata(
                 title: metadata.title,
                 description: metadata.description,
-                imageURL: metadata.imageURL,
+                imageURL: metadata.imageURL ?? youtubeThumbnailURL(for: canonicalURL),
                 provider: metadata.provider ?? "YouTube",
                 tags: metadata.tags
             )
         }
 
-        if let metadata = try? await fetchNoembedMetadata(for: url) {
+        if let metadata = try? await fetchNoembedMetadata(for: canonicalURL) {
             if let richer = try? await fetchHTMLMetadata(for: url) {
                 return RemoteMetadata(
                     title: metadata.title ?? richer.title,
                     description: richer.description ?? metadata.description,
-                    imageURL: metadata.imageURL ?? richer.imageURL,
+                    imageURL: metadata.imageURL ?? richer.imageURL ?? youtubeThumbnailURL(for: canonicalURL),
                     provider: metadata.provider ?? richer.provider ?? "YouTube",
                     tags: dedupeTags(metadata.tags + richer.tags)
                 )
@@ -466,13 +485,28 @@ private extension ShareItemExtractor {
             return RemoteMetadata(
                 title: metadata.title,
                 description: metadata.description,
-                imageURL: metadata.imageURL,
+                imageURL: metadata.imageURL ?? youtubeThumbnailURL(for: canonicalURL),
                 provider: metadata.provider ?? "YouTube",
                 tags: metadata.tags
             )
         }
-
-        return try await fetchHTMLMetadata(for: url)
+        if var htmlMetadata = try? await fetchHTMLMetadata(for: canonicalURL) {
+            htmlMetadata = RemoteMetadata(
+                title: htmlMetadata.title,
+                description: htmlMetadata.description,
+                imageURL: htmlMetadata.imageURL ?? youtubeThumbnailURL(for: canonicalURL),
+                provider: htmlMetadata.provider ?? "YouTube",
+                tags: dedupeTags(htmlMetadata.tags + ["youtube", "video"])
+            )
+            return htmlMetadata
+        }
+        return RemoteMetadata(
+            title: nil,
+            description: "Video from YouTube.",
+            imageURL: youtubeThumbnailURL(for: canonicalURL),
+            provider: "YouTube",
+            tags: ["youtube", "video"]
+        )
     }
 
     static func fetchYouTubeOEmbed(for url: URL) async throws -> RemoteMetadata {
@@ -484,7 +518,7 @@ private extension ShareItemExtractor {
             description: youtubeFallbackDescription(from: decoded),
             imageURL: decoded.thumbnailURL,
             provider: decoded.providerName ?? "YouTube",
-            tags: ["youtube", "video"]
+            tags: dedupeTags(["youtube", "video", slugTag(from: decoded.authorName)])
         )
     }
 
@@ -497,7 +531,7 @@ private extension ShareItemExtractor {
             description: youtubeFallbackDescription(from: decoded),
             imageURL: decoded.thumbnailURL,
             provider: decoded.providerName,
-            tags: noembedTags(from: decoded.providerName, title: decoded.title)
+            tags: dedupeTags(noembedTags(from: decoded.providerName, title: decoded.title) + [slugTag(from: decoded.authorName)])
         )
     }
 
@@ -630,6 +664,56 @@ private extension ShareItemExtractor {
         return first.prefix(1).uppercased() + first.dropFirst()
     }
 
+    static func canonicalizedURLString(from value: String) -> String {
+        guard let url = URL(string: value) else { return value }
+        if isYouTubeURL(url) {
+            return canonicalYouTubeURL(from: url).absoluteString
+        }
+        return url.absoluteString
+    }
+
+    static func canonicalYouTubeURL(from url: URL) -> URL {
+        guard let videoID = extractYouTubeVideoID(from: url) else { return url }
+        return URL(string: "https://www.youtube.com/watch?v=\(videoID)") ?? url
+    }
+
+    static func extractYouTubeVideoID(from url: URL) -> String? {
+        let host = url.host?.lowercased() ?? ""
+        if host.contains("youtu.be") {
+            let id = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            return id.nilIfEmpty
+        }
+        if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            if let value = components.queryItems?.first(where: { $0.name == "v" })?.value, !value.isEmpty {
+                return value
+            }
+        }
+        let path = url.path.lowercased()
+        if path.contains("/shorts/") || path.contains("/embed/") {
+            let parts = url.path.split(separator: "/")
+            if let last = parts.last, !last.isEmpty {
+                return String(last)
+            }
+        }
+        return nil
+    }
+
+    static func youtubeThumbnailURL(for url: URL) -> String? {
+        guard let id = extractYouTubeVideoID(from: url) else { return nil }
+        return "https://img.youtube.com/vi/\(id)/hqdefault.jpg"
+    }
+
+    static func slugTag(from value: String?) -> String {
+        guard let value else { return "" }
+        return value
+            .lowercased()
+            .replacingOccurrences(of: "[^a-z0-9\\s-]", with: " ", options: .regularExpression)
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber && $0 != "-" })
+            .prefix(2)
+            .map(String.init)
+            .joined(separator: "-")
+    }
+
     static func keywordTags(title: String?, description: String?, url: String?, source: String?) -> [String] {
         let combined = [title, description, source]
             .compactMap { $0 }
@@ -754,6 +838,10 @@ private extension String {
 private extension String {
     func matches(_ pattern: String) -> Bool {
         range(of: pattern, options: .regularExpression) != nil
+    }
+
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }
 
