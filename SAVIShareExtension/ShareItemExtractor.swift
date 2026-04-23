@@ -251,21 +251,22 @@ private struct NoembedResponse: Decodable {
 struct FolderPreset {
     let id: String
     let name: String
+    let symbolName: String
 }
 
 extension ShareItemExtractor {
     static let folderPresets: [FolderPreset] = [
-        .init(id: "f-private-vault", name: "Private Vault"),
-        .init(id: "f-growth", name: "Growth Hacks"),
-        .init(id: "f-wtf-favorites", name: "WTF Favorites"),
-        .init(id: "f-tinfoil", name: "Tinfoil Hat Club"),
-        .init(id: "f-lmao", name: "LMAO"),
-        .init(id: "f-health", name: "Health Hacks"),
-        .init(id: "f-recipes", name: "Recipes & Food"),
-        .init(id: "f-travel", name: "Travel & Places"),
-        .init(id: "f-design", name: "Design Inspo"),
-        .init(id: "f-research", name: "Research"),
-        .init(id: "f-must-see", name: "Must See"),
+        .init(id: "f-private-vault", name: "Private Vault", symbolName: "lock.fill"),
+        .init(id: "f-growth", name: "Growth Hacks", symbolName: "bolt.fill"),
+        .init(id: "f-wtf-favorites", name: "WTF Favorites", symbolName: "sparkles"),
+        .init(id: "f-tinfoil", name: "Tinfoil Hat Club", symbolName: "eye.fill"),
+        .init(id: "f-lmao", name: "LMAO", symbolName: "theatermasks.fill"),
+        .init(id: "f-health", name: "Health Hacks", symbolName: "heart.fill"),
+        .init(id: "f-recipes", name: "Recipes & Food", symbolName: "fork.knife"),
+        .init(id: "f-travel", name: "Travel & Places", symbolName: "airplane"),
+        .init(id: "f-design", name: "Design Inspo", symbolName: "paintpalette.fill"),
+        .init(id: "f-research", name: "Research", symbolName: "magnifyingglass"),
+        .init(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill"),
     ]
 }
 
@@ -339,6 +340,7 @@ private extension ShareItemExtractor {
     static func shouldReplaceTitle(current: String, with candidate: String?) -> Bool {
         guard let candidate, !candidate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         let currentLower = current.lowercased()
+        let candidateLower = candidate.lowercased()
         return current.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || currentLower.hasPrefix("http")
             || currentLower == "shared item"
@@ -348,6 +350,7 @@ private extension ShareItemExtractor {
             || currentLower == "share"
             || currentLower.contains("youtube.com")
             || currentLower.contains("maps.google")
+            || candidateLower == "youtube"
     }
 
     static func extractPlaceName(from url: URL) -> String? {
@@ -514,7 +517,7 @@ private extension ShareItemExtractor {
         let data = try await fetchJSONData(from: endpoint)
         let decoded = try JSONDecoder().decode(YouTubeOEmbedResponse.self, from: data)
         return RemoteMetadata(
-            title: decoded.title,
+            title: cleanedFetchedTitle(decoded.title, for: url),
             description: youtubeFallbackDescription(from: decoded),
             imageURL: decoded.thumbnailURL,
             provider: decoded.providerName ?? "YouTube",
@@ -527,7 +530,7 @@ private extension ShareItemExtractor {
         let data = try await fetchJSONData(from: endpoint)
         let decoded = try JSONDecoder().decode(NoembedResponse.self, from: data)
         return RemoteMetadata(
-            title: decoded.title,
+            title: cleanedFetchedTitle(decoded.title, for: url),
             description: youtubeFallbackDescription(from: decoded),
             imageURL: decoded.thumbnailURL,
             provider: decoded.providerName,
@@ -594,7 +597,10 @@ private extension ShareItemExtractor {
         else {
             throw ShareItemExtractorError.failedToLoadContent
         }
-        let title = firstMetaContent(in: html, keys: ["og:title", "twitter:title", "parsely-title"]) ?? htmlTitle(in: html)
+        let title = cleanedFetchedTitle(
+            firstMetaContent(in: html, keys: ["og:title", "twitter:title", "parsely-title", "title"]) ?? htmlTitle(in: html),
+            for: url
+        )
         let description = firstMetaContent(in: html, keys: ["og:description", "description", "twitter:description", "parsely-description"])
         let imageValue = firstMetaContent(in: html, keys: ["og:image", "twitter:image"])
         let imageURL = imageValue.flatMap { resolve(urlString: $0, relativeTo: url) }
@@ -614,6 +620,25 @@ private extension ShareItemExtractor {
         let bestProvider = candidates.first(where: { !($0.provider ?? "").isEmpty })?.provider
         let tags = dedupeTags(candidates.flatMap(\.tags))
         return RemoteMetadata(title: bestTitle, description: bestDescription, imageURL: bestImage, provider: bestProvider, tags: tags)
+    }
+
+    static func cleanedFetchedTitle(_ value: String?, for url: URL) -> String? {
+        guard var title = value?.decodedHTMLString.trimmingCharacters(in: .whitespacesAndNewlines),
+              !title.isEmpty
+        else { return nil }
+
+        if isYouTubeURL(url) {
+            title = title
+                .replacingOccurrences(of: #"(?i)\s*-\s*youtube$"#, with: "", options: .regularExpression)
+                .replacingOccurrences(of: #"(?i)^watch\s*-\s*"#, with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        if title.lowercased() == "youtube" || title.lowercased() == "watch" {
+            return nil
+        }
+
+        return title
     }
 
     static func noembedTags(from provider: String?, title: String?) -> [String] {
