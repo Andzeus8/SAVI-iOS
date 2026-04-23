@@ -1,0 +1,460 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		053B53F65947BE5A89AED001 /* ShareItemExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22F59BE4ED4D78D7DFA5510 /* ShareItemExtractor.swift */; };
+		17450B03B5250677DE7C0400 /* AppGroupSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */; };
+		18C5779324E60FB0461B8F97 /* SAVIWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F14E3577FECF7CCEA55977 /* SAVIWebView.swift */; };
+		21369F7A43FA24862791478A /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = E31AD178E16028A5BC865A87 /* index.html */; };
+		561B6142D6588AD8B581634F /* SAVIWebViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D8759EA3E096D82F0BC9FE1 /* SAVIWebViewModel.swift */; };
+		6F56B5EA8EC5CA14D357CD09 /* SAVIShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, CodeSignOnCopy, ); }; };
+		75AB82B9897966CCF7028E0D /* AppGroupSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */; };
+		8D3C48C404FF29E62E974B6A /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E0E01594654714FD620E2F /* ShareViewController.swift */; };
+		9E0BF8DF6A2ACE7388B73DA7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25AEFE6C525A4559AFE2FCB0 /* ContentView.swift */; };
+		B1E3D6A7B0FF22BD01EB91E2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 98D87BA38D841BBC3186FCAC /* Assets.xcassets */; };
+		BADCDEFE3A64A6DE77A5879A /* SAVIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 454E8F99EB5E199E927BA378 /* SAVIApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7181A5B88B9F6B04CDF3A590 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DBE090BAC9F93B8F5D089DD8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9E164028DD14F61737EB4356;
+			remoteInfo = SAVIShareExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E05BAD85F796B970FA8BBD01 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				6F56B5EA8EC5CA14D357CD09 /* SAVIShareExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0D8759EA3E096D82F0BC9FE1 /* SAVIWebViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAVIWebViewModel.swift; sourceTree = "<group>"; };
+		11333F90426CE69B5643FED6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1DB32B332BE1517C41DD323F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupSupport.swift; sourceTree = "<group>"; };
+		25AEFE6C525A4559AFE2FCB0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		454E8F99EB5E199E927BA378 /* SAVIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAVIApp.swift; sourceTree = "<group>"; };
+		51F14E3577FECF7CCEA55977 /* SAVIWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAVIWebView.swift; sourceTree = "<group>"; };
+		8065247801A22C3651B51CB2 /* SAVI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SAVI.entitlements; sourceTree = "<group>"; };
+		8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SAVIShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		98D87BA38D841BBC3186FCAC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B22F59BE4ED4D78D7DFA5510 /* ShareItemExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareItemExtractor.swift; sourceTree = "<group>"; };
+		C03382BE6DF2A2C64092D179 /* SAVIShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SAVIShareExtension.entitlements; sourceTree = "<group>"; };
+		E31AD178E16028A5BC865A87 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
+		E816792053DE2717A057744F /* SAVI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SAVI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F7E0E01594654714FD620E2F /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0F87A878AEB94E823836E22B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AF3FCC8DF3AF693DCBC9AA8E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		113236722DEE1DC96F378B9D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E816792053DE2717A057744F /* SAVI.app */,
+				8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		135B373E788E4C77634C5F25 = {
+			isa = PBXGroup;
+			children = (
+				113236722DEE1DC96F378B9D /* Products */,
+				42006AB264CF2AB66A8087C0 /* SAVI */,
+				3AC73B1B9BE32CC7AB22405E /* Shared */,
+				DF34336E66928187F4B1CAB6 /* SAVIShareExtension */,
+			);
+			sourceTree = "<group>";
+		};
+		3AC73B1B9BE32CC7AB22405E /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		42006AB264CF2AB66A8087C0 /* SAVI */ = {
+			isa = PBXGroup;
+			children = (
+				454E8F99EB5E199E927BA378 /* SAVIApp.swift */,
+				25AEFE6C525A4559AFE2FCB0 /* ContentView.swift */,
+				0D8759EA3E096D82F0BC9FE1 /* SAVIWebViewModel.swift */,
+				51F14E3577FECF7CCEA55977 /* SAVIWebView.swift */,
+				11333F90426CE69B5643FED6 /* Info.plist */,
+				8065247801A22C3651B51CB2 /* SAVI.entitlements */,
+				98D87BA38D841BBC3186FCAC /* Assets.xcassets */,
+				CA2DA976D1169AE0BBF0B8BE /* Resources */,
+			);
+			path = SAVI;
+			sourceTree = "<group>";
+		};
+		CA2DA976D1169AE0BBF0B8BE /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E31AD178E16028A5BC865A87 /* index.html */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		DF34336E66928187F4B1CAB6 /* SAVIShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				F7E0E01594654714FD620E2F /* ShareViewController.swift */,
+				B22F59BE4ED4D78D7DFA5510 /* ShareItemExtractor.swift */,
+				1DB32B332BE1517C41DD323F /* Info.plist */,
+				C03382BE6DF2A2C64092D179 /* SAVIShareExtension.entitlements */,
+			);
+			path = SAVIShareExtension;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9E164028DD14F61737EB4356 /* SAVIShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D8D93522AA19F90A69132DFF /* Build configuration list for PBXNativeTarget "SAVIShareExtension" */;
+			buildPhases = (
+				976F22E240CEDCB52F1EB2AF /* Sources */,
+				AF3FCC8DF3AF693DCBC9AA8E /* Frameworks */,
+				10D5DC510C2ADD0195F5C5DC /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SAVIShareExtension;
+			productName = SAVIShareExtension;
+			productReference = 8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		F01C2E624E08A72BC055B46F /* SAVI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A25A21380B352A4D587DB751 /* Build configuration list for PBXNativeTarget "SAVI" */;
+			buildPhases = (
+				6B366E3A6159DC0A46CE6169 /* Sources */,
+				0F87A878AEB94E823836E22B /* Frameworks */,
+				A6B19C71F6D245509912A001 /* Sync Web Bundle */,
+				34E903FB6EA77173817200D0 /* Resources */,
+				E05BAD85F796B970FA8BBD01 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0A1A7AE717C9081C183A088A /* PBXTargetDependency */,
+			);
+			name = SAVI;
+			productName = SAVI;
+			productReference = E816792053DE2717A057744F /* SAVI.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DBE090BAC9F93B8F5D089DD8 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					9E164028DD14F61737EB4356 = {
+						CreatedOnToolsVersion = 16.0;
+						ProvisioningStyle = Automatic;
+					};
+					F01C2E624E08A72BC055B46F = {
+						CreatedOnToolsVersion = 16.0;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 946392D46B65BE2E368A0D3B /* Build configuration list for PBXProject "SAVI" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 135B373E788E4C77634C5F25;
+			productRefGroup = 113236722DEE1DC96F378B9D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F01C2E624E08A72BC055B46F /* SAVI */,
+				9E164028DD14F61737EB4356 /* SAVIShareExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		10D5DC510C2ADD0195F5C5DC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		34E903FB6EA77173817200D0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1E3D6A7B0FF22BD01EB91E2 /* Assets.xcassets in Resources */,
+				21369F7A43FA24862791478A /* index.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A6B19C71F6D245509912A001 /* Sync Web Bundle */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(PROJECT_DIR)/../SAVI /index.html",
+			);
+			name = "Sync Web Bundle";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(PROJECT_DIR)/SAVI/Resources/index.html",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/zsh;
+			shellScript = "\"$PROJECT_DIR/scripts/sync_web_bundle.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6B366E3A6159DC0A46CE6169 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BADCDEFE3A64A6DE77A5879A /* SAVIApp.swift in Sources */,
+				9E0BF8DF6A2ACE7388B73DA7 /* ContentView.swift in Sources */,
+				561B6142D6588AD8B581634F /* SAVIWebViewModel.swift in Sources */,
+				18C5779324E60FB0461B8F97 /* SAVIWebView.swift in Sources */,
+				17450B03B5250677DE7C0400 /* AppGroupSupport.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		976F22E240CEDCB52F1EB2AF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8D3C48C404FF29E62E974B6A /* ShareViewController.swift in Sources */,
+				053B53F65947BE5A89AED001 /* ShareItemExtractor.swift in Sources */,
+				75AB82B9897966CCF7028E0D /* AppGroupSupport.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0A1A7AE717C9081C183A088A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9E164028DD14F61737EB4356 /* SAVIShareExtension */;
+			targetProxy = 7181A5B88B9F6B04CDF3A590 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0CF8206AA0B385A93D33097D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		1128DC3924065E477F3AFD8E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SAVI/SAVI.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SAVI/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.savi.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		12E625D84A0E3D927191375D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SAVI/SAVI.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SAVI/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.savi.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		14B18CEA3307FC13D564FFD0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = SAVIShareExtension/SAVIShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SAVIShareExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.savi.app.ShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		218037AB54AB59F5BE8E874E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B75ACF8F6CBFFD86C332C9D6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = SAVIShareExtension/SAVIShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SAVIShareExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.savi.app.ShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		946392D46B65BE2E368A0D3B /* Build configuration list for PBXProject "SAVI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				218037AB54AB59F5BE8E874E /* Debug */,
+				0CF8206AA0B385A93D33097D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A25A21380B352A4D587DB751 /* Build configuration list for PBXNativeTarget "SAVI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				12E625D84A0E3D927191375D /* Debug */,
+				1128DC3924065E477F3AFD8E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D8D93522AA19F90A69132DFF /* Build configuration list for PBXNativeTarget "SAVIShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B75ACF8F6CBFFD86C332C9D6 /* Debug */,
+				14B18CEA3307FC13D564FFD0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = DBE090BAC9F93B8F5D089DD8 /* Project object */;
+}
