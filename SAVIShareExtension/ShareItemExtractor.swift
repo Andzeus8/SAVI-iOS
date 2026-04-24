@@ -545,22 +545,19 @@ private extension ShareItemExtractor {
     }
 
     static func fetchRemoteMetadata(for url: URL) async -> RemoteMetadata? {
-        var candidates: [RemoteMetadata] = []
-        if isYouTubeURL(url), let metadata = try? await fetchYouTubeMetadata(for: url) {
-            candidates.append(metadata)
-        }
-        if let metadata = try? await fetchProviderSpecificMetadata(for: url) {
-            candidates.append(metadata)
-        }
-        if let metadata = try? await fetchNoembedMetadata(for: url) {
-            candidates.append(metadata)
-        }
-        if let metadata = try? await fetchLinkPresentationMetadata(for: url) {
-            candidates.append(metadata)
-        }
-        if let metadata = try? await fetchHTMLMetadata(for: url) {
-            candidates.append(metadata)
-        }
+        async let youtubeMetadata: RemoteMetadata? = isYouTubeURL(url) ? (try? await fetchYouTubeMetadata(for: url)) : nil
+        async let providerMetadata: RemoteMetadata? = try? await fetchProviderSpecificMetadata(for: url)
+        async let noembedMetadata: RemoteMetadata? = try? await fetchNoembedMetadata(for: url)
+        async let linkPresentationMetadata: RemoteMetadata? = try? await fetchLinkPresentationMetadata(for: url)
+        async let htmlMetadata: RemoteMetadata? = try? await fetchHTMLMetadata(for: url)
+
+        let candidates = await [
+            youtubeMetadata,
+            providerMetadata,
+            noembedMetadata,
+            linkPresentationMetadata,
+            htmlMetadata
+        ].compactMap { $0 }
         guard !candidates.isEmpty else { return nil }
         return mergeMetadata(candidates)
     }
@@ -696,7 +693,7 @@ private extension ShareItemExtractor {
     static func fetchJSONData(from urlString: String) async throws -> Data {
         guard let url = URL(string: urlString) else { throw ShareItemExtractorError.failedToLoadContent }
         var request = URLRequest(url: url)
-        request.timeoutInterval = 12
+        request.timeoutInterval = 6
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<400).contains(http.statusCode) else {
@@ -744,7 +741,7 @@ private extension ShareItemExtractor {
 
     static func fetchHTMLMetadata(for url: URL) async throws -> RemoteMetadata {
         var request = URLRequest(url: url)
-        request.timeoutInterval = 12
+        request.timeoutInterval = 6
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<400).contains(http.statusCode),
