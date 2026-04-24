@@ -2271,7 +2271,7 @@ function App() {
                     )}
                   </div>
                   <div className="navigator-shell">
-                    <TabBar route={route} setRoute={setRoute} onSavePress={()=>openSaveSheet("", { tryClipboard: true })} />
+                    <TabBar route={route} setRoute={setRoute} onSavePress={()=>openSaveSheet()} />
                   </div>
 
                   {showSaveSheet && <SaveSheet initialUrl={prefillUrl} prefillFromClipboard={prefillFromClipboard} autoAnalyzeInitial={prefillAutoAnalyze} folders={folders} onClose={()=>setShowSaveSheet(false)} onSave={async (i)=>{ await addItem(i); setShowSaveSheet(false); }} />}
@@ -3594,9 +3594,6 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
       setType("article");
       setTextBody("");
       if (fileInputRef.current) fileInputRef.current.value = "";
-      window.setTimeout(() => {
-        urlInputRef.current?.focus({ preventScroll: true });
-      }, 90);
     } else if (nextMode === "text") {
       cancelAnalyze();
       setSelectedFile(null);
@@ -3739,17 +3736,6 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
   }, [url, step, initialUrl, isAnalyzing, inputMode]);
 
   useEffect(() => {
-    if (inputMode !== "link" || step !== 1 || initialUrl) return;
-    const timer = window.setTimeout(() => {
-      const input = urlInputRef.current;
-      if (!input) return;
-      input.focus({ preventScroll: true });
-      ensureVisible(input, "auto");
-    }, 140);
-    return () => window.clearTimeout(timer);
-  }, [step, initialUrl, inputMode]);
-
-  useEffect(() => {
     const viewport = window.visualViewport;
     if (!viewport) return;
 
@@ -3854,9 +3840,6 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
     setAnalysisNote("");
     setClipboardNote("");
     setStep(1);
-    window.setTimeout(() => {
-      urlInputRef.current?.focus({ preventScroll: true });
-    }, 20);
   };
 
   const openFilePicker = () => {
@@ -3978,7 +3961,7 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 10 }}>
                     <button onClick={() => fillFromClipboard()} style={{ padding: "9px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: T.card, color: T.ink, border: `1px solid ${T.lineSoft}` }}>
-                      Use clipboard
+                      Paste from clipboard
                     </button>
                     {clipboardNote && (
                       <div className="mono" style={{ flex: 1, textAlign: "right", fontSize: 10, color: T.inkMute }}>
@@ -3988,7 +3971,7 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
                   </div>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 16, fontSize: 11.5, padding: 12, borderRadius: 12, background: T.paperDim, border: `1px solid ${T.lineSoft}`, color: T.inkSoft }}>
                     <div style={{ color: T.accent, flexShrink: 0, marginTop: 2 }}><IconSparkles size={13} /></div>
-                    <span>Tap plus and SAVI will try your clipboard first, then keep going automatically once it sees a real link.</span>
+                    <span>Paste a link manually or tap Paste from clipboard. SAVI will pull the metadata once it sees a real link.</span>
                   </div>
                 </>
               ) : inputMode === "text" ? (
