@@ -626,7 +626,7 @@ private extension ShareItemExtractor {
         let decoded = try JSONDecoder().decode(NoembedResponse.self, from: data)
         return RemoteMetadata(
             title: cleanedFetchedTitle(decoded.title, for: url),
-            description: youtubeFallbackDescription(from: decoded),
+            description: providerFallbackDescription(provider: decoded.providerName, author: decoded.authorName, url: url),
             imageURL: decoded.thumbnailURL,
             provider: decoded.providerName,
             tags: dedupeTags(noembedTags(from: decoded.providerName, title: decoded.title))
@@ -938,11 +938,14 @@ private extension ShareItemExtractor {
         return "Video from YouTube."
     }
 
-    static func youtubeFallbackDescription(from payload: NoembedResponse) -> String? {
-        if let author = payload.authorName, !author.isEmpty {
-            return "Video from YouTube by \(author)."
+    static func providerFallbackDescription(provider: String?, author: String?, url: URL) -> String? {
+        let label = (provider?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty)
+            ?? sourceLabel(from: nil, sharedURL: url.absoluteString)
+        guard !label.isEmpty else { return nil }
+        if let author, !author.isEmpty {
+            return "Shared from \(label) by \(author)."
         }
-        return "Video from YouTube."
+        return "Shared from \(label)."
     }
 
     static func isYouTubeURL(_ url: URL) -> Bool {

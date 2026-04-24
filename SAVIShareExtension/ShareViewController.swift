@@ -36,6 +36,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private let tagsField = UITextField()
 
     private let notesToggleButton = UIButton(type: .system)
+    private let notesClearButton = UIButton(type: .system)
     private let notesTextView = UITextView()
 
     private let saveButton = UIButton(type: .system)
@@ -399,6 +400,9 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         titleField.clearButtonMode = .always
 
         configureNotesToggle()
+        let notesActionsRow = UIStackView(arrangedSubviews: [notesToggleButton, UIView(), notesClearButton])
+        notesActionsRow.axis = .horizontal
+        notesActionsRow.alignment = .center
         notesTextView.font = .preferredFont(forTextStyle: .body)
         notesTextView.textColor = .label
         notesTextView.backgroundColor = UIColor.secondarySystemBackground
@@ -410,7 +414,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         cardStack.addArrangedSubview(innerStack)
         cardStack.addArrangedSubview(titleField)
-        cardStack.addArrangedSubview(notesToggleButton)
+        cardStack.addArrangedSubview(notesActionsRow)
         cardStack.addArrangedSubview(notesTextView)
     }
 
@@ -517,6 +521,16 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         notesToggleButton.configuration = config
         notesToggleButton.contentHorizontalAlignment = .leading
         notesToggleButton.addTarget(self, action: #selector(toggleNotes), for: .touchUpInside)
+
+        var clearConfig = UIButton.Configuration.plain()
+        clearConfig.title = "Clear"
+        clearConfig.image = UIImage(systemName: "xmark.circle.fill")
+        clearConfig.imagePadding = 6
+        clearConfig.baseForegroundColor = .secondaryLabel
+        clearConfig.contentInsets = .zero
+        notesClearButton.configuration = clearConfig
+        notesClearButton.contentHorizontalAlignment = .trailing
+        notesClearButton.addTarget(self, action: #selector(clearNotesTapped), for: .touchUpInside)
     }
 
     private func makeSectionCard(emphasized: Bool = false) -> UIStackView {
@@ -615,6 +629,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         previewSubtitleLabel.text = summary
         titleField.text = share.title
         notesTextView.text = summary
+        updateNotesClearButton()
 
         selectedFolderId = share.folderId ?? selectedFolderId
         selectedTags = defaultSelectedTags(for: share)
@@ -1024,6 +1039,11 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         setNotesExpanded(!notesExpanded, animated: true)
     }
 
+    @objc private func clearNotesTapped() {
+        notesTextView.text = ""
+        updateNotesClearButton()
+    }
+
     private func setNotesExpanded(_ expanded: Bool, animated: Bool) {
         notesExpanded = expanded
 
@@ -1037,12 +1057,20 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         let changes = {
             self.notesTextView.isHidden = !expanded
+            self.notesClearButton.isHidden = !expanded
         }
         if animated {
             UIView.animate(withDuration: 0.18, animations: changes)
         } else {
             changes()
         }
+        updateNotesClearButton()
+    }
+
+    private func updateNotesClearButton() {
+        let hasNotes = !(notesTextView.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        notesClearButton.isEnabled = notesExpanded && hasNotes
+        notesClearButton.alpha = notesExpanded && hasNotes ? 1 : 0.45
     }
 
     private func toggleTag(_ value: String, forceSelection: Bool? = nil) {
