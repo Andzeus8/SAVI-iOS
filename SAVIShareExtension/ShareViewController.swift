@@ -9,6 +9,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private let previewImageView = UIImageView()
     private let previewIconView = UIImageView()
     private let statusBadge = UILabel()
+    private let detectedTitleLabel = UILabel()
     private let previewMetaLabel = UILabel()
     private let previewSubtitleLabel = UILabel()
     private let spinner = UIActivityIndicatorView(style: .medium)
@@ -254,6 +255,11 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         statusBadge.heightAnchor.constraint(equalToConstant: 24).isActive = true
         statusBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 104).isActive = true
 
+        detectedTitleLabel.font = .preferredFont(forTextStyle: .subheadline).bold()
+        detectedTitleLabel.textColor = .label
+        detectedTitleLabel.numberOfLines = 2
+        detectedTitleLabel.text = "Preparing your save…"
+
         previewMetaLabel.font = .preferredFont(forTextStyle: .caption1)
         previewMetaLabel.textColor = .systemIndigo
         previewMetaLabel.text = "Share Extension • Link"
@@ -269,9 +275,9 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         topRow.axis = .horizontal
         topRow.alignment = .center
 
-        let textStack = UIStackView(arrangedSubviews: [topRow, previewMetaLabel, previewSubtitleLabel])
+        let textStack = UIStackView(arrangedSubviews: [topRow, detectedTitleLabel, previewMetaLabel, previewSubtitleLabel])
         textStack.axis = .vertical
-        textStack.spacing = 6
+        textStack.spacing = 5
 
         innerStack.addArrangedSubview(mediaWrap)
         innerStack.addArrangedSubview(textStack)
@@ -470,6 +476,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             }
         } catch {
             await MainActor.run {
+                detectedTitleLabel.text = "Couldn’t read this share"
                 previewSubtitleLabel.text = "We couldn't pull metadata here. Add a title, optional note, and save it anyway."
                 previewMetaLabel.text = "Share Extension"
                 previewIconView.image = UIImage(systemName: "exclamationmark.triangle.fill")
@@ -484,6 +491,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private func applyShare(_ share: PendingShare, animated: Bool) {
         let summary = share.itemDescription ?? share.text ?? previewText(for: share)
+        detectedTitleLabel.text = share.title
         previewMetaLabel.text = "\(share.sourceApp) • \(share.type.capitalized)"
         previewSubtitleLabel.text = summary
         titleField.text = share.title
