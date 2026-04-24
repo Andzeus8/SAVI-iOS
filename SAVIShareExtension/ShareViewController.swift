@@ -89,12 +89,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         configureFolderGrid()
         folderSection.addArrangedSubview(folderGridStack)
 
-        let titleSection = makeSectionCard()
-        titleSection.addArrangedSubview(makeSectionLabel("Title"))
-        titleSection.addArrangedSubview(makeHintLabel("Quick gut check. If this looks right, hit Save from the top and move on."))
-        configureTextField(titleField, placeholder: "Shared item")
-        titleSection.addArrangedSubview(titleField)
-
         let tagsSection = makeSectionCard()
         tagsSection.addArrangedSubview(makeSectionLabel("Tags"))
         tagsSection.addArrangedSubview(makeHintLabel("A few smart tags make this easy to find later. Keep the strongest ones."))
@@ -107,21 +101,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         configureTextField(tagsField, placeholder: "Add extra tags, comma separated")
         tagsSection.addArrangedSubview(tagsField)
 
-        let notesSection = makeSectionCard()
-        configureNotesToggle()
-        notesSection.addArrangedSubview(makeSectionLabel("Optional note"))
-        notesSection.addArrangedSubview(notesToggleButton)
-        notesTextView.font = .preferredFont(forTextStyle: .body)
-        notesTextView.textColor = .label
-        notesTextView.backgroundColor = UIColor.secondarySystemBackground
-        notesTextView.layer.cornerRadius = 16
-        notesTextView.layer.borderWidth = 1
-        notesTextView.layer.borderColor = UIColor.separator.withAlphaComponent(0.45).cgColor
-        notesTextView.textContainerInset = UIEdgeInsets(top: 12, left: 10, bottom: 12, right: 10)
-        notesTextView.heightAnchor.constraint(equalToConstant: 94).isActive = true
-        notesSection.addArrangedSubview(notesTextView)
-
-        [folderSection, previewCard, titleSection, tagsSection, notesSection].forEach { contentStack.addArrangedSubview($0) }
+        [folderSection, previewCard, tagsSection].forEach { contentStack.addArrangedSubview($0) }
 
         setNotesExpanded(false, animated: false)
         if let firstFolder = availableFolders.first?.id, !firstFolder.isEmpty {
@@ -219,19 +199,23 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         previewCard.layer.shadowRadius = 18
         previewCard.layer.shadowOffset = CGSize(width: 0, height: 8)
 
+        let cardStack = UIStackView()
+        cardStack.axis = .vertical
+        cardStack.spacing = 12
+        cardStack.translatesAutoresizingMaskIntoConstraints = false
+        previewCard.addSubview(cardStack)
+
+        NSLayoutConstraint.activate([
+            cardStack.leadingAnchor.constraint(equalTo: previewCard.leadingAnchor, constant: 14),
+            cardStack.trailingAnchor.constraint(equalTo: previewCard.trailingAnchor, constant: -14),
+            cardStack.topAnchor.constraint(equalTo: previewCard.topAnchor, constant: 14),
+            cardStack.bottomAnchor.constraint(equalTo: previewCard.bottomAnchor, constant: -14),
+        ])
+
         let innerStack = UIStackView()
         innerStack.axis = .horizontal
         innerStack.alignment = .top
         innerStack.spacing = 12
-        innerStack.translatesAutoresizingMaskIntoConstraints = false
-        previewCard.addSubview(innerStack)
-
-        NSLayoutConstraint.activate([
-            innerStack.leadingAnchor.constraint(equalTo: previewCard.leadingAnchor, constant: 14),
-            innerStack.trailingAnchor.constraint(equalTo: previewCard.trailingAnchor, constant: -14),
-            innerStack.topAnchor.constraint(equalTo: previewCard.topAnchor, constant: 14),
-            innerStack.bottomAnchor.constraint(equalTo: previewCard.bottomAnchor, constant: -14),
-        ])
 
         let mediaWrap = UIView()
         mediaWrap.translatesAutoresizingMaskIntoConstraints = false
@@ -284,8 +268,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         previewSubtitleLabel.font = .preferredFont(forTextStyle: .footnote)
         previewSubtitleLabel.textColor = .secondaryLabel
-        previewSubtitleLabel.numberOfLines = 2
-        previewSubtitleLabel.text = "Finding the title, folder, and a few useful tags."
+        previewSubtitleLabel.numberOfLines = 3
+        previewSubtitleLabel.text = "Intelligently categorizing your save, pulling the title, and prepping a few useful tags."
 
         spinner.startAnimating()
 
@@ -299,6 +283,24 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         innerStack.addArrangedSubview(mediaWrap)
         innerStack.addArrangedSubview(textStack)
+
+        configureTextField(titleField, placeholder: "Add a clear title")
+        titleField.font = .preferredFont(forTextStyle: .body).bold()
+
+        configureNotesToggle()
+        notesTextView.font = .preferredFont(forTextStyle: .body)
+        notesTextView.textColor = .label
+        notesTextView.backgroundColor = UIColor.secondarySystemBackground
+        notesTextView.layer.cornerRadius = 16
+        notesTextView.layer.borderWidth = 1
+        notesTextView.layer.borderColor = UIColor.separator.withAlphaComponent(0.45).cgColor
+        notesTextView.textContainerInset = UIEdgeInsets(top: 12, left: 10, bottom: 12, right: 10)
+        notesTextView.heightAnchor.constraint(equalToConstant: 94).isActive = true
+
+        cardStack.addArrangedSubview(innerStack)
+        cardStack.addArrangedSubview(titleField)
+        cardStack.addArrangedSubview(notesToggleButton)
+        cardStack.addArrangedSubview(notesTextView)
     }
 
     private func configureFolderSummaryCard() {
@@ -463,7 +465,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
                 pendingShare = share
                 applyShare(share, animated: false)
                 statusBadge.text = "Auto-filling"
-                previewSubtitleLabel.text = "Finding the best title, folder, and a few useful tags."
+                previewSubtitleLabel.text = "Intelligently categorizing your save, pulling the title, and prepping a few useful tags."
                 updateSaveButton(isReady: false)
             }
 
@@ -472,18 +474,24 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
                 pendingShare = enriched
                 applyShare(enriched, animated: true)
                 spinner.stopAnimating()
-                statusBadge.text = "Ready"
-                previewSubtitleLabel.text = "Looks good. Save now or make one quick change."
+                let needsReview = needsManualReview(enriched)
+                statusBadge.text = needsReview ? "Check title" : "Ready"
+                previewSubtitleLabel.text = needsReview
+                    ? "We pulled what we could. Give it a better title or note if needed, then save."
+                    : "Looks good. Save now or make one quick change."
+                setNotesExpanded(needsReview, animated: true)
                 updateSaveButton(isReady: true)
             }
         } catch {
             await MainActor.run {
                 previewTitleLabel.text = "Couldn’t read this share"
-                previewSubtitleLabel.text = error.localizedDescription
+                previewSubtitleLabel.text = "We couldn't pull metadata here. Add a title, optional note, and save it anyway."
                 previewMetaLabel.text = "Share Extension"
                 previewIconView.image = UIImage(systemName: "exclamationmark.triangle.fill")
                 spinner.stopAnimating()
-                statusBadge.text = "Review"
+                statusBadge.text = "Add title"
+                titleField.text = pendingShare?.title ?? ""
+                setNotesExpanded(true, animated: true)
                 updateSaveButton(isReady: true)
             }
         }
@@ -676,6 +684,21 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         let meaningful = raw.filter { !generic.contains($0.lowercased()) }
         let fallback = raw.filter { generic.contains($0.lowercased()) }
         return meaningful + fallback
+    }
+
+    private func needsManualReview(_ share: PendingShare) -> Bool {
+        let title = share.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = title.lowercased()
+        let genericTitles = [
+            "shared item",
+            "youtube video",
+            "shared text"
+        ]
+        if genericTitles.contains(lower) { return true }
+        if title.hasPrefix("http://") || title.hasPrefix("https://") { return true }
+        if lower.hasSuffix(" save") { return true }
+        if title.count < 12 { return true }
+        return false
     }
 
     private func rebuildTagViews() {
