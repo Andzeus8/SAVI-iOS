@@ -2442,8 +2442,8 @@ function WelcomeWizard({ onFinish }) {
 function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiveFolder, browseMode, setBrowseMode, activeType, setActiveType, activeSource, setActiveSource, viewMode, setViewMode, folderCounts, typeCounts, sourceCounts, sourceOptions, search, setSearch, onSelect, onShare, onShareItem }) {
   const activeFolderName = folders.find(f => f.id === activeFolder)?.name || "All Saves";
   const activeSourceLabel = sourceOptions.find((option) => option.key === activeSource)?.label || (activeSource === "all" ? "All Apps" : titleize(activeSource));
-  const heroEyebrow = searchMode ? "Search" : browseMode === "all" ? "Dashboard" : browseMode === "folders" ? "Folders" : browseMode === "types" ? "Types" : "Apps";
-  const heroTitle = searchMode ? "Find anything" : browseMode === "all" ? "Home" : browseMode === "folders" ? (activeFolder === "f-all" ? "All folders" : activeFolderName) : browseMode === "types" ? displayTypeLabel(activeType) : activeSourceLabel;
+  const heroEyebrow = searchMode ? "Search" : browseMode === "all" ? "My SAVIs" : browseMode === "folders" ? "Folders" : browseMode === "types" ? "Types" : "Apps";
+  const heroTitle = searchMode ? "Find any SAVI" : browseMode === "all" ? "My SAVIs" : browseMode === "folders" ? (activeFolder === "f-all" ? "All folders" : activeFolderName) : browseMode === "types" ? displayTypeLabel(activeType) : activeSourceLabel;
   const heroDescription = searchMode
     ? "Search works across every folder, tag, app, and file detail in your library."
     : browseMode === "all"
@@ -2566,7 +2566,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
           <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.inkMute, pointerEvents: "none", display: "flex" }}>
             <IconSearch size={15} />
           </div>
-          <input aria-label="Search your library" ref={searchInputRef} value={search} onChange={e=>setSearch(e.target.value)} placeholder={searchMode ? "Search titles, tags, apps, and notes..." : "Search everything in SAVI"} style={{ width: "100%", borderRadius: 16, padding: "12px 14px 12px 42px", fontSize: 14, background: T.card, border: `1px solid ${T.lineSoft}`, color: T.ink, boxShadow: "0 16px 28px -26px rgba(22,26,35,0.55)" }} />
+          <input aria-label="Search your library" ref={searchInputRef} value={search} onChange={e=>setSearch(e.target.value)} placeholder={searchMode ? "Search titles, tags, apps, and notes..." : "Search all your SAVIs"} style={{ width: "100%", borderRadius: 16, padding: "12px 14px 12px 42px", fontSize: 14, background: T.card, border: `1px solid ${T.lineSoft}`, color: T.ink, boxShadow: "0 16px 28px -26px rgba(22,26,35,0.55)" }} />
         </div>
       </div>
 
@@ -2574,7 +2574,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
         <div style={{ padding: "0 20px 18px", display: "grid", gap: 18 }}>
           <div style={{ padding: 16, borderRadius: 22, background: "linear-gradient(160deg, rgba(22,26,35,0.98) 0%, rgba(65,74,118,0.96) 100%)", color: T.paper, boxShadow: "0 22px 40px -28px rgba(22,26,35,0.72)" }}>
             <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(245,241,234,0.68)", marginBottom: 10 }}>
-              Quick jump
+              SAVI shortcuts
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
               <button onClick={() => { setBrowseMode("all"); setSearch(""); }} style={{ padding: "14px 12px", borderRadius: 16, background: "rgba(255,255,255,0.08)", color: T.paper, textAlign: "left", border: "1px solid rgba(255,255,255,0.12)" }}>
@@ -2613,7 +2613,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
           {topFolders.length > 0 && (
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
-                <div className="serif" style={{ fontSize: 24, color: T.ink }}>Top folders</div>
+                <div className="serif" style={{ fontSize: 24, color: T.ink }}>Top SAVI folders</div>
                 <button className="mono" onClick={() => { setBrowseMode("folders"); setActiveFolder("f-all"); }} style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
                   See all
                 </button>
@@ -2710,7 +2710,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
       ) : viewMode === "grid" ? (
         <div key={`grid-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Latest saves" : heroTitle}</div>
+            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Latest SAVIs" : heroTitle}</div>
             <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
               {items.length} {items.length === 1 ? "item" : "items"}
             </div>
@@ -2722,7 +2722,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
       ) : (
         <div key={`list-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Latest saves" : heroTitle}</div>
+            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Latest SAVIs" : heroTitle}</div>
             <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
               {items.length} {items.length === 1 ? "item" : "items"}
             </div>
