@@ -249,6 +249,9 @@
 			);
 			inputPaths = (
 				"$(PROJECT_DIR)/../SAVI /index.html",
+				"$(PROJECT_DIR)/../SAVI /vendor/react.production.min.js",
+				"$(PROJECT_DIR)/../SAVI /vendor/react-dom.production.min.js",
+				"$(PROJECT_DIR)/../SAVI /vendor/babel.min.js",
 			);
 			name = "Sync Web Bundle";
 			outputFileListPaths = (
