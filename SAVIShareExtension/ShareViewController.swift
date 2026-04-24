@@ -523,9 +523,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         notesToggleButton.addTarget(self, action: #selector(toggleNotes), for: .touchUpInside)
 
         var clearConfig = UIButton.Configuration.plain()
-        clearConfig.title = "Clear"
         clearConfig.image = UIImage(systemName: "xmark.circle.fill")
-        clearConfig.imagePadding = 6
         clearConfig.baseForegroundColor = .secondaryLabel
         clearConfig.contentInsets = .zero
         notesClearButton.configuration = clearConfig

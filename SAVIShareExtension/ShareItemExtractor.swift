@@ -248,6 +248,20 @@ private struct NoembedResponse: Decodable {
     }
 }
 
+private struct GenericOEmbedResponse: Decodable {
+    let title: String?
+    let authorName: String?
+    let providerName: String?
+    let thumbnailURL: String?
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case authorName = "author_name"
+        case providerName = "provider_name"
+        case thumbnailURL = "thumbnail_url"
+    }
+}
+
 struct FolderPreset {
     let id: String
     let name: String
@@ -535,6 +549,9 @@ private extension ShareItemExtractor {
         if isYouTubeURL(url), let metadata = try? await fetchYouTubeMetadata(for: url) {
             candidates.append(metadata)
         }
+        if let metadata = try? await fetchProviderSpecificMetadata(for: url) {
+            candidates.append(metadata)
+        }
         if let metadata = try? await fetchNoembedMetadata(for: url) {
             candidates.append(metadata)
         }
@@ -617,6 +634,49 @@ private extension ShareItemExtractor {
             imageURL: decoded.thumbnailURL,
             provider: decoded.providerName ?? "YouTube",
             tags: ["youtube", "video"]
+        )
+    }
+
+    static func fetchProviderSpecificMetadata(for url: URL) async throws -> RemoteMetadata? {
+        if isTikTokURL(url) {
+            return try await fetchGenericOEmbedMetadata(
+                endpoint: "https://www.tiktok.com/oembed?url=\(url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url.absoluteString)",
+                for: url,
+                defaultProvider: "TikTok",
+                tags: ["tiktok", "video"]
+            )
+        }
+        if isTwitterXURL(url) {
+            return try await fetchGenericOEmbedMetadata(
+                endpoint: "https://publish.twitter.com/oembed?url=\(url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url.absoluteString)&omit_script=true",
+                for: url,
+                defaultProvider: "X",
+                tags: ["x", "post"]
+            )
+        }
+        if isRedditURL(url) {
+            return try await fetchGenericOEmbedMetadata(
+                endpoint: "https://www.reddit.com/oembed?url=\(url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url.absoluteString)",
+                for: url,
+                defaultProvider: "Reddit",
+                tags: ["reddit", "post"]
+            )
+        }
+        return nil
+    }
+
+    static func fetchGenericOEmbedMetadata(endpoint: String, for url: URL, defaultProvider: String, tags: [String]) async throws -> RemoteMetadata {
+        let data = try await fetchJSONData(from: endpoint)
+        let decoded = try JSONDecoder().decode(GenericOEmbedResponse.self, from: data)
+        let provider = decoded.providerName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            ? decoded.providerName!.trimmingCharacters(in: .whitespacesAndNewlines)
+            : defaultProvider
+        return RemoteMetadata(
+            title: cleanedFetchedTitle(decoded.title, for: url),
+            description: providerFallbackDescription(provider: provider, author: decoded.authorName, url: url),
+            imageURL: decoded.thumbnailURL,
+            provider: provider,
+            tags: tags
         )
     }
 
@@ -951,6 +1011,21 @@ private extension ShareItemExtractor {
     static func isYouTubeURL(_ url: URL) -> Bool {
         let host = url.host?.lowercased() ?? ""
         return host.contains("youtube.com") || host.contains("youtu.be")
+    }
+
+    static func isTikTokURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("tiktok.com")
+    }
+
+    static func isTwitterXURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("x.com") || host.contains("twitter.com")
+    }
+
+    static func isRedditURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("reddit.com") || host.contains("redd.it")
     }
 
     static func htmlTitle(in html: String) -> String? {
