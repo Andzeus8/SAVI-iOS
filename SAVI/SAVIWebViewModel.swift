@@ -79,26 +79,41 @@ final class SAVIWebViewModel: NSObject, ObservableObject {
         guard !rawShares.isEmpty else { return }
 
         importInFlight = true
-        let shares = rawShares.map(enrichForWebImport(_:))
+        Task {
+            let shares = await withTaskGroup(of: PendingShare.self) { group in
+                for share in rawShares {
+                    group.addTask { [weak self] in
+                        await self?.enrichForImportIfNeeded(share) ?? share
+                    }
+                }
+                var enriched: [PendingShare] = []
+                for await share in group {
+                    enriched.append(share)
+                }
+                return enriched.sorted { $0.timestamp < $1.timestamp }
+            }
 
-        guard let data = try? JSONEncoder().encode(shares),
-              let json = String(data: data, encoding: .utf8) else {
-            importInFlight = false
-            return
-        }
+            guard let data = try? JSONEncoder().encode(shares),
+                  let json = String(data: data, encoding: .utf8) else {
+                await MainActor.run { self.importInFlight = false }
+                return
+            }
 
-        let script = """
-        (function() {
-          if (!window.SAVINative || typeof window.SAVINative.importShares !== 'function') { return 0; }
-          return window.SAVINative.importShares(\(json));
-        })();
-        """
+            let script = """
+            (function() {
+              if (!window.SAVINative || typeof window.SAVINative.importShares !== 'function') { return 0; }
+              return window.SAVINative.importShares(\(json));
+            })();
+            """
 
-        webView.evaluateJavaScript(script) { [weak self] _, _ in
-            guard let self else { return }
-            rawShares.forEach(self.shareStore.remove(_:))
-            self.importInFlight = false
-            self.webView.reload()
+            await MainActor.run {
+                self.webView.evaluateJavaScript(script) { [weak self] _, _ in
+                    guard let self else { return }
+                    rawShares.forEach(self.shareStore.remove(_:))
+                    self.importInFlight = false
+                    self.webView.reload()
+                }
+            }
         }
     }
 
@@ -128,6 +143,30 @@ final class SAVIWebViewModel: NSObject, ObservableObject {
         }
 
         return share
+    }
+
+    private func enrichForImportIfNeeded(_ share: PendingShare) async -> PendingShare {
+        var enriched = enrichForWebImport(share)
+        guard let urlString = enriched.url,
+              !urlString.isEmpty,
+              let url = URL(string: urlString),
+              url.scheme?.hasPrefix("http") == true
+        else {
+            return enriched
+        }
+
+        let title = enriched.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let needsRemoteEnrichment =
+            enriched.thumbnail.nilIfEmpty == nil ||
+            enriched.itemDescription.nilIfEmpty == nil ||
+            title.isEmpty ||
+            title == "shared item" ||
+            title == "youtube video" ||
+            title.hasPrefix("http") ||
+            title.hasSuffix(" save")
+
+        guard needsRemoteEnrichment else { return enriched }
+        return await ShareItemExtractor.enrich(enriched)
     }
 }
 
@@ -185,6 +224,12 @@ extension SAVIWebViewModel: WKNavigationDelegate, WKUIDelegate, WKScriptMessageH
                 presentShareSheet(payload)
             }
         }
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }
 

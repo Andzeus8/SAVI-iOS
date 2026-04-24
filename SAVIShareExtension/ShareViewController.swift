@@ -10,6 +10,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private let loadingBodyLabel = UILabel()
     private let loadingProgressTrack = UIView()
     private let loadingProgressFill = UIView()
+    private let loadingSaveNowButton = UIButton(type: .system)
 
     private let previewCard = UIView()
     private let previewImageView = UIImageView()
@@ -245,6 +246,18 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         loadingBodyLabel.text = "Pulling the title, preview image, best folder, and useful tags so you can save fast."
         loadingCard.addSubview(loadingBodyLabel)
 
+        var loadingSaveConfig = UIButton.Configuration.filled()
+        loadingSaveConfig.title = "Save now"
+        loadingSaveConfig.cornerStyle = .capsule
+        loadingSaveConfig.baseBackgroundColor = .systemIndigo
+        loadingSaveConfig.baseForegroundColor = .white
+        loadingSaveConfig.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
+        loadingSaveNowButton.configuration = loadingSaveConfig
+        loadingSaveNowButton.translatesAutoresizingMaskIntoConstraints = false
+        loadingSaveNowButton.isHidden = true
+        loadingSaveNowButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+        loadingCard.addSubview(loadingSaveNowButton)
+
         loadingProgressTrack.translatesAutoresizingMaskIntoConstraints = false
         loadingProgressTrack.backgroundColor = UIColor.systemIndigo.withAlphaComponent(0.12)
         loadingProgressTrack.layer.cornerRadius = 7
@@ -289,9 +302,12 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             loadingBodyLabel.trailingAnchor.constraint(equalTo: loadingCard.trailingAnchor, constant: -24),
             loadingBodyLabel.topAnchor.constraint(equalTo: loadingTitleLabel.bottomAnchor, constant: 10),
 
+            loadingSaveNowButton.centerXAnchor.constraint(equalTo: loadingCard.centerXAnchor),
+            loadingSaveNowButton.topAnchor.constraint(equalTo: loadingBodyLabel.bottomAnchor, constant: 16),
+
             loadingProgressTrack.leadingAnchor.constraint(equalTo: loadingCard.leadingAnchor, constant: 24),
             loadingProgressTrack.trailingAnchor.constraint(equalTo: loadingCard.trailingAnchor, constant: -24),
-            loadingProgressTrack.topAnchor.constraint(equalTo: loadingBodyLabel.bottomAnchor, constant: 20),
+            loadingProgressTrack.topAnchor.constraint(equalTo: loadingSaveNowButton.bottomAnchor, constant: 20),
             loadingProgressTrack.heightAnchor.constraint(equalToConstant: 14),
             loadingProgressTrack.bottomAnchor.constraint(equalTo: loadingCard.bottomAnchor, constant: -24),
 
@@ -582,12 +598,12 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
                 setLoadingOverlay(
                     visible: true,
                     title: "SAVI is getting this ready",
-                    body: "Pulling the title, preview image, best folder, and useful tags so you can save fast."
+                    body: "Pulling the title, preview image, best folder, and useful tags. Or save now and let SAVI polish it later."
                 )
                 applyShare(share, animated: false)
                 statusBadge.text = "Auto-filling"
                 previewSubtitleLabel.text = "Pulling the title, a clean preview, the best folder, and useful tags."
-                updateSaveButton(isReady: false)
+                updateSaveButton(isReady: true, titleOverride: "Save now")
             }
 
             let enriched = await ShareItemExtractor.enrich(share)
@@ -903,6 +919,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         if let body, !body.isEmpty {
             loadingBodyLabel.text = body
         }
+        loadingSaveNowButton.isHidden = !visible
 
         if visible {
             loadingOverlay.isHidden = false
@@ -1031,6 +1048,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         config.baseForegroundColor = .white
         saveButton.configuration = config
         saveButton.isEnabled = isReady
+        loadingSaveNowButton.isEnabled = isReady
     }
 
     @objc private func toggleNotes() {
