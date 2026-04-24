@@ -1989,9 +1989,9 @@ function App() {
 
   const visibleItems = useMemo(() => {
     let list = items;
-    if (browseMode === "folders" && activeFolder !== "f-all") list = list.filter(i => i.folderId === activeFolder);
-    if (browseMode === "types" && activeType !== "all") list = list.filter(i => (i.type || "link") === activeType);
-    if (browseMode === "sources" && activeSource !== "all") list = list.filter(i => sourceProfileForItem(i).key === activeSource);
+    if (activeFolder !== "f-all") list = list.filter(i => i.folderId === activeFolder);
+    if (activeType !== "all") list = list.filter(i => (i.type || "link") === activeType);
+    if (activeSource !== "all") list = list.filter(i => sourceProfileForItem(i).key === activeSource);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(i =>
@@ -2603,7 +2603,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
   const activeFolderName = folders.find(f => f.id === activeFolder)?.name || "All Saves";
   const activeSourceLabel = sourceOptions.find((option) => option.key === activeSource)?.label || (activeSource === "all" ? "All Apps" : titleize(activeSource));
   const heroEyebrow = searchMode ? "Search" : browseMode === "all" ? "My SAVIs" : browseMode === "folders" ? "Folders" : browseMode === "types" ? "Types" : "Apps";
-  const heroTitle = searchMode ? "Find any SAVI" : browseMode === "all" ? "My SAVIs" : browseMode === "folders" ? (activeFolder === "f-all" ? "All folders" : activeFolderName) : browseMode === "types" ? displayTypeLabel(activeType) : activeSourceLabel;
+  const heroTitle = searchMode ? "Search" : browseMode === "all" ? "My SAVIs" : browseMode === "folders" ? (activeFolder === "f-all" ? "All folders" : activeFolderName) : browseMode === "types" ? displayTypeLabel(activeType) : activeSourceLabel;
   const heroDescription = searchMode
     ? "Search works across every folder, tag, app, and file detail in your library."
     : browseMode === "all"
@@ -2631,12 +2631,13 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
     })
     .slice(0, 4);
   const showDashboard = !searchMode;
+  const anySearchFilterActive = activeFolder !== "f-all" || activeType !== "all" || activeSource !== "all";
   const resultTitle = searchMode
     ? search.trim()
       ? `Results for “${search.trim()}”`
-      : browseMode === "all"
-        ? "Everything"
-        : heroTitle
+      : anySearchFilterActive
+        ? "Filtered SAVIs"
+        : "Everything"
     : "Recent SAVIs";
 
   const applySearchShortcut = ({ nextSearch = "", nextBrowseMode = "all", nextType = "all", nextSource = "all", nextFolder = "f-all" }) => {
@@ -2650,13 +2651,17 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
   const quickFindTiles = [
     { label: "Videos", meta: "YouTube, TikTok, clips", icon: <IconPlayCircle size={16} stroke={2.05} />, tone: "#F5DDD7", color: "#A54B39", action: () => applySearchShortcut({ nextBrowseMode: "types", nextType: "video" }) },
     { label: "Images", meta: "photos, screenshots", icon: <IconImage size={16} stroke={2.05} />, tone: "#DDEDEC", color: "#2C7370", action: () => applySearchShortcut({ nextBrowseMode: "types", nextType: "image" }) },
-    { label: "Docs", meta: "PDFs, notes, files", icon: <IconFile size={16} stroke={2.05} />, tone: "#E1E6F2", color: "#465F88", action: () => applySearchShortcut({ nextBrowseMode: "types", nextType: "file" }) },
+    { label: "Docs", meta: "PDFs, DOCX, notes", icon: <IconFile size={16} stroke={2.05} />, tone: "#E1E6F2", color: "#465F88", action: () => applySearchShortcut({ nextBrowseMode: "types", nextType: "file" }) },
     { label: "Places", meta: "maps and pins", icon: <IconPin size={16} stroke={2.05} />, tone: "#E3F1E6", color: "#2E8B57", action: () => applySearchShortcut({ nextBrowseMode: "types", nextType: "place" }) },
+    { label: "Device videos", meta: "camera roll and uploads", icon: <IconPlayCircle size={16} stroke={2.05} />, tone: "#EFE2FA", color: "#7C43A8", action: () => applySearchShortcut({ nextBrowseMode: "sources", nextSource: "device", nextType: "video" }) },
+    { label: "Device images", meta: "photos and screenshots", icon: <IconImage size={16} stroke={2.05} />, tone: "#E8F2DF", color: "#567A2B", action: () => applySearchShortcut({ nextBrowseMode: "sources", nextSource: "device", nextType: "image" }) },
   ];
-  const quickSourceChips = ["youtube", "tiktok", "instagram", "reddit", "x", "maps"]
+  const quickSourceChips = ["device", "youtube", "tiktok", "instagram", "reddit", "x", "maps"]
     .map((key) => ({ key, label: sourceProfileForValue(key, key).label, visual: sourceVisualForKey(key) }));
   const quickTagChips = [
     { label: "Screenshots", search: "screenshot" },
+    { label: "PDFs", search: "pdf" },
+    { label: "DOCX", search: "docx" },
     { label: "Recipes", search: "recipe" },
     { label: "Travel", search: "travel" },
     { label: "AI", search: "ai" },
@@ -2676,12 +2681,11 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
     <span className="mono" style={{ fontSize: 9, opacity: active ? 0.78 : 0.62 }}>{count}</span>
   );
 
-  const modeOptions = [
-    { key: "all", label: "All" },
-    { key: "folders", label: "Folders" },
-    { key: "types", label: "Types" },
-    { key: "sources", label: "Apps" },
-  ];
+  const activeSearchChips = [
+    activeFolder !== "f-all" ? { key: `folder-${activeFolder}`, label: activeFolderName, onClear: () => setActiveFolder("f-all") } : null,
+    activeType !== "all" ? { key: `type-${activeType}`, label: displayTypeLabel(activeType), onClear: () => setActiveType("all") } : null,
+    activeSource !== "all" ? { key: `source-${activeSource}`, label: activeSourceLabel, onClear: () => setActiveSource("all") } : null,
+  ].filter(Boolean);
 
   return (
     <div className="scroll" style={{ height: "100%" }}>
@@ -2712,7 +2716,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
           </div>
         </div>
 
-        {searchMode && (
+        {!searchMode && (
           <>
             <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.22em", marginBottom: 8, color: T.inkMute }}>
               {heroEyebrow}
@@ -2724,26 +2728,6 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
           </>
         )}
       </div>
-
-      {searchMode && (
-        <div style={{ padding: "18px 20px 12px" }}>
-          <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 18, background: T.paperDim, border: `1px solid ${T.lineSoft}`, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)" }}>
-            {modeOptions.map((option) => {
-              const active = browseMode === option.key;
-              return (
-                <button
-                  key={option.key}
-                  onClick={() => setBrowseMode(option.key)}
-                  className="mono"
-                  style={{ flex: 1, padding: "11px 8px", borderRadius: 14, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", background: active ? T.card : "transparent", color: active ? T.ink : T.inkSoft, boxShadow: active ? "0 10px 24px -20px rgba(22,26,35,0.78)" : "none" }}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       <div style={{ padding: "0 20px 14px" }}>
         {searchMode ? (
@@ -2761,8 +2745,28 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
         )}
       </div>
 
-      {searchMode && !search.trim() && browseMode === "all" && (
+      {searchMode && (
         <div style={{ padding: "0 20px 18px", display: "grid", gap: 16 }}>
+          {activeSearchChips.length > 0 && (
+            <div>
+              <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: T.inkMute, marginBottom: 10 }}>
+                Active filters
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {activeSearchChips.map((chip) => (
+                  <button
+                    key={chip.key}
+                    onClick={chip.onClear}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 999, background: T.ink, color: T.paper, border: `1px solid ${T.ink}`, fontSize: 12, fontWeight: 600 }}
+                  >
+                    <span>{chip.label}</span>
+                    <IconX size={11} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <div className="serif" style={{ fontSize: 24, color: T.ink, marginBottom: 10 }}>Quick find</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -2781,6 +2785,27 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
               ))}
             </div>
           </div>
+
+          {topFolders.length > 0 && (
+            <div>
+              <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: T.inkMute, marginBottom: 10 }}>
+                Top folders
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {topFolders.map((folder) => (
+                  <button
+                    key={folder.id}
+                    onClick={() => applySearchShortcut({ nextBrowseMode: "folders", nextFolder: folder.id })}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 999, background: T.card, border: `1px solid ${T.lineSoft}`, color: T.inkSoft, fontSize: 12, fontWeight: 600, boxShadow: "0 16px 28px -24px rgba(22,26,35,0.35)" }}
+                  >
+                    <div style={{ width: 9, height: 9, borderRadius: 999, background: folder.color }} />
+                    <span>{folder.name}</span>
+                    {filterCount(folder.count ?? 0, false)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {quickSourceChips.length > 0 && (
             <div>
@@ -2873,47 +2898,6 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
             </div>
           )}
 
-        </div>
-      )}
-
-      {searchMode && browseMode !== "all" && (
-        <div style={{ padding: "0 20px 18px" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {browseMode === "folders" && folders.map((f) => {
-              const active = f.id === activeFolder;
-              return (
-                <button key={f.id} onClick={()=>setActiveFolder(f.id)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 999, fontSize: 12, whiteSpace: "nowrap", background: active ? T.ink : T.card, color: active ? T.paper : T.inkSoft, border: `1px solid ${active ? T.ink : T.lineSoft}`, boxShadow: active ? "none" : "0 16px 28px -24px rgba(22,26,35,0.5)" }}>
-                  {f.system ? <IconSparkles size={11} /> : <div style={{ width: 8, height: 8, borderRadius: 999, background: f.color }} />}
-                  <span>{f.name}</span>
-                  {filterCount(folderCounts[f.id] ?? 0, active)}
-                </button>
-              );
-            })}
-            {browseMode === "types" && ["all", "article", "video", "image", "file", "text", "place", "link"].filter((key) => typeCounts[key] > 0 || key === "all").map((key) => {
-              const active = key === activeType;
-              const visual = typeVisualForKey(key);
-              return (
-                <button key={key} onClick={()=>setActiveType(key)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px 8px 8px", borderRadius: 999, fontSize: 12, whiteSpace: "nowrap", background: active ? T.ink : T.card, color: active ? T.paper : T.inkSoft, border: `1px solid ${active ? T.ink : T.lineSoft}`, boxShadow: active ? "none" : "0 16px 28px -24px rgba(22,26,35,0.5)" }}>
-                  <BrandBadge visual={active ? { ...visual, bg: "rgba(255,255,255,0.12)", gradient: "", fg: T.paper } : visual} size={22} active={active} />
-                  <span>{displayTypeLabel(key)}</span>
-                  {filterCount(typeCounts[key] ?? 0, active)}
-                </button>
-              );
-            })}
-            {browseMode === "sources" && [{ key: "all", label: "All apps", count: sourceCounts.all || 0 }, ...sourceOptions].map((option) => {
-              const active = option.key === activeSource;
-              const visual = option.key === "all"
-                ? { bg: T.ink, fg: T.paper, icon: (size) => <IconSparkles size={size} stroke={2.05} /> }
-                : sourceVisualForKey(option.key);
-              return (
-                <button key={option.key} onClick={()=>setActiveSource(option.key)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px 8px 8px", borderRadius: 999, fontSize: 12, whiteSpace: "nowrap", background: active ? T.ink : T.card, color: active ? T.paper : T.inkSoft, border: `1px solid ${active ? T.ink : T.lineSoft}`, boxShadow: active ? "none" : "0 16px 28px -24px rgba(22,26,35,0.5)" }}>
-                  <BrandBadge visual={active && option.key !== "all" ? { ...visual, bg: "rgba(255,255,255,0.12)", gradient: "", fg: T.paper } : visual} size={22} active={active} />
-                  <span>{option.label}</span>
-                  {filterCount(option.count, active)}
-                </button>
-              );
-            })}
-          </div>
         </div>
       )}
 
