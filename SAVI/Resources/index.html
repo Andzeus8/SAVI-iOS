@@ -23,8 +23,25 @@
     --line-soft: #E6E0D4;
     --card: #FFFFFF;
     --accent: #C8553D;
+    --paper-nav: rgba(245, 241, 234, 0.96);
+    --paper-fade: rgba(245, 241, 234, 0.94);
+    --paper-clear: rgba(245, 241, 234, 0);
     --navigator-height: 88px;
     --navigator-offset: calc(var(--navigator-height) + env(safe-area-inset-bottom));
+  }
+  :root[data-theme="dark"] {
+    --paper: #0F141E;
+    --paper-dim: #171E2A;
+    --ink: #F3F6FC;
+    --ink-soft: #B6C0D2;
+    --ink-mute: #7D889E;
+    --line: #253044;
+    --line-soft: #1E2838;
+    --card: #111827;
+    --accent: #8EA2FF;
+    --paper-nav: rgba(15, 20, 30, 0.94);
+    --paper-fade: rgba(15, 20, 30, 0.92);
+    --paper-clear: rgba(15, 20, 30, 0);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body, #root { height: 100%; }
@@ -44,6 +61,11 @@
       background:
         radial-gradient(circle at top left, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 28%),
         linear-gradient(180deg, #EDE6D9 0%, #DDD4C2 100%);
+    }
+    :root[data-theme="dark"] .stage {
+      background:
+        radial-gradient(circle at top left, rgba(142,162,255,0.12) 0%, rgba(142,162,255,0) 28%),
+        linear-gradient(180deg, #0B111A 0%, #111827 100%);
     }
     .frame-wrap { width: min(480px, calc(100vw - 64px)); height: min(900px, calc(100dvh - 64px)); position: relative; }
     .bezel { position: absolute; inset: 0; border-radius: 34px; padding: 0; background: transparent; box-shadow: 0 36px 80px -30px rgba(60,50,40,0.38); }
@@ -217,7 +239,7 @@ const DEMO_SUPPRESSED_KEY = "savi_demo_suppressed";
 const ASSET_DB_NAME = "savi_assets";
 const ASSET_DB_VERSION = 1;
 const ASSET_STORE = "assets";
-const T = { paper: "#F7F7FB", paperDim: "#EEF1F7", ink: "#161A23", inkSoft: "#5D6678", inkMute: "#8A93A6", line: "#D8DEEA", lineSoft: "#E8ECF4", accent: "#6D7CFF", card: "#FFFFFF" };
+const T = { paper: "var(--paper)", paperDim: "var(--paper-dim)", ink: "var(--ink)", inkSoft: "var(--ink-soft)", inkMute: "var(--ink-mute)", line: "var(--line)", lineSoft: "var(--line-soft)", accent: "var(--accent)", card: "var(--card)" };
 
 const svgCoverDataUrl = (svg) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 const PRESET_FOLDER_COVERS = [
@@ -791,6 +813,16 @@ const DEMO_ITEMS = [
     { title: "Social Security Card", description: "A secure snapshot save for the rare bureaucratic moment when you actually need the number fast.", url: "https://www.ssa.gov/number-card/replace-card", type: "image", thumbnail: picsumThumb("social-security-card"), tags: ["id", "card", "private"] },
     { title: "Emergency Contacts Sheet", description: "A calm little file with names, meds, allergies, and the numbers you never want to hunt down under stress.", url: "https://www.redcross.org/get-help/how-to-prepare-for-emergencies/make-a-plan.html", thumbnail: picsumThumb("emergency-contacts"), tags: ["emergency", "contacts", "preparedness"] },
     { title: "Vaccination Records", description: "A practical vault save for travel, school, and every form that suddenly wants proof.", url: "https://www.cdc.gov/vaccines-adults/recommended-vaccines/keeping-vaccine-records-up-to-date.html", thumbnail: picsumThumb("vaccination-records"), tags: ["health", "records", "pdf"] },
+  ]),
+  ...seedGroup({ folderId: "f-paste-bin", source: "Paste", type: "text" }, [
+    { title: "Stripe test API key", description: "sk_test_51SAVIExampleNeverShipThis\nUsed for the staging checkout while debugging webhook signatures.", thumbnail: picsumThumb("pastebin-stripe-key"), tags: ["api", "stripe", "staging", "dev"] },
+    { title: "GitHub repo to clone later", description: "https://github.com/openai/openai-cookbook\nGood examples for structured outputs, embeddings, and fast prototype patterns.", thumbnail: picsumThumb("pastebin-github-repo"), tags: ["github", "repo", "code", "reference"] },
+    { title: "Supabase env snippet", description: "NEXT_PUBLIC_SUPABASE_URL=https://project.supabase.co\nNEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...", thumbnail: picsumThumb("pastebin-supabase-env"), tags: ["supabase", "env", "keys", "backend"] },
+    { title: "Random SSH command that fixed it", description: "ssh -L 5432:localhost:5432 user@staging-box\nPort-forward the DB before running the migration script.", thumbnail: picsumThumb("pastebin-ssh-command"), tags: ["ssh", "command", "terminal", "infra"] },
+    { title: "Webhook JSON payload sample", description: "{\n  \"event\": \"invoice.paid\",\n  \"customer\": \"cus_123\",\n  \"amount\": 4900\n}", thumbnail: picsumThumb("pastebin-webhook-json"), tags: ["json", "webhook", "payload", "debug"] },
+    { title: "WiFi guest password paste", description: "Guest network: SAVI-Guest\nPassword: coffee-table-planet-88\nRemember to rotate after the house party.", thumbnail: picsumThumb("pastebin-wifi-password"), tags: ["wifi", "password", "home", "guests"] },
+    { title: "Meeting address and buzzer code", description: "Calle de la Palma 42, 3B\nBuzzer: 14\nBring laptop charger and the printed pitch deck.", thumbnail: picsumThumb("pastebin-address-note"), tags: ["address", "meeting", "buzzer", "note"] },
+    { title: "OpenAI curl example", description: "curl https://api.openai.com/v1/responses \\\n  -H 'Authorization: Bearer $OPENAI_API_KEY' \\\n  -H 'Content-Type: application/json'", thumbnail: picsumThumb("pastebin-openai-curl"), tags: ["openai", "curl", "api", "example"] },
   ]),
   ...seedGroup({ folderId: "f-lmao", source: "Web", type: "link" }, [
     { title: "Lo-fi Beats", description: "The classic Spotify background playlist for reading, journaling, and pretending you have your life organized.", url: "https://open.spotify.com/playlist/37i9dQZF1DWWQRwui0ExPn", source: "Spotify", thumbnail: picsumThumb("lofi-beats"), tags: ["spotify", "focus", "playlist"] },
@@ -1967,7 +1999,10 @@ function App() {
   const [browseMode, setBrowseMode] = useState("all");
   const [activeType, setActiveType] = useState("all");
   const [activeSource, setActiveSource] = useState("all");
-  const [viewMode, setViewMode] = useState("list");
+  const [viewMode, setViewMode] = useState(uiPrefs?.viewMode || "list");
+  const [themeMode, setThemeMode] = useState(uiPrefs?.themeMode || "auto");
+  const prefersDark = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  const [systemDark, setSystemDark] = useState(() => prefersDark?.matches || false);
   const [search, setSearch] = useState("");
   const [route, setRoute] = useState("home");
   const [showSaveSheet, setShowSaveSheet] = useState(false);
@@ -2136,7 +2171,28 @@ function App() {
     if (showOnboarding) return;
     saveState({ folders, items });
   }, [folders, items, showOnboarding]);
-  useEffect(() => { saveUiPrefs({ viewMode }); }, [viewMode]);
+  useEffect(() => { saveUiPrefs({ viewMode, themeMode }); }, [viewMode, themeMode]);
+
+  useEffect(() => {
+    if (!window.matchMedia) return undefined;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const sync = (event) => setSystemDark(event.matches);
+    setSystemDark(media.matches);
+    if (media.addEventListener) {
+      media.addEventListener("change", sync);
+      return () => media.removeEventListener("change", sync);
+    }
+    media.addListener(sync);
+    return () => media.removeListener(sync);
+  }, []);
+
+  const resolvedTheme = themeMode === "auto" ? (systemDark ? "dark" : "light") : themeMode;
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = resolvedTheme;
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute("content", resolvedTheme === "dark" ? "#0F141E" : "#F5F1EA");
+  }, [resolvedTheme]);
 
   const visibleItems = useMemo(() => {
     let list = items;
@@ -2418,7 +2474,7 @@ function App() {
                       />
                     )}
                     {route === "profile" && (
-                      <ProfileScreen itemCount={items.length} folderCount={folders.filter(f=>!f.system).length} exportBackup={exportBackup} importBackup={importBackup} clearLibrary={clearLibrary} clearDemoContent={clearDemoContent} />
+                      <ProfileScreen itemCount={items.length} folderCount={folders.filter(f=>!f.system).length} exportBackup={exportBackup} importBackup={importBackup} clearLibrary={clearLibrary} clearDemoContent={clearDemoContent} themeMode={themeMode} setThemeMode={setThemeMode} />
                     )}
                   </div>
                   <div className="navigator-shell">
@@ -3102,17 +3158,17 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
                       justifyContent: "space-between",
                     }}
                   >
-                    {folder.image && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(8,12,20,0.04) 0%, rgba(8,12,20,0.24) 42%, rgba(8,12,20,0.86) 100%)" }} />}
+                    {folder.image && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,10,18,0.12) 0%, rgba(6,10,18,0.42) 34%, rgba(6,10,18,0.82) 62%, rgba(6,10,18,0.96) 100%)" }} />}
                     <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                      <span className="mono" style={{ padding: "7px 9px", borderRadius: 999, background: folder.image ? "rgba(255,255,255,0.14)" : `${folder.color}16`, color: folder.image ? "rgba(255,255,255,0.92)" : T.ink, fontSize: 9.5, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                      <span className="mono" style={{ padding: "7px 9px", borderRadius: 999, background: folder.image ? "rgba(10,14,24,0.42)" : `${folder.color}16`, color: folder.image ? "rgba(255,255,255,0.97)" : T.ink, border: folder.image ? "1px solid rgba(255,255,255,0.12)" : "none", boxShadow: folder.image ? "0 12px 20px -18px rgba(0,0,0,0.55)" : "none", fontSize: 9.5, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                         {folder.count} saves
                       </span>
                     </div>
                     <div style={{ position: "relative", zIndex: 1 }}>
-                      <div className="serif" style={{ fontSize: 21, lineHeight: 1.02, color: folder.image ? "#fff" : T.ink, marginBottom: 5 }}>
+                      <div className="serif" style={{ fontSize: 21, lineHeight: 1.02, color: folder.image ? "#fff" : T.ink, textShadow: folder.image ? "0 12px 26px rgba(0,0,0,0.58)" : "none", marginBottom: 5 }}>
                         {folder.name}
                       </div>
-                      <div className="clamp1" style={{ fontSize: 11.5, color: folder.image ? "rgba(255,255,255,0.82)" : T.inkSoft }}>
+                      <div className="clamp1" style={{ fontSize: 11.5, color: folder.image ? "rgba(255,255,255,0.9)" : T.inkSoft, textShadow: folder.image ? "0 8px 18px rgba(0,0,0,0.48)" : "none" }}>
                         {folder.latest?.title || "Open this folder"}
                       </div>
                     </div>
@@ -3435,7 +3491,7 @@ function FoldersScreen({ folders, folderCounts, onOpen, onNew, onEdit }) {
   );
 }
 
-function ProfileScreen({ itemCount, folderCount, exportBackup, importBackup, clearLibrary, clearDemoContent }) {
+function ProfileScreen({ itemCount, folderCount, exportBackup, importBackup, clearLibrary, clearDemoContent, themeMode = "auto", setThemeMode }) {
   const fileInputRef = useRef(null);
   const [backupMessage, setBackupMessage] = useState("");
   const [backupTone, setBackupTone] = useState("muted");
@@ -3560,6 +3616,35 @@ function ProfileScreen({ itemCount, folderCount, exportBackup, importBackup, cle
           </div>
         </div>
 
+        <div className="mono" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.22em", marginBottom: 8, padding: "0 4px", color: T.inkMute }}>Appearance</div>
+        <div style={{ padding: 16, borderRadius: 16, marginBottom: 16, background: T.card, border: `1px solid ${T.lineSoft}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 8 }}>
+            <div style={{ fontSize: 14, color: T.ink }}>Theme</div>
+            <div className="mono" style={{ fontSize: 12, color: T.inkSoft }}>follows iphone</div>
+          </div>
+          <div style={{ fontSize: 11.5, lineHeight: 1.5, color: T.inkSoft, marginBottom: 14 }}>
+            Let SAVI match your iPhone automatically, or force it into light or night mode.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+            {[
+              { key: "auto", label: "Auto" },
+              { key: "light", label: "Light" },
+              { key: "dark", label: "Night" },
+            ].map((option) => {
+              const active = themeMode === option.key;
+              return (
+                <button
+                  key={option.key}
+                  onClick={() => setThemeMode?.(option.key)}
+                  style={{ padding: 12, borderRadius: 12, fontSize: 12, fontWeight: 700, background: active ? T.ink : T.paperDim, color: active ? T.paper : T.ink, border: `1px solid ${active ? T.ink : T.lineSoft}`, boxShadow: active ? "0 14px 24px -22px rgba(22,26,35,0.55)" : "none" }}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="mono" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.22em", marginBottom: 8, padding: "0 4px", color: T.inkMute }}>Storage</div>
         <div style={{ padding: 16, borderRadius: 16, marginBottom: 16, background: T.card, border: `1px solid ${T.lineSoft}` }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
@@ -3679,7 +3764,7 @@ function TabBar({ route, setRoute, onSavePress }) {
 
   return (
     <div style={{ position: "relative", background: T.paper, flexShrink: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around", padding: `8px 24px calc(24px + env(safe-area-inset-bottom))`, borderTop: `1px solid ${T.lineSoft}`, background: `${T.paper}f5`, backdropFilter: "blur(12px)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around", padding: `8px 24px calc(24px + env(safe-area-inset-bottom))`, borderTop: `1px solid ${T.lineSoft}`, background: "var(--paper-nav)", backdropFilter: "blur(12px)" }}>
         <TabButton active={route === "home"} onClick={()=>setRoute("home")} IconComp={IconHome} label="Home" />
         <TabButton active={route === "search"} onClick={()=>setRoute("search")} IconComp={IconSearch} label="Search" />
         <button aria-label="Add a new save" onClick={onSavePress} style={{ width: 52, height: 52, borderRadius: 18, background: T.ink, color: T.paper, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 20px -6px rgba(28,26,23,0.35)" }}>
@@ -4882,7 +4967,7 @@ function ItemSheet({ item, folders, onClose, onDelete, onEdit, onShare, onOpenIm
           onTouchEnd={endSwipe}
           onTouchCancel={endSwipe}
         >
-          <div style={{ position: "sticky", top: 0, zIndex: 2, background: `linear-gradient(180deg, ${T.paper} 0%, ${T.paper}f1 78%, rgba(245,241,234,0) 100%)`, padding: "6px 0 10px" }}>
+          <div style={{ position: "sticky", top: 0, zIndex: 2, background: "linear-gradient(180deg, var(--paper) 0%, var(--paper-fade) 78%, var(--paper-clear) 100%)", padding: "6px 0 10px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <BrandBadge visual={sourceVisual} size={18} />
