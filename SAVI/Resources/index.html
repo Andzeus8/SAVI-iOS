@@ -2577,6 +2577,38 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
     })
     .slice(0, 4);
   const showDashboard = !searchMode;
+  const resultTitle = searchMode
+    ? search.trim()
+      ? `Results for “${search.trim()}”`
+      : browseMode === "all"
+        ? "Everything"
+        : heroTitle
+    : "Recent SAVIs";
+
+  const applySearchShortcut = ({ nextSearch = "", nextBrowseMode = "all", nextType = "all", nextSource = "all", nextFolder = "f-all" }) => {
+    setBrowseMode(nextBrowseMode);
+    setActiveType(nextType);
+    setActiveSource(nextSource);
+    setActiveFolder(nextFolder);
+    setSearch(nextSearch);
+  };
+
+  const quickFindTiles = [
+    { label: "Videos", meta: "YouTube, TikTok, clips", icon: <IconPlayCircle size={16} stroke={2.05} />, tone: "#F5DDD7", color: "#A54B39", action: () => applySearchShortcut({ nextBrowseMode: "types", nextType: "video" }) },
+    { label: "Images", meta: "photos, screenshots", icon: <IconImage size={16} stroke={2.05} />, tone: "#DDEDEC", color: "#2C7370", action: () => applySearchShortcut({ nextBrowseMode: "types", nextType: "image" }) },
+    { label: "Docs", meta: "PDFs, notes, files", icon: <IconFile size={16} stroke={2.05} />, tone: "#E1E6F2", color: "#465F88", action: () => applySearchShortcut({ nextBrowseMode: "types", nextType: "file" }) },
+    { label: "Places", meta: "maps and pins", icon: <IconPin size={16} stroke={2.05} />, tone: "#E3F1E6", color: "#2E8B57", action: () => applySearchShortcut({ nextBrowseMode: "types", nextType: "place" }) },
+  ];
+  const quickSourceChips = ["youtube", "tiktok", "instagram", "reddit", "x", "maps"]
+    .map((key) => ({ key, label: sourceProfileForValue(key, key).label, visual: sourceVisualForKey(key) }));
+  const quickTagChips = [
+    { label: "Screenshots", search: "screenshot" },
+    { label: "Recipes", search: "recipe" },
+    { label: "Travel", search: "travel" },
+    { label: "AI", search: "ai" },
+    { label: "Funny", search: "meme" },
+    { label: "Private", search: "private" },
+  ];
 
   useEffect(() => {
     if (!searchMode) return;
@@ -2674,6 +2706,66 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
           </button>
         )}
       </div>
+
+      {searchMode && !search.trim() && browseMode === "all" && (
+        <div style={{ padding: "0 20px 18px", display: "grid", gap: 16 }}>
+          <div>
+            <div className="serif" style={{ fontSize: 24, color: T.ink, marginBottom: 10 }}>Quick find</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {quickFindTiles.map((tile) => (
+                <button
+                  key={tile.label}
+                  onClick={tile.action}
+                  style={{ textAlign: "left", padding: 14, borderRadius: 18, background: T.card, border: `1px solid ${T.lineSoft}`, boxShadow: "0 18px 30px -28px rgba(22,26,35,0.42)" }}
+                >
+                  <div style={{ width: 32, height: 32, borderRadius: 12, background: tile.tone, color: tile.color, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                    {tile.icon}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: T.ink, marginBottom: 4 }}>{tile.label}</div>
+                  <div style={{ fontSize: 11.5, lineHeight: 1.35, color: T.inkSoft }}>{tile.meta}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {quickSourceChips.length > 0 && (
+            <div>
+              <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: T.inkMute, marginBottom: 10 }}>
+                Source apps
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {quickSourceChips.map((chip) => (
+                  <button
+                    key={chip.key}
+                    onClick={() => applySearchShortcut({ nextBrowseMode: "sources", nextSource: chip.key })}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px 9px 9px", borderRadius: 999, background: T.card, border: `1px solid ${T.lineSoft}`, color: T.inkSoft, boxShadow: "0 16px 28px -24px rgba(22,26,35,0.35)" }}
+                  >
+                    <BrandBadge visual={chip.visual} size={22} />
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>{chip.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: T.inkMute, marginBottom: 10 }}>
+              Common tags
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {quickTagChips.map((chip) => (
+                <button
+                  key={chip.label}
+                  onClick={() => applySearchShortcut({ nextSearch: chip.search })}
+                  style={{ padding: "9px 12px", borderRadius: 999, background: T.card, border: `1px solid ${T.lineSoft}`, color: T.inkSoft, fontSize: 12, fontWeight: 600, boxShadow: "0 16px 28px -24px rgba(22,26,35,0.35)" }}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDashboard && (
         <div style={{ padding: "0 20px 18px", display: "grid", gap: 18 }}>
@@ -2778,7 +2870,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
       ) : viewMode === "grid" ? (
         <div key={`grid-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Recent SAVIs" : heroTitle}</div>
+            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{resultTitle}</div>
             <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
               {items.length} {items.length === 1 ? "item" : "items"}
             </div>
@@ -2790,7 +2882,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
       ) : (
         <div key={`list-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Recent SAVIs" : heroTitle}</div>
+            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{resultTitle}</div>
             <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
               {items.length} {items.length === 1 ? "item" : "items"}
             </div>
