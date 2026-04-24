@@ -3086,9 +3086,13 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
                       textAlign: "left",
                       padding: 14,
                       borderRadius: 22,
-                      background: folder.image
-                        ? `center / cover no-repeat url(${folder.image}), ${T.card}`
+                      backgroundColor: T.card,
+                      backgroundImage: folder.image
+                        ? `url("${folder.image}")`
                         : `linear-gradient(160deg, ${folder.color}40 0%, ${folder.color}14 100%)`,
+                      backgroundPosition: "center",
+                      backgroundSize: "cover",
+                      backgroundRepeat: "no-repeat",
                       border: `1px solid ${folder.image ? "rgba(255,255,255,0.16)" : T.lineSoft}`,
                       boxShadow: "0 18px 34px -28px rgba(22,26,35,0.55)",
                       position: "relative",
@@ -3380,11 +3384,15 @@ function FoldersScreen({ folders, folderCounts, onOpen, onNew, onEdit }) {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                background: coverImage
-                  ? `center / cover no-repeat url(${coverImage}), ${T.card}`
+                backgroundColor: T.card,
+                backgroundImage: coverImage
+                  ? `url("${coverImage}")`
                   : f.system
                     ? "linear-gradient(160deg, #151A23 0%, #25324A 100%)"
                     : `linear-gradient(160deg, ${f.color}40 0%, ${f.color}18 28%, ${T.card} 100%)`,
+                backgroundPosition: "center",
+                backgroundSize: "cover",
+                backgroundRepeat: "no-repeat",
                 border: `1px solid ${coverImage ? "rgba(255,255,255,0.18)" : T.lineSoft}`,
                 boxShadow: "0 18px 30px -24px rgba(22,26,35,0.45)",
                 transition: "transform 0.12s, box-shadow 0.12s",
