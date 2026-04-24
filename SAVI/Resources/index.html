@@ -402,7 +402,146 @@ const PRESET_FOLDER_COVERS = [
 ];
 const PRESET_FOLDER_COVER_MAP = Object.fromEntries(PRESET_FOLDER_COVERS.map((cover) => [cover.id, cover.image]));
 
-const folderCover = (seed) => `https://picsum.photos/seed/${encodeURIComponent(seed)}/800/600`;
+const folderArtCover = (theme = "generic") => {
+  const art = {
+    vault: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#161532"/><stop offset="100%" stop-color="#4f46a5"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="18"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="590" cy="94" r="92" fill="#b7a5ff" opacity="0.18" filter="url(#blur)"/>
+      <rect x="116" y="88" width="488" height="304" rx="34" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.16)" stroke-width="2"/>
+      <rect x="228" y="184" width="264" height="140" rx="22" fill="rgba(8,10,25,0.42)" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+      <path d="M280 184v-26c0-42 33-74 80-74s80 32 80 74v26" fill="none" stroke="#efe9ff" stroke-width="18" stroke-linecap="round"/>
+      <circle cx="360" cy="246" r="22" fill="#efe9ff"/>
+      <path d="M360 268v30" stroke="#efe9ff" stroke-width="16" stroke-linecap="round"/>
+      <path d="M176 136h126" stroke="rgba(255,255,255,0.42)" stroke-width="14" stroke-linecap="round"/>
+    </svg>`),
+    ai: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#121826"/><stop offset="100%" stop-color="#f97316"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="20"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="584" cy="84" r="90" fill="#ffd2aa" opacity="0.22" filter="url(#blur)"/>
+      <rect x="168" y="96" width="384" height="288" rx="34" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+      <rect x="248" y="154" width="224" height="160" rx="26" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.24)" stroke-width="2"/>
+      <path d="M300 134v-32M356 134v-32M412 134v-32M468 134v-32M300 346v32M356 346v32M412 346v32M468 346v32M220 198h-34M220 256h-34M220 314h-34M500 198h34M500 256h34M500 314h34" stroke="#fff1e5" stroke-width="12" stroke-linecap="round"/>
+      <path d="M292 238c18-36 46-54 84-54 50 0 94 36 94 88s-44 88-94 88c-38 0-68-18-88-48" fill="none" stroke="#fff1e5" stroke-width="18" stroke-linecap="round"/>
+      <circle cx="376" cy="272" r="22" fill="#fff1e5"/>
+    </svg>`),
+    science: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#08142e"/><stop offset="100%" stop-color="#4f7cff"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="18"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="110" cy="96" r="76" fill="#67e8f9" opacity="0.16" filter="url(#blur)"/>
+      <circle cx="602" cy="390" r="88" fill="#93c5fd" opacity="0.18" filter="url(#blur)"/>
+      <g transform="translate(360 240)" fill="none" stroke="#ecfeff" stroke-width="10" opacity="0.88">
+        <ellipse rx="170" ry="66"/>
+        <ellipse rx="170" ry="66" transform="rotate(60)"/>
+        <ellipse rx="170" ry="66" transform="rotate(-60)"/>
+      </g>
+      <circle cx="360" cy="240" r="30" fill="#67e8f9"/>
+      <circle cx="532" cy="240" r="14" fill="#ecfeff"/>
+      <circle cx="274" cy="94" r="14" fill="#ecfeff"/>
+      <circle cx="270" cy="388" r="14" fill="#ecfeff"/>
+    </svg>`),
+    tinfoil: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#17162c"/><stop offset="100%" stop-color="#4c3d91"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="18"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="590" cy="104" r="84" fill="#c4b5fd" opacity="0.14" filter="url(#blur)"/>
+      <circle cx="360" cy="290" r="94" fill="rgba(255,255,255,0.08)"/>
+      <path d="M270 222 360 90l90 132Z" fill="#dfe3f0" stroke="#f8fafc" stroke-width="5"/>
+      <path d="M286 212 360 108l74 104" fill="none" stroke="#94a3b8" stroke-width="4"/>
+      <path d="M314 146h92M298 178h124M286 210h148" stroke="#ffffff" stroke-opacity="0.45" stroke-width="4"/>
+      <path d="M236 316c34 44 74 66 124 66s90-22 124-66" fill="none" stroke="#ede9fe" stroke-width="16" stroke-linecap="round"/>
+      <circle cx="326" cy="282" r="10" fill="#ede9fe"/><circle cx="394" cy="282" r="10" fill="#ede9fe"/>
+    </svg>`),
+    lulz: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2a0e1a"/><stop offset="100%" stop-color="#ff4d6d"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="16"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="586" cy="104" r="96" fill="#ffd1dc" opacity="0.18" filter="url(#blur)"/>
+      <circle cx="360" cy="248" r="128" fill="#fff1f5"/>
+      <circle cx="314" cy="216" r="18" fill="#2a0e1a"/><circle cx="406" cy="216" r="18" fill="#2a0e1a"/>
+      <path d="M300 278c20 34 47 50 60 50s40-16 60-50" fill="none" stroke="#2a0e1a" stroke-width="20" stroke-linecap="round"/>
+      <path d="M116 118h118M92 154h140M566 318h72M532 356h124" stroke="#fff" stroke-opacity="0.36" stroke-width="12" stroke-linecap="round"/>
+    </svg>`),
+    health: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f2d27"/><stop offset="100%" stop-color="#25c48c"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="16"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="122" cy="92" r="78" fill="#bbf7d0" opacity="0.15" filter="url(#blur)"/>
+      <path d="M220 242c0-62 48-110 110-110 40 0 68 20 92 48 24-28 52-48 92-48 62 0 110 48 110 110 0 112-202 190-202 190S220 354 220 242Z" fill="#ecfdf5"/>
+      <path d="M386 206v72h-54v40h54v62h44v-62h54v-40h-54v-72Z" fill="#25c48c"/>
+    </svg>`),
+    recipes: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2c1910"/><stop offset="100%" stop-color="#ff9f43"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="18"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="118" cy="100" r="84" fill="#ffe0b2" opacity="0.2" filter="url(#blur)"/>
+      <ellipse cx="360" cy="280" rx="156" ry="108" fill="#fff7ed"/>
+      <ellipse cx="360" cy="280" rx="126" ry="82" fill="#ffbf69"/>
+      <path d="M288 234c20 18 40 30 72 30 34 0 58-12 90-42" fill="none" stroke="#fff7ed" stroke-width="14" stroke-linecap="round"/>
+      <path d="M230 114v132M250 114v132M470 98v160c0 20 20 20 20 0V98" stroke="#fff7ed" stroke-width="14" stroke-linecap="round"/>
+    </svg>`),
+    places: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0d2231"/><stop offset="100%" stop-color="#18b7a0"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="18"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="592" cy="88" r="88" fill="#99f6e4" opacity="0.18" filter="url(#blur)"/>
+      <path d="M92 332c82-88 132-126 196-126 74 0 112 70 174 70 44 0 80-18 166-110" fill="none" stroke="#ecfeff" stroke-width="18" stroke-linecap="round" stroke-dasharray="10 22"/>
+      <path d="M300 178c0-46 34-82 78-82s78 36 78 82c0 74-78 150-78 150s-78-76-78-150Z" fill="#fff" opacity="0.94"/>
+      <circle cx="378" cy="180" r="26" fill="#18b7a0"/>
+    </svg>`),
+    design: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2f1235"/><stop offset="100%" stop-color="#f15bb5"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="18"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="112" cy="98" r="82" fill="#fbcfe8" opacity="0.18" filter="url(#blur)"/>
+      <rect x="148" y="94" width="178" height="288" rx="34" fill="rgba(255,255,255,0.82)"/>
+      <circle cx="236" cy="172" r="44" fill="#f15bb5"/>
+      <rect x="378" y="120" width="188" height="120" rx="34" fill="#fee2e2"/>
+      <path d="M378 318c48-66 108-96 190-96" stroke="#fff1f2" stroke-width="26" stroke-linecap="round"/>
+      <rect x="408" y="284" width="128" height="96" rx="26" fill="#fce7f3"/>
+    </svg>`),
+    research: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#11162d"/><stop offset="100%" stop-color="#6e68ff"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="18"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="600" cy="100" r="84" fill="#c7d2fe" opacity="0.18" filter="url(#blur)"/>
+      <rect x="168" y="92" width="248" height="296" rx="26" fill="rgba(255,255,255,0.84)"/>
+      <path d="M214 150h156M214 200h132M214 250h150M214 300h110" stroke="#6e68ff" stroke-opacity="0.65" stroke-width="14" stroke-linecap="round"/>
+      <circle cx="488" cy="242" r="68" fill="none" stroke="#eef2ff" stroke-width="18"/>
+      <path d="M536 292l56 56" stroke="#eef2ff" stroke-width="18" stroke-linecap="round"/>
+    </svg>`),
+    watch: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3d2b05"/><stop offset="100%" stop-color="#f7c948"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="18"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="118" cy="92" r="78" fill="#fde68a" opacity="0.18" filter="url(#blur)"/>
+      <rect x="136" y="116" width="190" height="248" rx="26" fill="rgba(255,255,255,0.86)"/>
+      <path d="M188 170h98M188 220h84M188 270h108" stroke="#8a6a00" stroke-width="14" stroke-linecap="round"/>
+      <circle cx="478" cy="236" r="88" fill="#fff8db"/>
+      <path d="M454 194v84l68-42Z" fill="#f7c948"/>
+    </svg>`),
+    paste: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1e2531"/><stop offset="100%" stop-color="#7a8798"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="16"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="592" cy="92" r="86" fill="#e5e7eb" opacity="0.16" filter="url(#blur)"/>
+      <rect x="184" y="88" width="352" height="304" rx="30" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+      <rect x="274" y="60" width="172" height="54" rx="18" fill="#f5f7fb"/>
+      <path d="M268 172h186M268 226h148M268 280h172" stroke="#f5f7fb" stroke-opacity="0.86" stroke-width="16" stroke-linecap="round"/>
+    </svg>`),
+    random: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1d2433"/><stop offset="100%" stop-color="#9aa5b1"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="18"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="112" cy="90" r="84" fill="#f8fafc" opacity="0.14" filter="url(#blur)"/>
+      <path d="M122 312c34-82 82-122 146-122 84 0 86 118 176 118 52 0 92-18 154-82" fill="none" stroke="#f8fafc" stroke-width="18" stroke-linecap="round"/>
+      <circle cx="214" cy="162" r="34" fill="#f8fafc"/>
+      <rect x="434" y="116" width="126" height="126" rx="32" fill="#dbeafe"/>
+      <path d="M504 284l64 64M504 348l64-64" stroke="#f8fafc" stroke-width="18" stroke-linecap="round"/>
+    </svg>`),
+    all: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+      <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#121826"/><stop offset="100%" stop-color="#6d7cff"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="18"/></filter></defs>
+      <rect width="720" height="480" fill="url(#bg)"/>
+      <circle cx="604" cy="96" r="88" fill="#dbeafe" opacity="0.16" filter="url(#blur)"/>
+      <rect x="150" y="108" width="164" height="116" rx="26" fill="rgba(255,255,255,0.88)"/>
+      <rect x="220" y="194" width="180" height="128" rx="30" fill="rgba(255,255,255,0.72)"/>
+      <rect x="384" y="146" width="186" height="134" rx="30" fill="rgba(255,255,255,0.54)"/>
+    </svg>`),
+    generic: svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480"><rect width="720" height="480" fill="#e8ecf4"/></svg>`),
+  };
+  return art[theme] || art.generic;
+};
+const folderCover = (seed) => seed === "library" ? folderArtCover("all") : `https://picsum.photos/seed/${encodeURIComponent(seed)}/800/600`;
 const DEFAULT_FOLDER_ORDER = [
   "f-private-vault",
   "f-growth",
@@ -421,19 +560,19 @@ const DEFAULT_FOLDER_ORDER = [
 ];
 const DEFAULT_FOLDER_ORDER_MAP = Object.fromEntries(DEFAULT_FOLDER_ORDER.map((id, index) => [id, index]));
 const SEED_FOLDERS = [
-  { id: "f-private-vault", name: "Private Vault", color: "#6C63FF", image: "https://picsum.photos/seed/neonvault/800/600" },
-  { id: "f-growth", name: "AI Hacks", color: "#FF8A3D", image: "https://picsum.photos/seed/robotrocket/800/600" },
-  { id: "f-wtf-favorites", name: "Science Stuff", color: "#5875FF", image: "https://picsum.photos/seed/cosmiclab/800/600" },
-  { id: "f-tinfoil", name: "Tinfoil Hat Club", color: "#4C3D91", image: "https://upload.wikimedia.org/wikipedia/commons/8/85/ManWearingTinFoilHat.jpg" },
-  { id: "f-lmao", name: "LULZ", color: "#FF4D6D", image: "https://picsum.photos/seed/glitchparty/800/600" },
-  { id: "f-health", name: "Health Hacks", color: "#25C48C", image: "https://picsum.photos/seed/greenpulse/800/600" },
-  { id: "f-recipes", name: "Recipes & Food", color: "#FF9F43", image: "https://picsum.photos/seed/foodpop/800/600" },
-  { id: "f-travel", name: "Places", color: "#18B7A0", image: "https://picsum.photos/seed/postcardpin/800/600" },
-  { id: "f-design", name: "Design Inspo", color: "#F15BB5", image: "https://picsum.photos/seed/colorburst/800/600" },
-  { id: "f-research", name: "Research", color: "#6E68FF", image: "https://picsum.photos/seed/deepnotes/800/600" },
-  { id: "f-must-see", name: "Watch / Read Later", color: "#F7C948", image: "https://picsum.photos/seed/cinebook/800/600" },
-  { id: "f-paste-bin", name: "Paste Bin", color: "#7A8798", image: "https://picsum.photos/seed/pastebin/800/600" },
-  { id: "f-random", name: "Random AF", color: "#9AA5B1", image: "https://picsum.photos/seed/weirdchaos/800/600" },
+  { id: "f-private-vault", name: "Private Vault", color: "#6C63FF", image: folderArtCover("vault") },
+  { id: "f-growth", name: "AI Hacks", color: "#FF8A3D", image: folderArtCover("ai") },
+  { id: "f-wtf-favorites", name: "Science Stuff", color: "#5875FF", image: folderArtCover("science") },
+  { id: "f-tinfoil", name: "Tinfoil Hat Club", color: "#4C3D91", image: folderArtCover("tinfoil") },
+  { id: "f-lmao", name: "LULZ", color: "#FF4D6D", image: folderArtCover("lulz") },
+  { id: "f-health", name: "Health Hacks", color: "#25C48C", image: folderArtCover("health") },
+  { id: "f-recipes", name: "Recipes & Food", color: "#FF9F43", image: folderArtCover("recipes") },
+  { id: "f-travel", name: "Places", color: "#18B7A0", image: folderArtCover("places") },
+  { id: "f-design", name: "Design Inspo", color: "#F15BB5", image: folderArtCover("design") },
+  { id: "f-research", name: "Research", color: "#6E68FF", image: folderArtCover("research") },
+  { id: "f-must-see", name: "Watch / Read Later", color: "#F7C948", image: folderArtCover("watch") },
+  { id: "f-paste-bin", name: "Paste Bin", color: "#7A8798", image: folderArtCover("paste") },
+  { id: "f-random", name: "Random AF", color: "#9AA5B1", image: folderArtCover("random") },
   { id: "f-all", name: "All Saves", system: true, image: folderCover("library") },
 ];
 
@@ -783,6 +922,18 @@ const LEGACY_FOLDER_ID_MAP = {
 };
 const LEGACY_SEED_FOLDER_IDS = ["f-personal", "f-hacks", "f-health", "f-finance", "f-career", "f-read", "f-wtf", "f-science", "f-business", "f-must-watch", "f-must-read", "f-must-do", "f-design", "f-research", "f-recipes", "f-travel", "f-music-memes"];
 const REFRESHABLE_SEED_IMAGES = new Set([
+  "https://picsum.photos/seed/neonvault/800/600",
+  "https://picsum.photos/seed/robotrocket/800/600",
+  "https://picsum.photos/seed/cosmiclab/800/600",
+  "https://upload.wikimedia.org/wikipedia/commons/8/85/ManWearingTinFoilHat.jpg",
+  "https://picsum.photos/seed/glitchparty/800/600",
+  "https://picsum.photos/seed/greenpulse/800/600",
+  "https://picsum.photos/seed/foodpop/800/600",
+  "https://picsum.photos/seed/postcardpin/800/600",
+  "https://picsum.photos/seed/colorburst/800/600",
+  "https://picsum.photos/seed/deepnotes/800/600",
+  "https://picsum.photos/seed/cinebook/800/600",
+  "https://picsum.photos/seed/weirdchaos/800/600",
   "https://picsum.photos/seed/lockvault/800/600",
   "https://picsum.photos/seed/rocket/800/600",
   "https://picsum.photos/seed/galaxy/800/600",
