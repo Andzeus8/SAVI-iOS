@@ -470,7 +470,9 @@ private extension ShareItemExtractor {
         var tags: [String] = []
         tags.append(contentsOf: keywordTags(title: title, description: description, url: url, source: source))
         tags.append(contentsOf: topicalTags(from: haystack))
-        tags.append(type)
+        if type != "link" && type != "text" {
+            tags.append(type)
+        }
         if !sourceTag.isEmpty, sourceTag != "share-extension" {
             tags.append(sourceTag)
         }
@@ -888,7 +890,7 @@ private extension ShareItemExtractor {
             if tags.count >= 16 { break }
         }
 
-        for token in sourceTokens where token != "share" && token != "extension" {
+        for token in sourceTokens where !["share", "extension", "camera", "photo", "photos", "safari"].contains(token) {
             tags.append(token)
         }
 
@@ -919,6 +921,12 @@ private extension ShareItemExtractor {
             if keywords.contains(where: { haystack.contains($0) }) {
                 tags.append(tag)
             }
+        }
+        if haystack.contains("parasite") || haystack.contains("parasites") {
+            tags.append("parasite")
+        }
+        if haystack.contains("worm") || haystack.contains("worms") {
+            tags.append("worms")
         }
         return tags
     }

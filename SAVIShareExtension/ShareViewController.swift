@@ -767,14 +767,32 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             "place",
             "text",
             "share-extension",
+            "share",
+            "sharing",
             "safari",
             "photos",
             "files"
         ].map { $0.lowercased() })
+        let platform = Set([
+            "youtube", "instagram", "reddit", "tiktok", "spotify", "pinterest",
+            "cnn", "bbc", "reuters", "new-york-times", "news"
+        ])
 
-        let meaningful = raw.filter { !generic.contains($0.lowercased()) }
-        let fallback = raw.filter { generic.contains($0.lowercased()) }
-        return meaningful + fallback
+        let meaningful = raw.filter {
+            let lower = $0.lowercased()
+            return !generic.contains(lower) && !platform.contains(lower)
+        }
+        if !meaningful.isEmpty {
+            let preferredPlatform = raw.filter { platform.contains($0.lowercased()) }.prefix(1)
+            return meaningful + preferredPlatform
+        }
+
+        let minimalPlatform = raw.filter { platform.contains($0.lowercased()) }
+        if !minimalPlatform.isEmpty {
+            return Array(minimalPlatform.prefix(2))
+        }
+
+        return []
     }
 
     private func needsManualReview(_ share: PendingShare) -> Bool {
