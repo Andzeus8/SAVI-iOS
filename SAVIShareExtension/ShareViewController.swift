@@ -780,7 +780,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         ].map { $0.lowercased() })
         let platform = Set([
             "youtube", "instagram", "reddit", "tiktok", "spotify", "pinterest",
-            "cnn", "bbc", "reuters", "new-york-times", "news"
+            "cnn", "bbc", "reuters", "new-york-times", "news", "x", "twitter",
+            "google-maps", "apple-maps", "safari", "photos", "files"
         ])
         let banned = Set([
             "camera", "camera-phone", "phone-camera", "sharing", "shared", "open-app",
@@ -833,11 +834,26 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             }
             .map(\.0)
 
+        var platformResults = Array(dedupeTags(platformMatches).prefix(2))
+        if let sourceTag = normalizedSourceTag(for: share),
+           !platformResults.map({ $0.lowercased() }).contains(sourceTag.lowercased()) {
+            platformResults.insert(sourceTag, at: 0)
+        }
+
         return (
             strong: Array(dedupeTags(orderedStrong).prefix(3)),
-            platform: Array(dedupeTags(platformMatches).prefix(2)),
+            platform: Array(dedupeTags(platformResults).prefix(2)),
             salvageable: Array(dedupeTags(salvageable).prefix(4))
         )
+    }
+
+    private func normalizedSourceTag(for share: PendingShare) -> String? {
+        let cleaned = share.sourceApp
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "&", with: "and")
+            .replacingOccurrences(of: " ", with: "-")
+        return cleaned.isEmpty || cleaned == "share-extension" ? nil : cleaned
     }
 
     private func needsManualReview(_ share: PendingShare) -> Bool {
@@ -936,6 +952,9 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         var tags = classified.strong
         tags.append(contentsOf: classified.platform)
         tags.append(contentsOf: classified.salvageable)
+        if let sourceTag = normalizedSourceTag(for: share), !sourceTag.isEmpty {
+            tags.append(sourceTag)
+        }
 
         let base = [share.title, share.itemDescription, share.url, share.sourceApp]
             .compactMap { $0 }
