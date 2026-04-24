@@ -617,7 +617,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         notesTextView.text = summary
 
         selectedFolderId = share.folderId ?? selectedFolderId
-        selectedTags = Array(prioritizedDisplayTags(for: share).prefix(3))
+        selectedTags = defaultSelectedTags(for: share)
         suggestedTags = Array(
             suggestionTags(for: share)
                 .filter { !selectedTags.map { $0.lowercased() }.contains($0.lowercased()) }
@@ -761,6 +761,13 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         return classifyTagPool(raw, share: share).strong
     }
 
+    private func defaultSelectedTags(for share: PendingShare) -> [String] {
+        if let sourceTag = sourceDisplayTag(for: share) {
+            return [sourceTag]
+        }
+        return []
+    }
+
     private func classifyTagPool(_ raw: [String], share: PendingShare) -> (strong: [String], platform: [String], salvageable: [String]) {
         let generic = Set([
             share.type.lowercased(),
@@ -854,6 +861,11 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             .replacingOccurrences(of: "&", with: "and")
             .replacingOccurrences(of: " ", with: "-")
         return cleaned.isEmpty || cleaned == "share-extension" ? nil : cleaned
+    }
+
+    private func sourceDisplayTag(for share: PendingShare) -> String? {
+        let cleaned = share.sourceApp.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty || cleaned.caseInsensitiveCompare("Share Extension") == .orderedSame ? nil : cleaned
     }
 
     private func needsManualReview(_ share: PendingShare) -> Bool {
