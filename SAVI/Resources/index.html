@@ -915,17 +915,30 @@ const pickTextSnippet = (text = "") => {
     .filter(line => !/^([#>*-]|\d+\.)\s*$/.test(line));
   return clampText(lines.slice(0, 3).join(" "), 180);
 };
+const PLAIN_TEXT_SENSITIVE_RE = /\b(api|token|secret|password|ssh|credential|bearer|private key|apikey|seed phrase|recovery phrase|wallet|passcode)\b/i;
+const looksSensitivePlainText = (text = "") => PLAIN_TEXT_SENSITIVE_RE.test(text || "");
+const escapeSvgText = (value = "") => sanitizeText(value)
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;");
 const titleFromPlainText = (text = "") => {
+  const normalized = (text || "").trim();
+  if (!normalized) return "Pasted text";
+  if (looksSensitivePlainText(normalized)) return "Pasted text";
   const firstLine = (text || "")
     .split(/\r?\n/)
     .map((line) => sanitizeText(line))
     .find(Boolean);
-  return clampText(firstLine || "Untitled note", 84);
+  if (!firstLine) return "Pasted text";
+  if (firstLine.length > 90 || /^[A-Za-z0-9_:+/=-]{20,}$/.test(firstLine.replace(/\s+/g, ""))) return "Pasted text";
+  return clampText(firstLine, 84);
 };
 const tagsFromPlainText = (text = "") => {
   const cleaned = (text || "").toLowerCase();
   const manual = [];
-  if (/\b(api|token|secret|password|ssh|credential|bearer|private key|apikey)\b/.test(cleaned)) manual.push("sensitive");
+  if (looksSensitivePlainText(cleaned)) manual.push("sensitive");
   if (/\b(url|link|http|https|www\.)\b/.test(cleaned)) manual.push("link");
   if (/\b(todo|idea|remember|later|watch|read)\b/.test(cleaned)) manual.push("note");
   const words = dedupe(
@@ -940,14 +953,53 @@ const tagsFromPlainText = (text = "") => {
   );
   return dedupe([...manual, ...words]).slice(0, 6);
 };
+const thumbnailFromPlainText = (text = "", title = "", { sensitive = false } = {}) => {
+  const heading = escapeSvgText(clampText(title || "Pasted text", 40));
+  const snippet = sensitive
+    ? ["Sensitive text", "Preview hidden", "Stored safely"]
+    : (text || "")
+      .split(/\r?\n/)
+      .map((line) => sanitizeText(line))
+      .filter(Boolean)
+      .slice(0, 3)
+      .map((line) => clampText(line, 34));
+  const lines = (snippet.length ? snippet : ["Quick paste", "Saved for later", "Ready when you need it"]).slice(0, 3);
+  const palette = sensitive
+    ? { start: "#1B1530", end: "#2D2151", accent: "#BFA0FF", badge: "#F0E7FF", badgeBg: "rgba(191,160,255,0.18)", line: "rgba(240,231,255,0.78)" }
+    : { start: "#172033", end: "#2B3D64", accent: "#90B4FF", badge: "#EAF1FF", badgeBg: "rgba(144,180,255,0.18)", line: "rgba(234,241,255,0.78)" };
+  const lineMarkup = lines.map((line, index) => `
+      <text x="68" y="${214 + index * 48}" fill="${palette.line}" font-size="${index === 0 ? 28 : 24}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">${escapeSvgText(line)}</text>
+    `).join("");
+  return svgCoverDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480">
+    <defs>
+      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="${palette.start}"/>
+        <stop offset="100%" stop-color="${palette.end}"/>
+      </linearGradient>
+      <filter id="blur"><feGaussianBlur stdDeviation="18"/></filter>
+    </defs>
+    <rect width="720" height="480" rx="36" fill="url(#bg)"/>
+    <circle cx="610" cy="104" r="96" fill="${palette.accent}" opacity="0.18" filter="url(#blur)"/>
+    <rect x="48" y="52" width="624" height="376" rx="34" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.12)"/>
+    <rect x="68" y="76" width="144" height="144" rx="30" fill="${palette.badgeBg}" stroke="rgba(255,255,255,0.14)"/>
+    <path d="M116 114 H162" stroke="${palette.badge}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M116 147 H191" stroke="${palette.badge}" stroke-width="13" stroke-linecap="round" opacity="0.92"/>
+    <path d="M116 180 H176" stroke="${palette.badge}" stroke-width="13" stroke-linecap="round" opacity="0.82"/>
+    <rect x="236" y="84" width="182" height="42" rx="21" fill="${palette.badgeBg}" stroke="rgba(255,255,255,0.12)"/>
+    <text x="257" y="112" fill="${palette.badge}" font-size="20" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">${sensitive ? "Private Vault" : "Paste Bin"}</text>
+    <text x="68" y="286" fill="rgba(255,255,255,0.94)" font-size="34" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">${heading}</text>
+    ${lineMarkup}
+  </svg>`);
+};
 const deriveTextSaveDraft = (text = "", folders = []) => {
   const normalized = (text || "").trim();
   const title = titleFromPlainText(normalized);
   const description = normalized;
   const tags = tagsFromPlainText(normalized);
   const lower = normalized.toLowerCase();
+  const sensitive = looksSensitivePlainText(lower);
   let folderId = folders.find((folder) => folder.id === "f-paste-bin")?.id || folders.find((folder) => folder.id === "f-random")?.id || "";
-  if (/\b(api|token|secret|password|ssh|credential|bearer|private key|apikey)\b/.test(lower)) {
+  if (sensitive) {
     folderId = folders.find((folder) => folder.id === "f-private-vault")?.id || folderId;
   }
   return {
@@ -956,7 +1008,9 @@ const deriveTextSaveDraft = (text = "", folders = []) => {
     tags,
     folderId,
     source: "Paste",
-    type: "file",
+    type: "text",
+    thumbnail: thumbnailFromPlainText(normalized, title, { sensitive }),
+    sensitive,
   };
 };
 
@@ -3505,6 +3559,26 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
     }
   };
 
+  const fillTextFromClipboard = async ({ auto = false } = {}) => {
+    if (!navigator.clipboard?.readText) {
+      if (!auto) setClipboardNote("Clipboard paste is blocked here. Long-press and paste manually.");
+      return false;
+    }
+    try {
+      const rawText = await navigator.clipboard.readText();
+      if (!rawText || !rawText.trim()) {
+        if (!auto) setClipboardNote("Your clipboard looks empty right now.");
+        return false;
+      }
+      setTextBody(rawText);
+      setClipboardNote(auto ? "Pulled plain text from your clipboard." : "Pasted plain text from your clipboard.");
+      return true;
+    } catch {
+      if (!auto) setClipboardNote("Clipboard paste is blocked here. Long-press and paste manually.");
+      return false;
+    }
+  };
+
   const switchMode = (nextMode) => {
     if (nextMode === inputMode) return;
     cancelAnalyze();
@@ -3532,6 +3606,11 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
       setType("text");
       setFolderId(folders.find((f) => f.id === "f-paste-bin")?.id || folders.find((f) => f.id === "f-random")?.id || folders.find((f) => !f.system)?.id || "f-random");
       if (fileInputRef.current) fileInputRef.current.value = "";
+      if (!textBody.trim()) {
+        window.setTimeout(() => {
+          fillTextFromClipboard({ auto: true });
+        }, 70);
+      }
     } else {
       setTextBody("");
       setSource("Device");
@@ -3732,11 +3811,11 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
           description: description.trim() || textDraft.description,
           url: "",
           source: "Paste",
-          type: "text",
-          folderId,
+          type: textDraft.type || "text",
+          folderId: folderId || textDraft.folderId,
           tags: nextTags.length ? nextTags : textDraft.tags,
           color: folder?.color || T.accent,
-          thumbnail: "",
+          thumbnail: thumbnail || textDraft.thumbnail || "",
         });
         return;
       }
@@ -3823,7 +3902,7 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
     setType(draft.type);
     if (draft.folderId) setFolderId(draft.folderId);
     setTags(draft.tags.join(", "));
-    setThumbnail("");
+    setThumbnail(draft.thumbnail || "");
     setStep(2);
     setAnalysisNote(draft.folderId === "f-private-vault"
       ? "SAVI spotted something sensitive and nudged it into Private Vault."
@@ -3924,18 +4003,7 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
                     )}
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 10 }}>
-                    <button onClick={async () => {
-                      if (!navigator.clipboard?.readText) return;
-                      try {
-                        const rawText = await navigator.clipboard.readText();
-                        if (rawText) {
-                          setTextBody(rawText);
-                          setClipboardNote("Pasted plain text from your clipboard.");
-                        }
-                      } catch {
-                        setClipboardNote("Clipboard paste is blocked here. Long-press and paste manually.");
-                      }
-                    }} style={{ padding: "9px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: T.card, color: T.ink, border: `1px solid ${T.lineSoft}` }}>
+                    <button onClick={() => fillTextFromClipboard()} style={{ padding: "9px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: T.card, color: T.ink, border: `1px solid ${T.lineSoft}` }}>
                       Paste clipboard
                     </button>
                     {clipboardNote && (
@@ -3946,7 +4014,7 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
                   </div>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 16, fontSize: 11.5, padding: 12, borderRadius: 12, background: T.paperDim, border: `1px solid ${T.lineSoft}`, color: T.inkSoft }}>
                     <div style={{ color: T.accent, flexShrink: 0, marginTop: 2 }}><IconClipboard size={13} /></div>
-                    <span>Perfect for API keys, shipping notes, copied addresses, scraps of text, or random junk you need later. SAVI will default these into Paste Bin unless it looks sensitive.</span>
+                    <span>Perfect for API keys, shipping notes, copied addresses, scraps of text, or random junk you need later. SAVI will try your clipboard first, default to Paste Bin, and nudge sensitive text into Private Vault.</span>
                   </div>
                 </>
               ) : (
