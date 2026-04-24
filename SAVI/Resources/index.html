@@ -2827,7 +2827,8 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
           : "Jump into the apps and platforms that generated the save.";
   const heroCount = items.length;
   const searchInputRef = useRef(null);
-  const topFolders = folders
+  const resultSectionRef = useRef(null);
+  const allFolders = folders
     .filter((folder) => !folder.system)
     .map((folder) => ({
       ...folder,
@@ -2840,8 +2841,8 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
       const aOrder = DEFAULT_FOLDER_ORDER_MAP[a.id] ?? 1000;
       const bOrder = DEFAULT_FOLDER_ORDER_MAP[b.id] ?? 1000;
       return aOrder - bOrder;
-    })
-    .slice(0, 4);
+    });
+  const topFolders = allFolders.slice(0, 4);
   const showDashboard = !searchMode;
   const anySearchFilterActive = activeFolder !== "f-all" || activeType !== "all" || activeSource !== "all";
   const resultTitle = searchMode
@@ -2852,12 +2853,19 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
         : "Everything"
     : "Recent SAVIs";
 
+  const jumpToResults = () => {
+    window.setTimeout(() => {
+      resultSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, 120);
+  };
+
   const applySearchShortcut = ({ nextSearch = "", nextBrowseMode = "all", nextType = "all", nextSource = "all", nextFolder = "f-all" }) => {
     setBrowseMode(nextBrowseMode);
     setActiveType(nextType);
     setActiveSource(nextSource);
     setActiveFolder(nextFolder);
     setSearch(nextSearch);
+    jumpToResults();
   };
 
   const quickFindTiles = [
@@ -2998,13 +3006,13 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
             </div>
           </div>
 
-          {topFolders.length > 0 && (
+          {allFolders.length > 0 && (
             <div>
               <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: T.inkMute, marginBottom: 10 }}>
-                Top folders
+                Folders
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {topFolders.map((folder) => (
+                {allFolders.map((folder) => (
                   <button
                     key={folder.id}
                     onClick={() => applySearchShortcut({ nextBrowseMode: "folders", nextFolder: folder.id })}
@@ -3118,7 +3126,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
           <EmptyState search={search} searchMode={searchMode} browseMode={browseMode} activeFolderName={activeFolderName} activeSourceLabel={activeSourceLabel} activeType={activeType} />
         </div>
       ) : viewMode === "grid" ? (
-        <div key={`grid-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
+        <div ref={resultSectionRef} key={`grid-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
             <div className="serif" style={{ fontSize: 24, color: T.ink }}>{resultTitle}</div>
             <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
@@ -3130,7 +3138,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
           </div>
         </div>
       ) : (
-        <div key={`list-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
+        <div ref={resultSectionRef} key={`list-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
             <div className="serif" style={{ fontSize: 24, color: T.ink }}>{resultTitle}</div>
             <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
