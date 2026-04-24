@@ -19,7 +19,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private let folderSummaryIconView = UIImageView()
     private let folderSummaryTitleLabel = UILabel()
     private let folderSummaryHintLabel = UILabel()
-    private let folderContextLabel = UILabel()
     private let folderGridStack = UIStackView()
 
     private let titleField = UITextField()
@@ -81,10 +80,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         configureFolderSummaryCard()
 
         let folderSection = makeSectionCard(emphasized: true)
-        folderSection.addArrangedSubview(makeSectionLabel("Pick the folder"))
-        folderSection.addArrangedSubview(makeHintLabel("SAVI already picked the best match. If it feels right, just hit Save. If not, tap a better folder below."))
-        configureFolderContextLabel()
-        folderSection.addArrangedSubview(folderContextLabel)
+        folderSection.addArrangedSubview(makeSectionLabel("Folder"))
+        folderSection.addArrangedSubview(makeHintLabel("Auto-picked for you. Change it only if SAVI guessed wrong."))
         folderSection.addArrangedSubview(folderSummaryCard)
         configureFolderGrid()
         folderSection.addArrangedSubview(folderGridStack)
@@ -101,7 +98,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         configureTextField(tagsField, placeholder: "Add extra tags, comma separated")
         tagsSection.addArrangedSubview(tagsField)
 
-        [folderSection, previewCard, tagsSection].forEach { contentStack.addArrangedSubview($0) }
+        [previewCard, folderSection, tagsSection].forEach { contentStack.addArrangedSubview($0) }
 
         setNotesExpanded(false, animated: false)
         if let firstFolder = availableFolders.first?.id, !firstFolder.isEmpty {
@@ -269,7 +266,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         previewSubtitleLabel.font = .preferredFont(forTextStyle: .footnote)
         previewSubtitleLabel.textColor = .secondaryLabel
         previewSubtitleLabel.numberOfLines = 3
-        previewSubtitleLabel.text = "Intelligently categorizing your save, pulling the title, and prepping a few useful tags."
+        previewSubtitleLabel.text = "Pulling the title, a clean preview, the best folder, and useful tags."
 
         spinner.startAnimating()
 
@@ -361,15 +358,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private func configureFolderGrid() {
         folderGridStack.axis = .vertical
-        folderGridStack.spacing = 10
+        folderGridStack.spacing = 8
         folderGridStack.translatesAutoresizingMaskIntoConstraints = false
-    }
-
-    private func configureFolderContextLabel() {
-        folderContextLabel.font = .preferredFont(forTextStyle: .subheadline).bold()
-        folderContextLabel.textColor = .label
-        folderContextLabel.numberOfLines = 2
-        folderContextLabel.text = "Saving…"
     }
 
     private func configureHorizontalStrip(scrollView: UIScrollView, row: UIStackView, height: CGFloat) {
@@ -465,7 +455,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
                 pendingShare = share
                 applyShare(share, animated: false)
                 statusBadge.text = "Auto-filling"
-                previewSubtitleLabel.text = "Intelligently categorizing your save, pulling the title, and prepping a few useful tags."
+                previewSubtitleLabel.text = "Pulling the title, a clean preview, the best folder, and useful tags."
                 updateSaveButton(isReady: false)
             }
 
@@ -477,8 +467,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
                 let needsReview = needsManualReview(enriched)
                 statusBadge.text = needsReview ? "Check title" : "Ready"
                 previewSubtitleLabel.text = needsReview
-                    ? "We pulled what we could. Give it a better title or note if needed, then save."
-                    : "Looks good. Save now or make one quick change."
+                    ? "We pulled what we could. Fix the title here if needed, add a quick note, then save."
+                    : "Looks good. Save now or tweak anything right here."
                 setNotesExpanded(needsReview, animated: true)
                 updateSaveButton(isReady: true)
             }
@@ -516,8 +506,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         rebuildFolderButtons()
         rebuildTagViews()
         configurePreview(for: share)
-        folderContextLabel.text = share.title
-
         if animated {
             UIView.transition(with: previewCard, duration: 0.18, options: .transitionCrossDissolve, animations: {}, completion: nil)
         }
@@ -588,17 +576,17 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         folderSummaryIconView.image = UIImage(systemName: selectedPreset.symbolName)
         folderSummaryTitleLabel.text = selectedPreset.name
         if pendingShare?.folderId == selectedFolderId {
-            folderSummaryHintLabel.text = "Auto-picked and ready to save."
+            folderSummaryHintLabel.text = "Auto-picked and ready."
         } else {
-            folderSummaryHintLabel.text = "You changed the folder for this save."
+            folderSummaryHintLabel.text = "Changed for this save."
         }
 
-        for index in stride(from: 0, to: presets.count, by: 3) {
+        for index in stride(from: 0, to: presets.count, by: 4) {
             let row = UIStackView()
             row.axis = .horizontal
             row.alignment = .fill
             row.distribution = .fillEqually
-            row.spacing = 8
+            row.spacing = 6
 
             let left = makeFolderButton(for: presets[index])
             row.addArrangedSubview(left)
@@ -619,6 +607,14 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
                 row.addArrangedSubview(spacer)
             }
 
+            if index + 3 < presets.count {
+                row.addArrangedSubview(makeFolderButton(for: presets[index + 3]))
+            } else {
+                let spacer = UIView()
+                spacer.backgroundColor = .clear
+                row.addArrangedSubview(spacer)
+            }
+
             folderGridStack.addArrangedSubview(row)
         }
     }
@@ -630,17 +626,17 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         var config = UIButton.Configuration.filled()
         config.title = preset.name
         config.image = UIImage(systemName: isSelected ? "checkmark.circle.fill" : preset.symbolName)
-        config.imagePadding = 10
+        config.imagePadding = 6
         config.imagePlacement = .top
         config.cornerStyle = .large
         config.baseBackgroundColor = isSelected ? theme.color.withAlphaComponent(0.18) : .white
         config.baseForegroundColor = isSelected ? theme.color : .label
-        config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 8, bottom: 12, trailing: 8)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 4, bottom: 10, trailing: 4)
         config.titleAlignment = .center
         config.subtitle = isSelected ? "Selected" : nil
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 12, weight: .semibold)
+            outgoing.font = .systemFont(ofSize: 11, weight: .semibold)
             return outgoing
         }
         config.subtitleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
@@ -654,11 +650,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         button.layer.cornerRadius = 18
         button.layer.borderWidth = 1
         button.layer.borderColor = (isSelected ? theme.color.withAlphaComponent(0.28) : UIColor.separator.withAlphaComponent(0.22)).cgColor
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = isSelected ? 0.08 : 0.04
-        button.layer.shadowRadius = isSelected ? 14 : 8
-        button.layer.shadowOffset = CGSize(width: 0, height: isSelected ? 6 : 3)
-        button.heightAnchor.constraint(equalToConstant: 74).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 62).isActive = true
         button.tag = availableFolders.firstIndex(where: { $0.id == preset.id }) ?? 0
         button.addTarget(self, action: #selector(folderTapped(_:)), for: .touchUpInside)
         return button

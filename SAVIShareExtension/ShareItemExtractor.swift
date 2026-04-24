@@ -469,15 +469,15 @@ private extension ShareItemExtractor {
         let haystack = [url ?? "", title ?? "", description ?? ""].joined(separator: " ").lowercased()
         var tags: [String] = []
         tags.append(contentsOf: keywordTags(title: title, description: description, url: url, source: source))
+        tags.append(contentsOf: topicalTags(from: haystack))
         tags.append(type)
-        tags.append(sourceTag)
+        if !sourceTag.isEmpty, sourceTag != "share-extension" {
+            tags.append(sourceTag)
+        }
         if type == "place" { tags.append("location") }
         if haystack.contains("youtube") { tags.append("video") }
         if haystack.contains("instagram") { tags.append("post") }
         if haystack.contains("pdf") { tags.append("pdf") }
-        for token in ["parasite", "parasites", "infection", "symptoms", "health", "ai", "claude", "chatgpt", "recipe", "travel", "design", "research", "funny", "meme", "conspiracy", "pentagon", "egypt", "maps", "news", "reddit", "instagram", "youtube", "career", "productivity", "science"] where haystack.contains(token) {
-            tags.append(token)
-        }
         return dedupeTags(tags)
     }
 
@@ -833,10 +833,13 @@ private extension ShareItemExtractor {
     }
 
     static func keywordTags(title: String?, description: String?, url: String?, source: String?) -> [String] {
-        let combined = [title, description, source]
-            .compactMap { $0 }
-            .joined(separator: " ")
-        let normalized = combined
+        let titleNormalized = (title ?? "")
+            .lowercased()
+            .replacingOccurrences(of: "[^a-z0-9\\s-]", with: " ", options: .regularExpression)
+        let descriptionNormalized = (description ?? "")
+            .lowercased()
+            .replacingOccurrences(of: "[^a-z0-9\\s-]", with: " ", options: .regularExpression)
+        let sourceNormalized = (source ?? "")
             .lowercased()
             .replacingOccurrences(of: "[^a-z0-9\\s-]", with: " ", options: .regularExpression)
         let stopwords: Set<String> = [
@@ -844,31 +847,49 @@ private extension ShareItemExtractor {
             "will", "just", "they", "them", "their", "were", "what", "when", "where", "which",
             "while", "also", "than", "after", "before", "over", "under", "more", "less", "best",
             "using", "used", "want", "need", "must", "watch", "read", "save", "link", "video",
-            "things", "thing", "know", "should"
+            "things", "thing", "know", "should", "extension", "share"
         ]
 
         var tags: [String] = []
-        let tokens = normalized
+        let titleTokens = titleNormalized
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber && $0 != "-" })
             .map(String.init)
+            .filter { $0.count >= 3 && $0.count <= 24 && !stopwords.contains($0) }
+        let descriptionTokens = descriptionNormalized
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber && $0 != "-" })
+            .map(String.init)
+            .filter { $0.count >= 3 && $0.count <= 24 && !stopwords.contains($0) }
+        let sourceTokens = sourceNormalized
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber && $0 != "-" })
+            .map(String.init)
+            .filter { $0.count >= 3 && $0.count <= 24 && !stopwords.contains($0) }
 
-        for token in tokens where token.count >= 3 && token.count <= 24 && !stopwords.contains(token) {
+        for token in titleTokens {
             tags.append(token)
-            if tags.count >= 10 { break }
+            if token.hasSuffix("s"), token.count > 4 {
+                tags.append(String(token.dropLast()))
+            }
+            if tags.count >= 8 { break }
         }
 
         if let title {
-            let titleTokens = title
-                .lowercased()
-                .replacingOccurrences(of: "[^a-z0-9\\s-]", with: " ", options: .regularExpression)
-                .split(whereSeparator: { !$0.isLetter && !$0.isNumber && $0 != "-" })
-                .map(String.init)
-                .filter { $0.count >= 3 && $0.count <= 24 && !stopwords.contains($0) }
             for index in 0..<(max(titleTokens.count - 1, 0)) {
                 let phrase = "\(titleTokens[index])-\(titleTokens[index + 1])"
                 tags.append(phrase)
-                if tags.count >= 14 { break }
+                if tags.count >= 12 { break }
             }
+        }
+
+        for token in descriptionTokens {
+            tags.append(token)
+            if token.hasSuffix("s"), token.count > 4 {
+                tags.append(String(token.dropLast()))
+            }
+            if tags.count >= 16 { break }
+        }
+
+        for token in sourceTokens where token != "share" && token != "extension" {
+            tags.append(token)
         }
 
         if let url, let host = URL(string: url)?.host?.lowercased() {
@@ -879,6 +900,27 @@ private extension ShareItemExtractor {
         }
 
         return dedupeTags(tags)
+    }
+
+    static func topicalTags(from haystack: String) -> [String] {
+        let groups: [(String, [String])] = [
+            ("health", ["parasite", "parasites", "infection", "disease", "doctor", "medical", "symptom", "symptoms", "body", "gut", "wellness"]),
+            ("travel", ["travel", "trip", "hotel", "vacation", "destination", "flight", "beach", "city"]),
+            ("food", ["recipe", "food", "cook", "meal", "dessert", "restaurant"]),
+            ("science", ["science", "research", "study", "nasa", "space", "discovery"]),
+            ("design", ["design", "ui", "ux", "figma", "branding"]),
+            ("conspiracy", ["conspiracy", "ufo", "pentagon", "mkultra", "atlantis", "pyramid"]),
+            ("funny", ["funny", "meme", "viral", "comedy", "laugh"]),
+            ("productivity", ["productivity", "automation", "workflow", "career", "business", "ai", "claude", "chatgpt"])
+        ]
+
+        var tags: [String] = []
+        for (tag, keywords) in groups {
+            if keywords.contains(where: { haystack.contains($0) }) {
+                tags.append(tag)
+            }
+        }
+        return tags
     }
 
     static func youtubeFallbackDescription(from payload: YouTubeOEmbedResponse) -> String? {
