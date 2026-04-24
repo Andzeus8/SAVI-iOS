@@ -777,10 +777,14 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             "youtube", "instagram", "reddit", "tiktok", "spotify", "pinterest",
             "cnn", "bbc", "reuters", "new-york-times", "news"
         ])
+        let banned = Set([
+            "camera", "camera-phone", "phone-camera", "sharing", "shared", "open-app",
+            "app", "photo", "photos", "mobile", "smartphone", "watch", "save"
+        ])
 
         let meaningful = raw.filter {
             let lower = $0.lowercased()
-            return !generic.contains(lower) && !platform.contains(lower)
+            return !generic.contains(lower) && !platform.contains(lower) && !banned.contains(lower)
         }
         if !meaningful.isEmpty {
             let preferredPlatform = raw.filter { platform.contains($0.lowercased()) }.prefix(1)

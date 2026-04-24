@@ -616,7 +616,7 @@ private extension ShareItemExtractor {
             description: youtubeFallbackDescription(from: decoded),
             imageURL: decoded.thumbnailURL,
             provider: decoded.providerName ?? "YouTube",
-            tags: dedupeTags(["youtube", "video", slugTag(from: decoded.authorName)])
+            tags: ["youtube", "video"]
         )
     }
 
@@ -629,7 +629,7 @@ private extension ShareItemExtractor {
             description: youtubeFallbackDescription(from: decoded),
             imageURL: decoded.thumbnailURL,
             provider: decoded.providerName,
-            tags: dedupeTags(noembedTags(from: decoded.providerName, title: decoded.title) + [slugTag(from: decoded.authorName)])
+            tags: dedupeTags(noembedTags(from: decoded.providerName, title: decoded.title))
         )
     }
 
