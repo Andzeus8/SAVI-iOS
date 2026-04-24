@@ -1883,6 +1883,9 @@ function App() {
     }
     return list.sort((a,b) => b.savedAt - a.savedAt);
   }, [items, activeFolder, activeSource, activeType, browseMode, search]);
+  const recentItems = useMemo(() => (
+    [...items].sort((a, b) => b.savedAt - a.savedAt)
+  ), [items]);
 
   const folderCounts = useMemo(() => {
     const counts = { "f-all": items.length };
@@ -2074,7 +2077,7 @@ function App() {
                     {route === "home" && (
                       <HomeScreen
                         folders={folders}
-                        items={visibleItems}
+                        items={recentItems}
                         searchMode={false}
                         activeFolder={activeFolder}
                         setActiveFolder={setActiveFolder}
@@ -2092,6 +2095,36 @@ function App() {
                         sourceOptions={sourceOptions}
                         search={search}
                         setSearch={setSearch}
+                        onOpenSearch={() => setRoute("search")}
+                        onBack={() => setRoute("home")}
+                        onSelect={setSelectedItem}
+                        onShare={shareApp}
+                        onShareItem={handleShareItem}
+                      />
+                    )}
+                    {route === "search" && (
+                      <HomeScreen
+                        folders={folders}
+                        items={visibleItems}
+                        searchMode={true}
+                        activeFolder={activeFolder}
+                        setActiveFolder={setActiveFolder}
+                        browseMode={browseMode}
+                        setBrowseMode={setBrowseMode}
+                        activeType={activeType}
+                        setActiveType={setActiveType}
+                        activeSource={activeSource}
+                        setActiveSource={setActiveSource}
+                        viewMode={viewMode}
+                        setViewMode={setViewMode}
+                        folderCounts={folderCounts}
+                        typeCounts={typeCounts}
+                        sourceCounts={sourceCounts}
+                        sourceOptions={sourceOptions}
+                        search={search}
+                        setSearch={setSearch}
+                        onOpenSearch={() => setRoute("search")}
+                        onBack={() => setRoute("home")}
                         onSelect={setSelectedItem}
                         onShare={shareApp}
                         onShareItem={handleShareItem}
@@ -2439,7 +2472,7 @@ function WelcomeWizard({ onFinish }) {
   );
 }
 
-function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiveFolder, browseMode, setBrowseMode, activeType, setActiveType, activeSource, setActiveSource, viewMode, setViewMode, folderCounts, typeCounts, sourceCounts, sourceOptions, search, setSearch, onSelect, onShare, onShareItem }) {
+function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiveFolder, browseMode, setBrowseMode, activeType, setActiveType, activeSource, setActiveSource, viewMode, setViewMode, folderCounts, typeCounts, sourceCounts, sourceOptions, search, setSearch, onSelect, onShare, onShareItem, onOpenSearch, onBack }) {
   const activeFolderName = folders.find(f => f.id === activeFolder)?.name || "All Saves";
   const activeSourceLabel = sourceOptions.find((option) => option.key === activeSource)?.label || (activeSource === "all" ? "All Apps" : titleize(activeSource));
   const heroEyebrow = searchMode ? "Search" : browseMode === "all" ? "My SAVIs" : browseMode === "folders" ? "Folders" : browseMode === "types" ? "Types" : "Apps";
@@ -2472,7 +2505,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
     .slice(0, 4);
   const quickTypeFilters = ["video", "article", "place", "file"].filter((key) => (typeCounts[key] ?? 0) > 0);
   const quickSourceFilters = sourceOptions.slice(0, 4);
-  const showDashboard = browseMode === "all" && !search;
+  const showDashboard = !searchMode;
 
   useEffect(() => {
     if (!searchMode) return;
@@ -2498,6 +2531,11 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
       <div style={{ padding: "16px 20px 6px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {searchMode && (
+              <button onClick={onBack} aria-label="Back to Home" style={{ width: 34, height: 34, borderRadius: 12, background: T.card, color: T.ink, border: `1px solid ${T.lineSoft}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <IconChevronLeft size={15} />
+              </button>
+            )}
             <div style={{ width: 34, height: 34, borderRadius: 12, background: "linear-gradient(160deg, #161A23 0%, #6D7CFF 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: T.paper, boxShadow: "0 16px 28px -22px rgba(22,26,35,0.72)" }}>
               <IconBookmark size={14} stroke={2} fill={T.paper} />
             </div>
@@ -2528,9 +2566,11 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
                 );
               })}
             </div>
-            <button onClick={onShare} className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", padding: "10px 12px", borderRadius: 14, border: `1px solid ${T.lineSoft}`, background: T.card, color: T.inkSoft, boxShadow: "0 12px 24px -22px rgba(22,26,35,0.55)" }}>
-              Share
-            </button>
+            {!searchMode && (
+              <button onClick={onShare} className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", padding: "10px 12px", borderRadius: 14, border: `1px solid ${T.lineSoft}`, background: T.card, color: T.inkSoft, boxShadow: "0 12px 24px -22px rgba(22,26,35,0.55)" }}>
+                Share
+              </button>
+            )}
           </div>
         </div>
 
@@ -2562,54 +2602,23 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
       </div>
 
       <div style={{ padding: "0 20px 14px" }}>
-        <div style={{ position: "relative" }}>
-          <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.inkMute, pointerEvents: "none", display: "flex" }}>
-            <IconSearch size={15} />
+        {searchMode ? (
+          <div style={{ position: "relative" }}>
+            <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.inkMute, pointerEvents: "none", display: "flex" }}>
+              <IconSearch size={15} />
+            </div>
+            <input aria-label="Search your library" ref={searchInputRef} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search titles, tags, apps, and notes..." style={{ width: "100%", borderRadius: 16, padding: "12px 14px 12px 42px", fontSize: 14, background: T.card, border: `1px solid ${T.lineSoft}`, color: T.ink, boxShadow: "0 16px 28px -26px rgba(22,26,35,0.55)" }} />
           </div>
-          <input aria-label="Search your library" ref={searchInputRef} value={search} onChange={e=>setSearch(e.target.value)} placeholder={searchMode ? "Search titles, tags, apps, and notes..." : "Search all your SAVIs"} style={{ width: "100%", borderRadius: 16, padding: "12px 14px 12px 42px", fontSize: 14, background: T.card, border: `1px solid ${T.lineSoft}`, color: T.ink, boxShadow: "0 16px 28px -26px rgba(22,26,35,0.55)" }} />
-        </div>
+        ) : (
+          <button onClick={onOpenSearch} aria-label="Open Search" style={{ width: "100%", borderRadius: 16, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, background: T.card, border: `1px solid ${T.lineSoft}`, color: T.inkMute, boxShadow: "0 16px 28px -26px rgba(22,26,35,0.55)", textAlign: "left" }}>
+            <IconSearch size={15} />
+            <span style={{ fontSize: 14 }}>Search all your SAVIs</span>
+          </button>
+        )}
       </div>
 
       {showDashboard && (
         <div style={{ padding: "0 20px 18px", display: "grid", gap: 18 }}>
-          <div style={{ padding: 16, borderRadius: 22, background: "linear-gradient(160deg, rgba(22,26,35,0.98) 0%, rgba(65,74,118,0.96) 100%)", color: T.paper, boxShadow: "0 22px 40px -28px rgba(22,26,35,0.72)" }}>
-            <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(245,241,234,0.68)", marginBottom: 10 }}>
-              SAVI shortcuts
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-              <button onClick={() => { setBrowseMode("all"); setSearch(""); }} style={{ padding: "14px 12px", borderRadius: 16, background: "rgba(255,255,255,0.08)", color: T.paper, textAlign: "left", border: "1px solid rgba(255,255,255,0.12)" }}>
-                <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.66, marginBottom: 6 }}>All saves</div>
-                <div className="serif" style={{ fontSize: 24, lineHeight: 1 }}>{heroCount}</div>
-              </button>
-              <button onClick={() => { setBrowseMode("folders"); setActiveFolder("f-all"); }} style={{ padding: "14px 12px", borderRadius: 16, background: "rgba(255,255,255,0.08)", color: T.paper, textAlign: "left", border: "1px solid rgba(255,255,255,0.12)" }}>
-                <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.66, marginBottom: 6 }}>Folders</div>
-                <div className="serif" style={{ fontSize: 24, lineHeight: 1 }}>{folders.filter(f => !f.system).length}</div>
-              </button>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-              {quickTypeFilters.map((key) => (
-                <button
-                  key={key}
-                  onClick={() => { setBrowseMode("types"); setActiveType(key); }}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 10px", borderRadius: 999, background: "rgba(255,255,255,0.08)", color: T.paper, border: "1px solid rgba(255,255,255,0.1)" }}
-                >
-                  {typeIconFor(key, { size: 12, stroke: 1.8 })}
-                  <span className="mono" style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>{displayTypeLabel(key)}</span>
-                </button>
-              ))}
-              {quickSourceFilters.map((option) => (
-                <button
-                  key={option.key}
-                  onClick={() => { setBrowseMode("sources"); setActiveSource(option.key); }}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 10px", borderRadius: 999, background: "rgba(255,255,255,0.08)", color: T.paper, border: "1px solid rgba(255,255,255,0.1)" }}
-                >
-                  <BrandBadge visual={{ ...sourceVisualForKey(option.key), bg: "rgba(255,255,255,0.16)", gradient: "", fg: T.paper }} size={18} />
-                  <span className="mono" style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>{option.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {topFolders.length > 0 && (
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
@@ -2659,10 +2668,45 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
               </div>
             </div>
           )}
+
+          {(quickSourceFilters.length > 0 || quickTypeFilters.length > 0) && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
+                <div className="serif" style={{ fontSize: 24, color: T.ink }}>Jump back in</div>
+                <button className="mono" onClick={onOpenSearch} style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
+                  Search
+                </button>
+              </div>
+              <div className="scroll" style={{ display: "flex", gap: 8, overflowX: "auto", overflowY: "hidden", margin: "0 -20px", padding: "0 20px 4px" }}>
+                {quickSourceFilters.map((option) => (
+                  <button
+                    key={option.key}
+                    onClick={() => { setBrowseMode("sources"); setActiveSource(option.key); onOpenSearch?.(); }}
+                    style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 999, background: T.card, color: T.inkSoft, border: `1px solid ${T.lineSoft}`, boxShadow: "0 16px 28px -24px rgba(22,26,35,0.45)" }}
+                  >
+                    <BrandBadge visual={sourceVisualForKey(option.key)} size={20} />
+                    <span className="mono" style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>{option.label}</span>
+                  </button>
+                ))}
+                {quickTypeFilters.map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => { setBrowseMode("types"); setActiveType(key); onOpenSearch?.(); }}
+                    style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 999, background: T.card, color: T.inkSoft, border: `1px solid ${T.lineSoft}`, boxShadow: "0 16px 28px -24px rgba(22,26,35,0.45)" }}
+                  >
+                    <div style={{ width: 20, height: 20, borderRadius: 999, background: `${typeVisualForKey(key).bg}`, color: typeVisualForKey(key).fg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {typeIconFor(key, { size: 11, stroke: 1.8 })}
+                    </div>
+                    <span className="mono" style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>{displayTypeLabel(key)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {browseMode !== "all" && (
+      {searchMode && browseMode !== "all" && (
         <div style={{ padding: "0 20px 18px" }}>
           <div className="scroll" style={{ display: "flex", gap: 8, overflowX: "auto", overflowY: "hidden", paddingBottom: 4, margin: "0 -20px", padding: "0 20px" }}>
             {browseMode === "folders" && folders.map((f) => {
@@ -2710,7 +2754,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
       ) : viewMode === "grid" ? (
         <div key={`grid-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Latest SAVIs" : heroTitle}</div>
+            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Recent SAVIs" : heroTitle}</div>
             <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
               {items.length} {items.length === 1 ? "item" : "items"}
             </div>
@@ -2722,7 +2766,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
       ) : (
         <div key={`list-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Latest SAVIs" : heroTitle}</div>
+            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Recent SAVIs" : heroTitle}</div>
             <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
               {items.length} {items.length === 1 ? "item" : "items"}
             </div>
@@ -3307,7 +3351,7 @@ function TabBar({ route, setRoute, onSavePress }) {
   return (
     <div style={{ position: "relative", background: T.paper, flexShrink: 0 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around", padding: `8px 24px calc(24px + env(safe-area-inset-bottom))`, borderTop: `1px solid ${T.lineSoft}`, background: `${T.paper}f5`, backdropFilter: "blur(12px)" }}>
-        <TabButton active={route === "home"} onClick={()=>setRoute("home")} IconComp={IconHome} label="Home" />
+        <TabButton active={route === "home" || route === "search"} onClick={()=>setRoute("home")} IconComp={IconHome} label="Home" />
         <TabButton active={route === "folders"} onClick={()=>setRoute("folders")} IconComp={IconGrid} label="Folders" />
         <button aria-label="Add a new save" onClick={onSavePress} style={{ width: 52, height: 52, borderRadius: 18, background: T.ink, color: T.paper, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 20px -6px rgba(28,26,23,0.35)" }}>
           <IconPlus size={20} stroke={2.2} />
