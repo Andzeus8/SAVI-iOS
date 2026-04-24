@@ -418,18 +418,18 @@ const DEFAULT_FOLDER_ORDER = [
 ];
 const DEFAULT_FOLDER_ORDER_MAP = Object.fromEntries(DEFAULT_FOLDER_ORDER.map((id, index) => [id, index]));
 const SEED_FOLDERS = [
-  { id: "f-private-vault", name: "Private Vault", color: "#6C63FF", image: "https://picsum.photos/seed/privatevaultdocs/800/600" },
-  { id: "f-growth", name: "AI Hacks", color: "#FF8A3D", image: "https://picsum.photos/seed/aihacks/800/600" },
-  { id: "f-wtf-favorites", name: "Science Stuff", color: "#5875FF", image: "https://picsum.photos/seed/sciencestuff/800/600" },
+  { id: "f-private-vault", name: "Private Vault", color: "#6C63FF", image: "https://picsum.photos/seed/neonvault/800/600" },
+  { id: "f-growth", name: "AI Hacks", color: "#FF8A3D", image: "https://picsum.photos/seed/robotrocket/800/600" },
+  { id: "f-wtf-favorites", name: "Science Stuff", color: "#5875FF", image: "https://picsum.photos/seed/cosmiclab/800/600" },
   { id: "f-tinfoil", name: "Tinfoil Hat Club", color: "#4C3D91", image: "https://upload.wikimedia.org/wikipedia/commons/8/85/ManWearingTinFoilHat.jpg" },
-  { id: "f-lmao", name: "LULZ", color: "#FF4D6D", image: "https://picsum.photos/seed/lulzmemes/800/600" },
-  { id: "f-health", name: "Health Hacks", color: "#25C48C", image: "https://picsum.photos/seed/wellness/800/600" },
-  { id: "f-recipes", name: "Recipes & Food", color: "#FF9F43", image: "https://picsum.photos/seed/cooking/800/600" },
-  { id: "f-travel", name: "Places", color: "#18B7A0", image: "https://picsum.photos/seed/gpspin/800/600" },
-  { id: "f-design", name: "Design Inspo", color: "#F15BB5", image: "https://picsum.photos/seed/minimal/800/600" },
-  { id: "f-research", name: "Research", color: "#6E68FF", image: "https://picsum.photos/seed/laboratory/800/600" },
-  { id: "f-must-see", name: "Watch / Read Later", color: "#F7C948", image: "https://picsum.photos/seed/watchreadlater/800/600" },
-  { id: "f-random", name: "Random AF", color: "#9AA5B1", image: "https://picsum.photos/seed/randomaf/800/600" },
+  { id: "f-lmao", name: "LULZ", color: "#FF4D6D", image: "https://picsum.photos/seed/glitchparty/800/600" },
+  { id: "f-health", name: "Health Hacks", color: "#25C48C", image: "https://picsum.photos/seed/greenpulse/800/600" },
+  { id: "f-recipes", name: "Recipes & Food", color: "#FF9F43", image: "https://picsum.photos/seed/foodpop/800/600" },
+  { id: "f-travel", name: "Places", color: "#18B7A0", image: "https://picsum.photos/seed/postcardpin/800/600" },
+  { id: "f-design", name: "Design Inspo", color: "#F15BB5", image: "https://picsum.photos/seed/colorburst/800/600" },
+  { id: "f-research", name: "Research", color: "#6E68FF", image: "https://picsum.photos/seed/deepnotes/800/600" },
+  { id: "f-must-see", name: "Watch / Read Later", color: "#F7C948", image: "https://picsum.photos/seed/cinebook/800/600" },
+  { id: "f-random", name: "Random AF", color: "#9AA5B1", image: "https://picsum.photos/seed/weirdchaos/800/600" },
   { id: "f-all", name: "All Saves", system: true, image: folderCover("library") },
 ];
 
@@ -784,6 +784,17 @@ const REFRESHABLE_SEED_IMAGES = new Set([
   "https://picsum.photos/seed/galaxy/800/600",
   "https://picsum.photos/seed/tinfoilhat/800/600",
   "https://picsum.photos/seed/weird-surreal-wtf/800/600",
+  "https://picsum.photos/seed/privatevaultdocs/800/600",
+  "https://picsum.photos/seed/aihacks/800/600",
+  "https://picsum.photos/seed/sciencestuff/800/600",
+  "https://picsum.photos/seed/lulzmemes/800/600",
+  "https://picsum.photos/seed/wellness/800/600",
+  "https://picsum.photos/seed/cooking/800/600",
+  "https://picsum.photos/seed/gpspin/800/600",
+  "https://picsum.photos/seed/minimal/800/600",
+  "https://picsum.photos/seed/laboratory/800/600",
+  "https://picsum.photos/seed/watchreadlater/800/600",
+  "https://picsum.photos/seed/randomaf/800/600",
   "https://commons.wikimedia.org/wiki/Special:FilePath/30C3%20TinFoil-Hat%20(cropped).jpg",
 ]);
 const withSeededFolderDefaults = (folders = []) => {
@@ -1693,7 +1704,7 @@ function App() {
   const [browseMode, setBrowseMode] = useState("all");
   const [activeType, setActiveType] = useState("all");
   const [activeSource, setActiveSource] = useState("all");
-  const [viewMode, setViewMode] = useState(uiPrefs?.viewMode === "grid" ? "grid" : "list");
+  const [viewMode, setViewMode] = useState("list");
   const [search, setSearch] = useState("");
   const [route, setRoute] = useState("home");
   const [showSaveSheet, setShowSaveSheet] = useState(false);
@@ -2096,6 +2107,8 @@ function App() {
                         search={search}
                         setSearch={setSearch}
                         onOpenSearch={() => setRoute("search")}
+                        onSeeAllFolders={() => setRoute("folders")}
+                        onOpenFolder={(id) => { setBrowseMode("folders"); setActiveFolder(id); setRoute("search"); }}
                         onBack={() => setRoute("home")}
                         onSelect={setSelectedItem}
                         onShare={shareApp}
@@ -2124,6 +2137,8 @@ function App() {
                         search={search}
                         setSearch={setSearch}
                         onOpenSearch={() => setRoute("search")}
+                        onSeeAllFolders={() => setRoute("folders")}
+                        onOpenFolder={(id) => { setBrowseMode("folders"); setActiveFolder(id); }}
                         onBack={() => setRoute("home")}
                         onSelect={setSelectedItem}
                         onShare={shareApp}
@@ -2472,7 +2487,7 @@ function WelcomeWizard({ onFinish }) {
   );
 }
 
-function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiveFolder, browseMode, setBrowseMode, activeType, setActiveType, activeSource, setActiveSource, viewMode, setViewMode, folderCounts, typeCounts, sourceCounts, sourceOptions, search, setSearch, onSelect, onShare, onShareItem, onOpenSearch, onBack }) {
+function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiveFolder, browseMode, setBrowseMode, activeType, setActiveType, activeSource, setActiveSource, viewMode, setViewMode, folderCounts, typeCounts, sourceCounts, sourceOptions, search, setSearch, onSelect, onShare, onShareItem, onOpenSearch, onSeeAllFolders, onOpenFolder, onBack }) {
   const activeFolderName = folders.find(f => f.id === activeFolder)?.name || "All Saves";
   const activeSourceLabel = sourceOptions.find((option) => option.key === activeSource)?.label || (activeSource === "all" ? "All Apps" : titleize(activeSource));
   const heroEyebrow = searchMode ? "Search" : browseMode === "all" ? "My SAVIs" : browseMode === "folders" ? "Folders" : browseMode === "types" ? "Types" : "Apps";
@@ -2503,8 +2518,6 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
       return aOrder - bOrder;
     })
     .slice(0, 4);
-  const quickTypeFilters = ["video", "article", "place", "file"].filter((key) => (typeCounts[key] ?? 0) > 0);
-  const quickSourceFilters = sourceOptions.slice(0, 4);
   const showDashboard = !searchMode;
 
   useEffect(() => {
@@ -2547,25 +2560,6 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", padding: 4, borderRadius: 14, background: T.paperDim, border: `1px solid ${T.lineSoft}` }}>
-              {[
-                { key: "grid", icon: IconGrid, label: "Grid view" },
-                { key: "list", icon: IconList, label: "List view" },
-              ].map((option) => {
-                const IconComp = option.icon;
-                const active = option.key === viewMode;
-                return (
-                  <button
-                    key={option.key}
-                    aria-label={option.label}
-                    onClick={() => setViewMode(option.key)}
-                    style={{ width: 34, height: 34, borderRadius: 10, background: active ? T.card : "transparent", color: active ? T.ink : T.inkMute, boxShadow: active ? "0 10px 24px -20px rgba(22,26,35,0.78)" : "none", display: "flex", alignItems: "center", justifyContent: "center" }}
-                  >
-                    <IconComp size={15} />
-                  </button>
-                );
-              })}
-            </div>
             {!searchMode && (
               <button onClick={onShare} className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", padding: "10px 12px", borderRadius: 14, border: `1px solid ${T.lineSoft}`, background: T.card, color: T.inkSoft, boxShadow: "0 12px 24px -22px rgba(22,26,35,0.55)" }}>
                 Share
@@ -2629,17 +2623,18 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
                 <div className="serif" style={{ fontSize: 24, color: T.ink }}>Top SAVI folders</div>
-                <button className="mono" onClick={() => { setBrowseMode("folders"); setActiveFolder("f-all"); }} style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
+                <button className="mono" onClick={() => { setBrowseMode("folders"); setActiveFolder("f-all"); onSeeAllFolders?.(); }} style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
                   See all
                 </button>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="scroll" style={{ display: "flex", gap: 12, overflowX: "auto", overflowY: "hidden", margin: "0 -20px", padding: "0 20px 4px", scrollSnapType: "x proximity" }}>
                 {topFolders.map((folder) => (
                   <button
                     key={folder.id}
-                    onClick={() => { setBrowseMode("folders"); setActiveFolder(folder.id); }}
+                    onClick={() => { setBrowseMode("folders"); setActiveFolder(folder.id); onOpenFolder?.(folder.id); }}
                     style={{
-                      minHeight: 132,
+                      flex: "0 0 228px",
+                      minHeight: 144,
                       textAlign: "left",
                       padding: 14,
                       borderRadius: 22,
@@ -2653,6 +2648,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
+                      scrollSnapAlign: "start",
                     }}
                   >
                     {folder.image && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(8,12,20,0.04) 0%, rgba(8,12,20,0.24) 42%, rgba(8,12,20,0.86) 100%)" }} />}
@@ -3270,11 +3266,12 @@ function TabBar({ route, setRoute, onSavePress }) {
   return (
     <div style={{ position: "relative", background: T.paper, flexShrink: 0 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around", padding: `8px 24px calc(24px + env(safe-area-inset-bottom))`, borderTop: `1px solid ${T.lineSoft}`, background: `${T.paper}f5`, backdropFilter: "blur(12px)" }}>
-        <TabButton active={route === "home" || route === "search"} onClick={()=>setRoute("home")} IconComp={IconHome} label="Home" />
-        <TabButton active={route === "folders"} onClick={()=>setRoute("folders")} IconComp={IconGrid} label="Folders" />
+        <TabButton active={route === "home"} onClick={()=>setRoute("home")} IconComp={IconHome} label="Home" />
+        <TabButton active={route === "search"} onClick={()=>setRoute("search")} IconComp={IconSearch} label="Search" />
         <button aria-label="Add a new save" onClick={onSavePress} style={{ width: 52, height: 52, borderRadius: 18, background: T.ink, color: T.paper, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 20px -6px rgba(28,26,23,0.35)" }}>
           <IconPlus size={20} stroke={2.2} />
         </button>
+        <TabButton active={route === "folders"} onClick={()=>setRoute("folders")} IconComp={IconGrid} label="Folders" />
         <TabButton active={route === "profile"} onClick={()=>setRoute("profile")} IconComp={IconUser} label="Profile" />
       </div>
       <div style={{ position: "absolute", bottom: "calc(6px + env(safe-area-inset-bottom))", left: "50%", transform: "translateX(-50%)", width: 120, height: 5, borderRadius: 999, background: T.ink, opacity: 0.85 }} />
