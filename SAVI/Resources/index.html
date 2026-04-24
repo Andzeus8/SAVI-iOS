@@ -2837,10 +2837,10 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
     }))
     .filter((folder) => folder.count > 0)
     .sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
       const aOrder = DEFAULT_FOLDER_ORDER_MAP[a.id] ?? 1000;
       const bOrder = DEFAULT_FOLDER_ORDER_MAP[b.id] ?? 1000;
-      return aOrder - bOrder;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return b.count - a.count;
     });
   const topFolders = allFolders.slice(0, 4);
   const showDashboard = !searchMode;
