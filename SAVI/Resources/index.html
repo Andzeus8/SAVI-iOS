@@ -6,51 +6,69 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SAVI" />
-<meta name="theme-color" content="#F5F1EA" />
+<meta name="theme-color" content="#0A0614" />
 <title>SAVI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --paper: #F5F1EA;
-    --paper-dim: #EBE6DD;
-    --ink: #1C1A17;
-    --ink-soft: #5C574F;
-    --ink-mute: #8F8A80;
-    --line: #D9D3C7;
-    --line-soft: #E6E0D4;
-    --card: #FFFFFF;
-    --accent: #C8553D;
-    --paper-nav: rgba(245, 241, 234, 0.96);
-    --paper-fade: rgba(245, 241, 234, 0.94);
-    --paper-clear: rgba(245, 241, 234, 0);
+    --bg: #0A0614;
+    --bg-2: #120A20;
+    --bg-3: #1A0B3D;
+    --surface: #1E1433;
+    --surface-2: #241B40;
+    --aubergine: #2B0F5C;
+    --lavender: #A78BFA;
+    --lavender-soft: #C4B5FD;
+    --lavender-deep: #8B5CF6;
+    --plum: #6D28D9;
+    --plum-deep: #4C1D95;
+    --chartreuse: #D8FF3C;
+    --butter: #FFE066;
+    --cream: #F5F0E4;
+    --soft-on-dark: rgba(245,240,228,0.7);
+    --muted-on-dark: rgba(245,240,228,0.45);
+    --line-on-dark: rgba(245,240,228,0.1);
+    --paper: var(--bg);
+    --paper-dim: var(--bg-2);
+    --ink: var(--cream);
+    --ink-soft: var(--soft-on-dark);
+    --ink-mute: var(--muted-on-dark);
+    --line: var(--line-on-dark);
+    --line-soft: rgba(245,240,228,0.06);
+    --card: var(--surface);
+    --accent: var(--lavender);
+    --paper-nav: rgba(10, 6, 20, 0.94);
+    --paper-fade: rgba(10, 6, 20, 0.92);
+    --paper-clear: rgba(10, 6, 20, 0);
     --navigator-height: 88px;
     --navigator-offset: calc(var(--navigator-height) + env(safe-area-inset-bottom));
   }
-  :root[data-theme="dark"] {
-    --paper: #0F141E;
-    --paper-dim: #171E2A;
-    --ink: #F3F6FC;
-    --ink-soft: #B6C0D2;
-    --ink-mute: #7D889E;
-    --line: #253044;
-    --line-soft: #1E2838;
-    --card: #111827;
-    --accent: #8EA2FF;
-    --paper-nav: rgba(15, 20, 30, 0.94);
-    --paper-fade: rgba(15, 20, 30, 0.92);
-    --paper-clear: rgba(15, 20, 30, 0);
+  :root[data-theme="light"] {
+    --paper: #FAF8F4;
+    --paper-dim: #F2ECF8;
+    --ink: #140823;
+    --ink-soft: #5B4A7A;
+    --ink-mute: #8A7CA8;
+    --line: rgba(20, 8, 35, 0.14);
+    --line-soft: rgba(20, 8, 35, 0.08);
+    --card: #FFFFFF;
+    --accent: #8B5CF6;
+    --paper-nav: rgba(250, 248, 244, 0.96);
+    --paper-fade: rgba(250, 248, 244, 0.94);
+    --paper-clear: rgba(250, 248, 244, 0);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body, #root { height: 100%; }
-  html, body { margin: 0; padding: 0; overflow: hidden; background: var(--paper); color: var(--ink); font-family: "SF Pro Text", "Avenir Next", system-ui, -apple-system, sans-serif; overscroll-behavior: none; -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; padding: 0; overflow: hidden; background: var(--paper); color: var(--ink); font-family: "Inter", "SF Pro Text", "Avenir Next", system-ui, -apple-system, sans-serif; overscroll-behavior: none; -webkit-font-smoothing: antialiased; }
   body {
     height: 100%;
   }
-  .serif { font-family: 'Fraunces', Georgia, serif; letter-spacing: -0.015em; }
-  .mono { font-family: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, monospace; }
+  .serif { font-family: 'Fraunces', Georgia, serif; letter-spacing: -0.018em; }
+  .serif-italic { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; letter-spacing: -0.02em; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, monospace; }
 
   /* App container — fullscreen on mobile, phone-frame on desktop */
   .stage { height: 100dvh; min-height: 100dvh; display: flex; align-items: stretch; justify-content: center; background: var(--paper); overflow: hidden; }
@@ -59,13 +77,13 @@
       align-items: center;
       padding: 32px;
       background:
-        radial-gradient(circle at top left, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 28%),
-        linear-gradient(180deg, #EDE6D9 0%, #DDD4C2 100%);
+        radial-gradient(circle at top left, rgba(167,139,250,0.18) 0%, rgba(167,139,250,0) 28%),
+        linear-gradient(180deg, #0A0614 0%, #120A20 42%, #1A0B3D 100%);
     }
-    :root[data-theme="dark"] .stage {
+    :root[data-theme="light"] .stage {
       background:
-        radial-gradient(circle at top left, rgba(142,162,255,0.12) 0%, rgba(142,162,255,0) 28%),
-        linear-gradient(180deg, #0B111A 0%, #111827 100%);
+        radial-gradient(circle at top left, rgba(167,139,250,0.14) 0%, rgba(167,139,250,0) 28%),
+        linear-gradient(180deg, #F7F2FF 0%, #EEE4FA 100%);
     }
     .frame-wrap { width: min(480px, calc(100vw - 64px)); height: min(900px, calc(100dvh - 64px)); position: relative; }
     .bezel { position: absolute; inset: 0; border-radius: 34px; padding: 0; background: transparent; box-shadow: 0 36px 80px -30px rgba(60,50,40,0.38); }
@@ -207,6 +225,44 @@ const IconXGlyph = ({ size = 16 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M5 4h3.1l4.26 5.84L17.25 4H19l-5.8 6.67L19.2 20H16.1l-4.56-6.24L6.1 20H4.4l6.26-7.2Z" fill="currentColor" />
   </svg>
+);
+const BRAND = {
+  bg: "#0A0614",
+  bg2: "#120A20",
+  surface: "#1E1433",
+  surface2: "#241B40",
+  aubergine: "#2B0F5C",
+  lavender: "#A78BFA",
+  lavenderSoft: "#C4B5FD",
+  lavenderDeep: "#8B5CF6",
+  plum: "#6D28D9",
+  plumDeep: "#4C1D95",
+  chartreuse: "#D8FF3C",
+  butter: "#FFE066",
+  cream: "#F5F0E4",
+  ink: "#140823",
+};
+const SaviMark = ({ size = 32, glow = false }) => (
+  <div style={{ width: size, height: size, borderRadius: Math.round(size * 0.22), display: "flex", alignItems: "center", justifyContent: "center", boxShadow: glow ? "0 0 40px rgba(139,92,246,0.3)" : "none", flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <rect x="2" y="2" width="96" height="96" rx="22" fill={BRAND.lavender} />
+      <path d="M68 22C60 17 45 16 36 23C29 29 30 39 41 44L57 51C67 55 68 65 60 72C52 79 37 80 27 72" stroke={BRAND.cream} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M60 72C52 79 37 80 27 72" stroke={BRAND.chartreuse} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="24" cy="70" r="7.5" fill={BRAND.chartreuse} />
+    </svg>
+  </div>
+);
+const SaviWordmark = ({ size = 28, color = T.ink, subtitle = "", subtitleColor = T.inkMute, align = "left" }) => (
+  <div style={{ display: "flex", flexDirection: "column", alignItems: align === "center" ? "center" : "flex-start", gap: subtitle ? 3 : 0, minWidth: 0 }}>
+    <div className="serif" style={{ fontSize: size, lineHeight: 1, fontWeight: 500, fontStyle: "italic", letterSpacing: "-0.02em", color, textTransform: "lowercase", display: "flex", alignItems: "baseline", gap: 0 }}>
+      <span>sav</span>
+      <span style={{ position: "relative", display: "inline-block", paddingTop: Math.max(2, size * 0.02) }}>
+        <span>i</span>
+        <span style={{ position: "absolute", top: Math.max(-2, size * -0.18), left: "50%", transform: "translateX(-44%)", width: Math.max(4, size * 0.16), height: Math.max(4, size * 0.16), borderRadius: 999, background: BRAND.chartreuse, boxShadow: "0 0 10px rgba(216,255,60,0.45)" }} />
+      </span>
+    </div>
+    {subtitle ? <div className="serif-italic" style={{ fontSize: Math.max(12, size * 0.42), lineHeight: 1.1, color: subtitleColor, textTransform: "lowercase" }}>{subtitle}</div> : null}
+  </div>
 );
 const BrandBadge = ({ visual, size = 20, active = false }) => {
   const badgeSize = size;
@@ -582,19 +638,19 @@ const DEFAULT_FOLDER_ORDER = [
 ];
 const DEFAULT_FOLDER_ORDER_MAP = Object.fromEntries(DEFAULT_FOLDER_ORDER.map((id, index) => [id, index]));
 const SEED_FOLDERS = [
-  { id: "f-must-see", name: "Watch / Read Later", color: "#F7C948", image: folderArtCover("watch") },
-  { id: "f-paste-bin", name: "Paste Bin", color: "#7A8798", image: folderArtCover("paste") },
-  { id: "f-wtf-favorites", name: "Science Stuff", color: "#5875FF", image: folderArtCover("science") },
-  { id: "f-growth", name: "AI Hacks", color: "#FF8A3D", image: folderArtCover("ai") },
-  { id: "f-lmao", name: "LULZ", color: "#FF4D6D", image: folderArtCover("lulz") },
-  { id: "f-private-vault", name: "Private Vault", color: "#6C63FF", image: folderArtCover("vault") },
-  { id: "f-travel", name: "Places", color: "#18B7A0", image: folderArtCover("places") },
-  { id: "f-recipes", name: "Recipes & Food", color: "#FF9F43", image: folderArtCover("recipes") },
-  { id: "f-health", name: "Health Hacks", color: "#25C48C", image: folderArtCover("health") },
-  { id: "f-design", name: "Design Inspo", color: "#F15BB5", image: folderArtCover("design") },
-  { id: "f-research", name: "Research", color: "#6E68FF", image: folderArtCover("research") },
-  { id: "f-tinfoil", name: "Tinfoil Hat Club", color: "#4C3D91", image: folderArtCover("tinfoil") },
-  { id: "f-random", name: "Random AF", color: "#9AA5B1", image: folderArtCover("random") },
+  { id: "f-must-see", name: "Watch / Read Later", color: "#4C1D95", image: folderArtCover("watch") },
+  { id: "f-paste-bin", name: "Paste Bin", color: "#8A7CA8", image: folderArtCover("paste") },
+  { id: "f-wtf-favorites", name: "Science Stuff", color: "#C4B5FD", image: folderArtCover("science") },
+  { id: "f-growth", name: "AI Hacks", color: "#A78BFA", image: folderArtCover("ai") },
+  { id: "f-lmao", name: "LULZ", color: "#D8FF3C", image: folderArtCover("lulz") },
+  { id: "f-private-vault", name: "Private Vault", color: "#0A0614", image: folderArtCover("vault") },
+  { id: "f-travel", name: "Places", color: "#B8D4F5", image: folderArtCover("places") },
+  { id: "f-recipes", name: "Recipes & Food", color: "#F4C6A5", image: folderArtCover("recipes") },
+  { id: "f-health", name: "Health Hacks", color: "#C4E8D4", image: folderArtCover("health") },
+  { id: "f-design", name: "Design Inspo", color: "#E8DCF5", image: folderArtCover("design") },
+  { id: "f-research", name: "Research", color: "#DDD1F3", image: folderArtCover("research") },
+  { id: "f-tinfoil", name: "Tinfoil Hat Club", color: "#6D28D9", image: folderArtCover("tinfoil") },
+  { id: "f-random", name: "Random AF", color: "#FFE066", image: folderArtCover("random") },
   { id: "f-all", name: "All Saves", system: true, image: folderCover("library") },
 ];
 
@@ -2000,7 +2056,7 @@ function App() {
   const [activeType, setActiveType] = useState("all");
   const [activeSource, setActiveSource] = useState("all");
   const [viewMode, setViewMode] = useState(uiPrefs?.viewMode || "list");
-  const [themeMode, setThemeMode] = useState(uiPrefs?.themeMode || "auto");
+  const [themeMode, setThemeMode] = useState(uiPrefs?.themeMode || "dark");
   const prefersDark = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
   const [systemDark, setSystemDark] = useState(() => prefersDark?.matches || false);
   const [search, setSearch] = useState("");
@@ -2191,7 +2247,7 @@ function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = resolvedTheme;
     const themeMeta = document.querySelector('meta[name="theme-color"]');
-    if (themeMeta) themeMeta.setAttribute("content", resolvedTheme === "dark" ? "#0F141E" : "#F5F1EA");
+    if (themeMeta) themeMeta.setAttribute("content", resolvedTheme === "light" ? "#FAF8F4" : "#0A0614");
   }, [resolvedTheme]);
 
   const visibleItems = useMemo(() => {
@@ -2502,7 +2558,8 @@ function App() {
                   {lightboxImage && <ImageLightbox image={lightboxImage} onClose={closeLightbox} />}
                   {toastMessage && (
                     <div className="anim-fade" style={{ position: "absolute", left: 20, right: 20, bottom: "calc(var(--navigator-offset) + 14px)", zIndex: 75, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
-                      <div className="mono" style={{ padding: "10px 14px", borderRadius: 999, background: "rgba(22,26,35,0.94)", color: T.paper, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", boxShadow: "0 22px 34px -22px rgba(22,26,35,0.72)" }}>
+                      <div className="mono" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 999, background: BRAND.chartreuse, color: BRAND.ink, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", boxShadow: "0 22px 34px -22px rgba(109,40,217,0.52)" }}>
+                        <span style={{ width: 6, height: 6, borderRadius: 999, background: BRAND.ink, boxShadow: "0 0 0 6px rgba(20,8,35,0.08)" }} />
                         {toastMessage}
                       </div>
                     </div>
@@ -2525,14 +2582,14 @@ function WelcomeWizard({ onFinish }) {
       titleSize: 46,
       subtitle: "SAVI saves your links, files, photos, and useful internet finds in one place.",
       description: "Think of it as the Swiss army knife for your important digital stuff, ready when you need it and not buried in chaos.",
-      accent: "linear-gradient(160deg, #6D7CFF 0%, #C8553D 100%)",
+      accent: "linear-gradient(160deg, #A78BFA 0%, #6D28D9 70%, #D8FF3C 100%)",
       visual: (
         <div style={{ position: "relative", width: "100%", maxWidth: 280, height: 214 }}>
-          <div className="wizard-glow" style={{ position: "absolute", inset: 4, borderRadius: 38, background: "radial-gradient(circle at 30% 20%, rgba(109,124,255,0.26) 0%, rgba(200,85,61,0.2) 36%, rgba(109,124,255,0) 72%)" }} />
-          <div style={{ position: "absolute", inset: 18, borderRadius: 34, background: "linear-gradient(145deg, #141B2D 0%, #4058D6 56%, #C8553D 100%)", boxShadow: "0 34px 70px -34px rgba(22,26,35,0.72)", overflow: "hidden" }}>
+          <div className="wizard-glow" style={{ position: "absolute", inset: 4, borderRadius: 38, background: "radial-gradient(circle at 30% 20%, rgba(167,139,250,0.3) 0%, rgba(109,40,217,0.24) 38%, rgba(167,139,250,0) 72%)" }} />
+          <div style={{ position: "absolute", inset: 18, borderRadius: 34, background: "linear-gradient(145deg, #0A0614 0%, #2B0F5C 58%, #A78BFA 100%)", boxShadow: "0 34px 70px -34px rgba(109,40,217,0.62)", overflow: "hidden" }}>
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 36%)" }} />
-            <div className="wizard-float" style={{ position: "absolute", left: 24, top: 24, width: 78, height: 78, borderRadius: 24, background: "rgba(255,255,255,0.14)", backdropFilter: "blur(12px)", color: T.paper, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.16)" }}>
-              <IconBookmark size={34} stroke={1.9} fill={T.paper} />
+            <div className="wizard-float" style={{ position: "absolute", left: 24, top: 24, width: 78, height: 78, borderRadius: 24, background: "rgba(255,255,255,0.12)", backdropFilter: "blur(12px)", color: T.paper, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.12)" }}>
+              <SaviMark size={44} glow />
             </div>
             <div style={{ position: "absolute", right: 18, top: 24, padding: "10px 12px", borderRadius: 18, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.96)", fontSize: 11.5, fontWeight: 600, backdropFilter: "blur(12px)" }}>
               Saved for later
@@ -2548,7 +2605,7 @@ function WelcomeWizard({ onFinish }) {
               ))}
             </div>
           </div>
-          <div style={{ position: "absolute", top: 6, right: 8, width: 46, height: 46, borderRadius: 16, background: T.card, color: "#C8553D", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 30px -24px rgba(22,26,35,0.55)" }}>
+          <div style={{ position: "absolute", top: 6, right: 8, width: 46, height: 46, borderRadius: 16, background: T.card, color: BRAND.chartreuse, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 30px -24px rgba(109,40,217,0.55)" }}>
             <IconSparkles size={18} />
           </div>
         </div>
@@ -2559,7 +2616,7 @@ function WelcomeWizard({ onFinish }) {
       title: "Share it to SAVI. Done.",
       subtitle: "Hit share. Send to SAVI. Move on with your day.",
       description: "Link, file, Instagram post, YouTube video, PDF, map pin. Share it once and SAVI saves it automatically. Paste works too.",
-      accent: "linear-gradient(160deg, #FF9F43 0%, #6D7CFF 100%)",
+      accent: "linear-gradient(160deg, #A78BFA 0%, #6D28D9 100%)",
       visual: (
         <div style={{ width: "100%", maxWidth: 286, padding: 18, borderRadius: 28, background: "linear-gradient(180deg, #FFFFFF 0%, #F8F5FF 100%)", border: `1px solid ${T.lineSoft}`, boxShadow: "0 28px 56px -36px rgba(22,26,35,0.48)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
@@ -2596,9 +2653,9 @@ function WelcomeWizard({ onFinish }) {
                 <div style={{ color: T.accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <IconShare size={14} />
                 </div>
-                <div style={{ flex: 1, padding: "12px 13px", borderRadius: 16, background: "linear-gradient(160deg, #161A23 0%, #6D7CFF 100%)", color: T.paper, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 18px 28px -24px rgba(22,26,35,0.45)" }}>
+                <div style={{ flex: 1, padding: "12px 13px", borderRadius: 16, background: "linear-gradient(160deg, #2B0F5C 0%, #A78BFA 100%)", color: T.paper, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 18px 28px -24px rgba(109,40,217,0.45)" }}>
                   <div style={{ width: 28, height: 28, borderRadius: 10, background: "rgba(255,255,255,0.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <IconBookmark size={12} stroke={2} fill={T.paper} />
+                    <SaviMark size={18} />
                   </div>
                   <div style={{ fontSize: 12.5, fontWeight: 700 }}>SAVI</div>
                 </div>
@@ -2626,7 +2683,7 @@ function WelcomeWizard({ onFinish }) {
       title: "Turn on SAVI in the share sheet.",
       subtitle: "If SAVI is not there yet, tap More once and enable it.",
       description: "Nothing extra to install. The Share Extension comes with the app. On iPhone, you may just need to turn SAVI on the first time you use the square-with-the-arrow share menu.",
-      accent: "linear-gradient(160deg, #18B7A0 0%, #6D7CFF 100%)",
+      accent: "linear-gradient(160deg, #A78BFA 0%, #4C1D95 100%)",
       visual: (
         <div style={{ width: "100%", maxWidth: 286, padding: 18, borderRadius: 28, background: "linear-gradient(180deg, #FFFFFF 0%, #F5FBFA 100%)", border: `1px solid ${T.lineSoft}`, boxShadow: "0 28px 56px -36px rgba(22,26,35,0.48)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
@@ -2662,11 +2719,11 @@ function WelcomeWizard({ onFinish }) {
               <div style={{ color: T.accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <IconArrowOut size={13} />
               </div>
-              <div style={{ padding: "14px 12px", borderRadius: 18, background: "linear-gradient(160deg, #161A23 0%, #6D7CFF 100%)", color: T.paper, boxShadow: "0 18px 28px -24px rgba(22,26,35,0.45)" }}>
+              <div style={{ padding: "14px 12px", borderRadius: 18, background: "linear-gradient(160deg, #2B0F5C 0%, #A78BFA 100%)", color: T.paper, boxShadow: "0 18px 28px -24px rgba(109,40,217,0.45)" }}>
                 <div className="mono" style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(255,255,255,0.68)", marginBottom: 8 }}>Then next time</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ width: 30, height: 30, borderRadius: 10, background: "rgba(255,255,255,0.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <IconBookmark size={13} stroke={2} fill={T.paper} />
+                    <SaviMark size={20} />
                   </div>
                   <div>
                     <div style={{ fontSize: 12.5, fontWeight: 700 }}>SAVI</div>
@@ -2687,7 +2744,7 @@ function WelcomeWizard({ onFinish }) {
       title: "Organized without the chore of organizing.",
       subtitle: "Smart folders, tags, types, and search.",
       description: "SAVI automatically sorts what you save so it feels less like storage and more like always having the right thing ready.",
-      accent: "linear-gradient(160deg, #25C48C 0%, #6D7CFF 100%)",
+      accent: "linear-gradient(160deg, #A78BFA 0%, #D8FF3C 100%)",
       visual: (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, width: "100%", maxWidth: 272 }}>
           {[
@@ -2714,12 +2771,12 @@ function WelcomeWizard({ onFinish }) {
       title: "Your digital Swiss army knife.",
       subtitle: "Important. Useful. Funny. Randomly life-saving.",
       description: "Insurance card, job link, dinner spot, that meme that saves the conversation. SAVI keeps your best stuff close and ready.",
-      accent: "linear-gradient(160deg, #C8553D 0%, #161A23 100%)",
+      accent: "linear-gradient(160deg, #A78BFA 0%, #2B0F5C 78%, #D8FF3C 100%)",
       visual: (
         <div style={{ width: "100%", maxWidth: 280, padding: 18, borderRadius: 30, background: "linear-gradient(180deg, #FFFFFF 0%, #F6F0E8 100%)", border: `1px solid ${T.lineSoft}`, boxShadow: "0 28px 54px -34px rgba(22,26,35,0.44)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 14, background: "linear-gradient(160deg, #161A23 0%, #6D7CFF 100%)", color: T.paper, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <IconBookmark size={16} stroke={2} fill={T.paper} />
+            <div style={{ width: 40, height: 40, borderRadius: 14, background: "linear-gradient(160deg, #2B0F5C 0%, #A78BFA 100%)", color: T.paper, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <SaviMark size={24} />
             </div>
             <div>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: T.ink }}>Personal library</div>
@@ -2789,17 +2846,15 @@ function WelcomeWizard({ onFinish }) {
   const handleSkip = () => onFinish();
 
   return (
-    <div className="anim-fade" style={{ height: "100%", display: "flex", flexDirection: "column", background: "radial-gradient(circle at top left, rgba(109,124,255,0.14) 0%, rgba(109,124,255,0) 28%), radial-gradient(circle at bottom right, rgba(200,85,61,0.12) 0%, rgba(200,85,61,0) 32%), linear-gradient(180deg, #FCFBF8 0%, #F2EADF 100%)", position: "relative", zIndex: 5, pointerEvents: "auto", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: -56, right: -42, width: 168, height: 168, borderRadius: "50%", background: "radial-gradient(circle, rgba(109,124,255,0.12) 0%, rgba(109,124,255,0) 70%)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: 120, left: -52, width: 148, height: 148, borderRadius: "50%", background: "radial-gradient(circle, rgba(37,196,140,0.1) 0%, rgba(37,196,140,0) 70%)", pointerEvents: "none" }} />
+    <div className="anim-fade" style={{ height: "100%", display: "flex", flexDirection: "column", background: "radial-gradient(circle at top left, rgba(167,139,250,0.2) 0%, rgba(167,139,250,0) 30%), radial-gradient(circle at bottom right, rgba(216,255,60,0.08) 0%, rgba(216,255,60,0) 28%), linear-gradient(180deg, #0A0614 0%, #120A20 48%, #1A0B3D 100%)", position: "relative", zIndex: 5, pointerEvents: "auto", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: -56, right: -42, width: 168, height: 168, borderRadius: "50%", background: "radial-gradient(circle, rgba(167,139,250,0.14) 0%, rgba(167,139,250,0) 70%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: 120, left: -52, width: 148, height: 148, borderRadius: "50%", background: "radial-gradient(circle, rgba(216,255,60,0.1) 0%, rgba(216,255,60,0) 70%)", pointerEvents: "none" }} />
       <div style={{ padding: "calc(18px + env(safe-area-inset-top)) 22px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 12, background: "linear-gradient(160deg, #161A23 0%, #6D7CFF 100%)", color: T.paper, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <IconBookmark size={14} stroke={2} fill={T.paper} />
-          </div>
-          <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.inkMute }}>SAVI setup</div>
+          <SaviMark size={34} glow />
+          <SaviWordmark size={22} color={BRAND.cream} subtitle="save it now, find it later." subtitleColor="rgba(245,240,228,0.66)" />
         </div>
-        <button type="button" onClick={handleSkip} className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: T.inkMute, position: "relative", zIndex: 3 }}>
+        <button type="button" onClick={handleSkip} className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(245,240,228,0.58)", position: "relative", zIndex: 3 }}>
           Skip
         </button>
       </div>
@@ -2843,7 +2898,7 @@ function WelcomeWizard({ onFinish }) {
                   width: index === step ? 24 : 8,
                   height: 8,
                   borderRadius: 999,
-                  background: index === step ? "linear-gradient(160deg, #6D7CFF 0%, #C8553D 100%)" : "rgba(143,138,128,0.28)",
+                  background: index === step ? "linear-gradient(160deg, #A78BFA 0%, #D8FF3C 100%)" : "rgba(245,240,228,0.2)",
                 }}
               />
             ))}
@@ -2973,11 +3028,11 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
                 <IconChevronLeft size={15} />
               </button>
             )}
-            <div style={{ width: 34, height: 34, borderRadius: 12, background: "linear-gradient(160deg, #161A23 0%, #6D7CFF 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: T.paper, boxShadow: "0 16px 28px -22px rgba(22,26,35,0.72)" }}>
-              <IconBookmark size={14} stroke={2} fill={T.paper} />
-            </div>
             <div>
-              <div className="serif" style={{ fontSize: 22, fontWeight: 500, color: T.ink }}>SAVI</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <SaviMark size={34} glow />
+                <SaviWordmark size={24} color={T.ink} />
+              </div>
               <div className="mono" style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: T.inkMute }}>
                 {heroCount} {heroCount === 1 ? "item" : "items"}
               </div>
@@ -5216,7 +5271,7 @@ function ItemEditorSheet({ item, folders, onClose, onSave }) {
 
 function IOSShareSheet({ onClose, onPickSavi }) {
   const apps = [
-    { name: "SAVI", bg: T.ink, icon: <IconBookmark size={22} stroke={2} fill={T.paper} />, primary: true },
+    { name: "SAVI", bg: BRAND.lavender, icon: <SaviMark size={30} />, primary: true },
     { name: "Messages", bg: "#34C759" },
     { name: "Mail", bg: "#007AFF" },
     { name: "Notes", bg: "#FFCC00" },
