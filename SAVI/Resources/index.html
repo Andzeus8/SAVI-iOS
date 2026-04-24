@@ -2528,8 +2528,8 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
 
   return (
     <div className="scroll" style={{ height: "100%" }}>
-      <div style={{ padding: "16px 20px 6px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
+      <div style={{ padding: searchMode ? "16px 20px 6px" : "16px 20px 10px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: searchMode ? 18 : 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {searchMode && (
               <button onClick={onBack} aria-label="Back to Home" style={{ width: 34, height: 34, borderRadius: 12, background: T.card, color: T.ink, border: `1px solid ${T.lineSoft}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -2574,32 +2574,38 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
           </div>
         </div>
 
-        <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.22em", marginBottom: 8, color: T.inkMute }}>
-          {heroEyebrow}
-        </div>
-        <h1 className="serif" style={{ fontSize: 42, lineHeight: 1.02, margin: 0, marginBottom: 10, color: T.ink }}>{heroTitle}</h1>
-        <div style={{ fontSize: 13, lineHeight: 1.45, color: T.inkSoft, maxWidth: 310 }}>
-          {heroDescription}
-        </div>
+        {searchMode && (
+          <>
+            <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.22em", marginBottom: 8, color: T.inkMute }}>
+              {heroEyebrow}
+            </div>
+            <h1 className="serif" style={{ fontSize: 42, lineHeight: 1.02, margin: 0, marginBottom: 10, color: T.ink }}>{heroTitle}</h1>
+            <div style={{ fontSize: 13, lineHeight: 1.45, color: T.inkSoft, maxWidth: 310 }}>
+              {heroDescription}
+            </div>
+          </>
+        )}
       </div>
 
-      <div style={{ padding: "18px 20px 12px" }}>
-        <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 18, background: T.paperDim, border: `1px solid ${T.lineSoft}`, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)" }}>
-          {modeOptions.map((option) => {
-            const active = browseMode === option.key;
-            return (
-              <button
-                key={option.key}
-                onClick={() => setBrowseMode(option.key)}
-                className="mono"
-                style={{ flex: 1, padding: "11px 8px", borderRadius: 14, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", background: active ? T.card : "transparent", color: active ? T.ink : T.inkSoft, boxShadow: active ? "0 10px 24px -20px rgba(22,26,35,0.78)" : "none" }}
-              >
-                {option.label}
-              </button>
-            );
-          })}
+      {searchMode && (
+        <div style={{ padding: "18px 20px 12px" }}>
+          <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 18, background: T.paperDim, border: `1px solid ${T.lineSoft}`, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)" }}>
+            {modeOptions.map((option) => {
+              const active = browseMode === option.key;
+              return (
+                <button
+                  key={option.key}
+                  onClick={() => setBrowseMode(option.key)}
+                  className="mono"
+                  style={{ flex: 1, padding: "11px 8px", borderRadius: 14, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", background: active ? T.card : "transparent", color: active ? T.ink : T.inkSoft, boxShadow: active ? "0 10px 24px -20px rgba(22,26,35,0.78)" : "none" }}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ padding: "0 20px 14px" }}>
         {searchMode ? (
@@ -2969,23 +2975,14 @@ function FoldersScreen({ folders, folderCounts, onOpen, onNew, onEdit }) {
     if (aOrder !== bOrder) return aOrder - bOrder;
     return a.name.localeCompare(b.name);
   });
-  const spotlightFolders = displayFolders.filter((folder) => !folder.system).sort((a, b) => {
-    const aCount = folderCounts[a.id] ?? 0;
-    const bCount = folderCounts[b.id] ?? 0;
-    if (bCount !== aCount) return bCount - aCount;
-    const aOrder = DEFAULT_FOLDER_ORDER_MAP[a.id] ?? 1000;
-    const bOrder = DEFAULT_FOLDER_ORDER_MAP[b.id] ?? 1000;
-    return aOrder - bOrder;
-  }).slice(0, 3);
   return (
     <div className="scroll anim-fade" style={{ height: "100%" }}>
-      <div style={{ padding: "16px 20px 14px" }}>
-        <div className="mono" style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "0.22em", marginBottom: 8, color: T.inkMute }}>Your spaces</div>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
+      <div style={{ padding: "16px 20px 12px" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
           <div>
-            <div className="serif" style={{ fontSize: 40, lineHeight: 1.02, color: T.ink, marginBottom: 6 }}>Folders</div>
-            <div style={{ fontSize: 13, lineHeight: 1.45, color: T.inkSoft, maxWidth: 270 }}>
-              Your personal buckets. Keep the useful stuff easy to reach and the weird stuff somewhere on purpose.
+            <div className="serif" style={{ fontSize: 34, lineHeight: 1.02, color: T.ink, marginBottom: 4 }}>Folders</div>
+            <div style={{ fontSize: 12.5, lineHeight: 1.4, color: T.inkSoft, maxWidth: 250 }}>
+              Cleaner homes for your SAVIs.
             </div>
           </div>
           <button aria-label="Create a new folder" onClick={onNew} style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 999, background: T.ink, color: T.paper, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 32px -22px rgba(22,26,35,0.72)" }}>
@@ -2993,52 +2990,8 @@ function FoldersScreen({ folders, folderCounts, onOpen, onNew, onEdit }) {
           </button>
         </div>
       </div>
-      {spotlightFolders.length > 0 && (
-        <div style={{ padding: "0 20px 18px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
-            <div className="serif" style={{ fontSize: 24, color: T.ink }}>Top folders</div>
-            <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
-              most used
-            </div>
-          </div>
-          <div className="scroll" style={{ display: "flex", gap: 12, overflowX: "auto", overflowY: "hidden", margin: "0 -20px", padding: "0 20px 4px" }}>
-            {spotlightFolders.map((folder) => {
-              const coverImage = folder.image || folderCover(folder.id || folder.name || "folder");
-              return (
-                <button
-                  key={folder.id}
-                  onClick={() => onOpen(folder.id)}
-                  style={{
-                    minWidth: 210,
-                    flexShrink: 0,
-                    padding: 14,
-                    borderRadius: 24,
-                    textAlign: "left",
-                    background: coverImage ? `center / cover no-repeat url(${coverImage}), ${T.card}` : `linear-gradient(160deg, ${folder.color}42 0%, ${folder.color}16 100%)`,
-                    border: `1px solid ${coverImage ? "rgba(255,255,255,0.16)" : T.lineSoft}`,
-                    boxShadow: "0 22px 40px -28px rgba(22,26,35,0.6)",
-                    position: "relative",
-                    overflow: "hidden",
-                  }}
-                >
-                  {coverImage && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,10,18,0.08) 0%, rgba(6,10,18,0.32) 46%, rgba(6,10,18,0.88) 100%)" }} />}
-                  <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                    <span className="mono" style={{ padding: "7px 9px", borderRadius: 999, background: coverImage ? "rgba(255,255,255,0.14)" : `${folder.color}16`, color: coverImage ? "rgba(255,255,255,0.92)" : T.ink, fontSize: 9.5, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                      {folderCounts[folder.id] ?? 0} saves
-                    </span>
-                  </div>
-                  <div style={{ position: "relative", zIndex: 1, marginTop: 68 }}>
-                    <div className="serif" style={{ fontSize: 23, lineHeight: 1.02, color: coverImage ? "#fff" : T.ink, marginBottom: 6 }}>{folder.name}</div>
-                    <div style={{ fontSize: 12, color: coverImage ? "rgba(255,255,255,0.84)" : T.inkSoft }}>Open folder</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
       <div style={{ padding: "0 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <div className="serif" style={{ fontSize: 24, color: T.ink }}>All folders</div>
+        <div className="serif" style={{ fontSize: 22, color: T.ink }}>All folders</div>
         <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
           {displayFolders.filter((folder) => !folder.system).length} spaces
         </div>
@@ -3053,9 +3006,9 @@ function FoldersScreen({ folders, folderCounts, onOpen, onNew, onEdit }) {
               style={{
                 width: "100%",
                 textAlign: "left",
-                padding: 14,
-                borderRadius: 24,
-                aspectRatio: "1 / 1.02",
+                padding: 12,
+                borderRadius: 22,
+                aspectRatio: "1 / 0.96",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -3065,37 +3018,37 @@ function FoldersScreen({ folders, folderCounts, onOpen, onNew, onEdit }) {
                     ? "linear-gradient(160deg, #151A23 0%, #25324A 100%)"
                     : `linear-gradient(160deg, ${f.color}40 0%, ${f.color}18 28%, ${T.card} 100%)`,
                 border: `1px solid ${coverImage ? "rgba(255,255,255,0.18)" : T.lineSoft}`,
-                boxShadow: "0 22px 42px -30px rgba(22,26,35,0.6)",
+                boxShadow: "0 18px 30px -24px rgba(22,26,35,0.45)",
                 transition: "transform 0.12s, box-shadow 0.12s",
                 overflow: "hidden",
                 position: "relative",
               }}
             >
-              {coverImage && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,10,18,0.02) 0%, rgba(6,10,18,0.16) 16%, rgba(6,10,18,0.38) 42%, rgba(6,10,18,0.76) 72%, rgba(6,10,18,0.96) 100%)" }} />}
+              {coverImage && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,10,18,0.02) 0%, rgba(6,10,18,0.14) 22%, rgba(6,10,18,0.52) 58%, rgba(6,10,18,0.9) 100%)" }} />}
               <div style={{ position: "relative", zIndex: 1, minHeight: 18, display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
                 {!f.system && (
-                  <div className="mono" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 10px", borderRadius: 999, background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.16)", color: "rgba(255,255,255,0.94)", backdropFilter: "blur(16px)", fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.08em", boxShadow: "0 12px 30px -22px rgba(10,16,28,0.85)" }}>
+                  <div className="mono" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 9px", borderRadius: 999, background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.94)", backdropFilter: "blur(14px)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     <span style={{ width: 7, height: 7, borderRadius: 999, background: f.color, boxShadow: "0 0 0 3px rgba(255,255,255,0.14)" }} />
                     {folderCounts[f.id] ?? 0}
                   </div>
                 )}
                 {f.system && (
-                  <div className="mono" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 10px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", letterSpacing: "0.08em", fontSize: 9.5, textTransform: "uppercase" }}>
+                  <div className="mono" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 9px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", letterSpacing: "0.08em", fontSize: 9, textTransform: "uppercase" }}>
                     <IconSparkles size={11} />
                     Library
                   </div>
                 )}
               </div>
-              <div style={{ position: "relative", zIndex: 1, marginTop: "auto", padding: "4px 2px 2px" }}>
-                <div className="serif" style={{ fontSize: 22, fontWeight: 600, lineHeight: 1.04, marginBottom: 6, color: coverImage || f.system ? "#FFFFFF" : T.ink, textShadow: coverImage ? "0 16px 30px rgba(0,0,0,0.48)" : "none" }}>{f.name}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: coverImage ? "rgba(255,255,255,0.9)" : f.system ? "rgba(245,241,234,0.84)" : T.inkSoft, textShadow: coverImage ? "0 10px 24px rgba(0,0,0,0.4)" : "none" }}>
+              <div style={{ position: "relative", zIndex: 1, marginTop: "auto", padding: "2px 2px 2px" }}>
+                <div className="serif" style={{ fontSize: 20, fontWeight: 600, lineHeight: 1.02, marginBottom: 5, color: coverImage || f.system ? "#FFFFFF" : T.ink, textShadow: coverImage ? "0 12px 24px rgba(0,0,0,0.44)" : "none" }}>{f.name}</div>
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: coverImage ? "rgba(255,255,255,0.88)" : f.system ? "rgba(245,241,234,0.84)" : T.inkSoft, textShadow: coverImage ? "0 8px 20px rgba(0,0,0,0.34)" : "none" }}>
                   {folderCounts[f.id] ?? 0} {folderCounts[f.id] === 1 ? "item" : "items"}
                 </div>
               </div>
             </button>
             {!f.system && (
-              <button onClick={()=>onEdit(f.id)} aria-label={`Edit ${f.name}`} style={{ position: "absolute", top: 12, right: 12, width: 34, height: 34, borderRadius: 999, background: coverImage ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.94)", color: T.ink, border: `1px solid ${coverImage ? "rgba(255,255,255,0.18)" : T.lineSoft}`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 24px -20px rgba(22,26,35,0.8)", backdropFilter: "blur(12px)" }}>
-                <IconEdit size={14} />
+              <button onClick={()=>onEdit(f.id)} aria-label={`Edit ${f.name}`} style={{ position: "absolute", top: 10, right: 10, width: 32, height: 32, borderRadius: 999, background: coverImage ? "rgba(255,255,255,0.84)" : "rgba(255,255,255,0.94)", color: T.ink, border: `1px solid ${coverImage ? "rgba(255,255,255,0.16)" : T.lineSoft}`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 18px -18px rgba(22,26,35,0.65)", backdropFilter: "blur(12px)" }}>
+                <IconEdit size={13} />
               </button>
             )}
           </div>
