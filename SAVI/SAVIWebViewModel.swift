@@ -79,26 +79,34 @@ final class SAVIWebViewModel: NSObject, ObservableObject {
         guard !rawShares.isEmpty else { return }
 
         importInFlight = true
-        let shares = rawShares.map(enrichForWebImport(_:))
-
-        guard let data = try? JSONEncoder().encode(shares),
-              let json = String(data: data, encoding: .utf8) else {
-            importInFlight = false
-            return
-        }
-
-        let script = """
-        (function() {
-          if (!window.SAVINative || typeof window.SAVINative.importShares !== 'function') { return 0; }
-          return window.SAVINative.importShares(\(json));
-        })();
-        """
-
-        webView.evaluateJavaScript(script) { [weak self] _, _ in
+        Task { [weak self] in
             guard let self else { return }
-            rawShares.forEach(self.shareStore.remove(_:))
-            self.importInFlight = false
-            self.webView.reload()
+
+            let shares = rawShares
+                .map { self.enrichForWebImport($0) }
+                .sorted { lhs, rhs in lhs.timestamp < rhs.timestamp }
+
+            guard let data = try? JSONEncoder().encode(shares),
+                  let json = String(data: data, encoding: .utf8) else {
+                self.importInFlight = false
+                return
+            }
+
+            let script = """
+            (function() {
+              if (!window.SAVINative || typeof window.SAVINative.importShares !== 'function') { return 0; }
+              return window.SAVINative.importShares(\(json));
+            })();
+            """
+
+            await MainActor.run {
+                self.webView.evaluateJavaScript(script) { [weak self] _, _ in
+                    guard let self else { return }
+                    rawShares.forEach(self.shareStore.remove(_:))
+                    self.importInFlight = false
+                    self.webView.reload()
+                }
+            }
         }
     }
 
@@ -129,6 +137,7 @@ final class SAVIWebViewModel: NSObject, ObservableObject {
 
         return share
     }
+
 }
 
 extension SAVIWebViewModel: WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
@@ -203,12 +212,14 @@ private extension SAVIWebViewModel {
             if id == "f-all" { return nil }
 
             let color = raw["color"] as? String
+            let image = raw["image"] as? String
             let symbolName = folderSymbolName(for: id, name: name, system: system)
 
             return SharedFolder(
                 id: id,
                 name: name,
                 color: color,
+                image: image,
                 system: system,
                 symbolName: symbolName,
                 order: index
@@ -217,6 +228,27 @@ private extension SAVIWebViewModel {
 
         guard !normalized.isEmpty else { return }
         try? shareStore.saveFolders(normalized)
+
+        if let recentRaw = payload["recentFolders"] as? [[String: Any]] {
+            let recentFolders = recentRaw.compactMap { raw -> RecentFolder? in
+                guard let id = raw["id"] as? String, !id.isEmpty,
+                      let name = raw["name"] as? String, !name.isEmpty
+                else { return nil }
+
+                let fallback = normalized.first(where: { $0.id == id })
+                return RecentFolder(
+                    id: id,
+                    name: name,
+                    color: (raw["color"] as? String) ?? fallback?.color,
+                    image: (raw["image"] as? String) ?? fallback?.image,
+                    symbolName: (raw["symbol_name"] as? String) ?? fallback?.symbolName ?? folderSymbolName(for: id, name: name, system: false),
+                    lastUsedAt: raw["last_used_at"] as? Double ?? Date().timeIntervalSince1970 * 1000
+                )
+            }
+            if !recentFolders.isEmpty {
+                try? shareStore.saveRecentFolders(recentFolders)
+            }
+        }
     }
 
     func folderSymbolName(for id: String, name: String, system: Bool) -> String {
@@ -298,6 +330,7 @@ private extension SAVIWebViewModel {
       var STORAGE_KEY = 'savi_v1';
       var state;
       try { state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch (error) { state = {}; }
+      var items = Array.isArray(state.items) ? state.items.slice() : [];
       var folders = Array.isArray(state.folders) ? state.folders.filter(function(folder) {
         return folder && folder.id && folder.id !== 'f-all';
       }).map(function(folder) {
@@ -305,11 +338,32 @@ private extension SAVIWebViewModel {
           id: folder.id || '',
           name: folder.name || '',
           color: folder.color || '',
+          image: folder.image || '',
           system: Boolean(folder.system)
         };
       }) : [];
+
+      var recentFolderIds = [];
+      var recentFolders = [];
+      items
+        .slice()
+        .sort(function(a, b) { return Number(b.savedAt || 0) - Number(a.savedAt || 0); })
+        .forEach(function(item) {
+          if (!item || !item.folderId || recentFolderIds.indexOf(item.folderId) >= 0) { return; }
+          var folder = folders.find(function(entry) { return entry.id === item.folderId; });
+          if (!folder) { return; }
+          recentFolderIds.push(item.folderId);
+          recentFolders.push({
+            id: folder.id,
+            name: folder.name,
+            color: folder.color || '',
+            image: folder.image || '',
+            last_used_at: Number(item.savedAt || Date.now())
+          });
+        });
+
       if (folders.length) {
-        window.SAVINative.postMessage('syncFolders', { folders: folders });
+        window.SAVINative.postMessage('syncFolders', { folders: folders, recentFolders: recentFolders.slice(0, 5) });
       }
       return folders.length;
     };
@@ -330,13 +384,68 @@ private extension SAVIWebViewModel {
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
           setTimeout(queuePublish, 50);
+          setTimeout(function() {
+            try { window.SAVINative.processPendingMetadata(); } catch (error) {}
+          }, 250);
         });
       } else {
         setTimeout(queuePublish, 50);
+        setTimeout(function() {
+          try { window.SAVINative.processPendingMetadata(); } catch (error) {}
+        }, 250);
       }
 
-      window.addEventListener('savi:native-import', queuePublish);
+      window.addEventListener('savi:native-import', function() {
+        queuePublish();
+        setTimeout(function() {
+          try { window.SAVINative.processPendingMetadata(); } catch (error) {}
+        }, 200);
+      });
     })();
+
+    window.SAVINative.processPendingMetadata = async function() {
+      var STORAGE_KEY = 'savi_v1';
+      var state;
+      try { state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch (error) { state = {}; }
+      if (!Array.isArray(state.items)) { return 0; }
+      if (!Array.isArray(state.folders)) { state.folders = []; }
+      if (typeof fetchLinkMetadata !== 'function') { return 0; }
+
+      var pendingItems = state.items.filter(function(item) {
+        return item && item.pendingMetadata && item.url && /^https?:/i.test(item.url);
+      });
+      if (!pendingItems.length) { return 0; }
+
+      var processed = 0;
+      for (var i = 0; i < pendingItems.length; i += 1) {
+        var item = pendingItems[i];
+        try {
+          var metadata = await fetchLinkMetadata(item.url, state.folders);
+          if (metadata) {
+            item.title = metadata.title || item.title || item.url;
+            item.description = metadata.description || item.description || '';
+            item.thumbnail = metadata.thumbnail || item.thumbnail || '';
+            item.type = metadata.type || item.type || 'link';
+            item.source = metadata.source || item.source || 'Web';
+            if (Array.isArray(metadata.tags) && metadata.tags.length) {
+              item.tags = Array.from(new Set([].concat(item.tags || [], metadata.tags))).filter(Boolean);
+            }
+            if (!item.folderId && metadata.folderId) {
+              item.folderId = metadata.folderId;
+            }
+            item.pendingMetadata = false;
+            processed += 1;
+          }
+        } catch (error) {}
+      }
+
+      if (processed > 0) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        window.dispatchEvent(new CustomEvent('savi:native-metadata-updated', { detail: { count: processed } }));
+      }
+
+      return processed;
+    };
 
     window.SAVINative.importShares = function(shares) {
       var STORAGE_KEY = 'savi_v1';
@@ -435,7 +544,8 @@ private extension SAVIWebViewModel {
           tags: Array.from(new Set(tags.filter(Boolean))),
           color: folderColors[folderId] || '#6D7CFF',
           thumbnail: share.thumbnail || '',
-          savedAt: Number(share.timestamp || Date.now())
+          savedAt: Number(share.timestamp || Date.now()),
+          pendingMetadata: Boolean(share.needs_metadata)
         });
 
         existing.add(uniqueKey);
