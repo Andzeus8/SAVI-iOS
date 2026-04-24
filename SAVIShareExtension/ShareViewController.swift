@@ -9,7 +9,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private let previewImageView = UIImageView()
     private let previewIconView = UIImageView()
     private let statusBadge = UILabel()
-    private let previewTitleLabel = UILabel()
     private let previewMetaLabel = UILabel()
     private let previewSubtitleLabel = UILabel()
     private let spinner = UIActivityIndicatorView(style: .medium)
@@ -255,10 +254,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         statusBadge.heightAnchor.constraint(equalToConstant: 24).isActive = true
         statusBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 104).isActive = true
 
-        previewTitleLabel.font = .preferredFont(forTextStyle: .headline).bold()
-        previewTitleLabel.numberOfLines = 2
-        previewTitleLabel.text = "Preparing your save…"
-
         previewMetaLabel.font = .preferredFont(forTextStyle: .caption1)
         previewMetaLabel.textColor = .systemIndigo
         previewMetaLabel.text = "Share Extension • Link"
@@ -274,7 +269,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         topRow.axis = .horizontal
         topRow.alignment = .center
 
-        let textStack = UIStackView(arrangedSubviews: [topRow, previewTitleLabel, previewMetaLabel, previewSubtitleLabel])
+        let textStack = UIStackView(arrangedSubviews: [topRow, previewMetaLabel, previewSubtitleLabel])
         textStack.axis = .vertical
         textStack.spacing = 6
 
@@ -283,6 +278,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         configureTextField(titleField, placeholder: "Add a clear title")
         titleField.font = .preferredFont(forTextStyle: .body).bold()
+        titleField.clearButtonMode = .always
 
         configureNotesToggle()
         notesTextView.font = .preferredFont(forTextStyle: .body)
@@ -474,7 +470,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             }
         } catch {
             await MainActor.run {
-                previewTitleLabel.text = "Couldn’t read this share"
                 previewSubtitleLabel.text = "We couldn't pull metadata here. Add a title, optional note, and save it anyway."
                 previewMetaLabel.text = "Share Extension"
                 previewIconView.image = UIImage(systemName: "exclamationmark.triangle.fill")
@@ -489,7 +484,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private func applyShare(_ share: PendingShare, animated: Bool) {
         let summary = share.itemDescription ?? share.text ?? previewText(for: share)
-        previewTitleLabel.text = share.title
         previewMetaLabel.text = "\(share.sourceApp) • \(share.type.capitalized)"
         previewSubtitleLabel.text = summary
         titleField.text = share.title
@@ -581,34 +575,18 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             folderSummaryHintLabel.text = "Changed for this save."
         }
 
-        for index in stride(from: 0, to: presets.count, by: 4) {
+        for index in stride(from: 0, to: presets.count, by: 2) {
             let row = UIStackView()
             row.axis = .horizontal
             row.alignment = .fill
             row.distribution = .fillEqually
-            row.spacing = 6
+            row.spacing = 8
 
             let left = makeFolderButton(for: presets[index])
             row.addArrangedSubview(left)
 
             if index + 1 < presets.count {
                 row.addArrangedSubview(makeFolderButton(for: presets[index + 1]))
-            } else {
-                let spacer = UIView()
-                spacer.backgroundColor = .clear
-                row.addArrangedSubview(spacer)
-            }
-
-            if index + 2 < presets.count {
-                row.addArrangedSubview(makeFolderButton(for: presets[index + 2]))
-            } else {
-                let spacer = UIView()
-                spacer.backgroundColor = .clear
-                row.addArrangedSubview(spacer)
-            }
-
-            if index + 3 < presets.count {
-                row.addArrangedSubview(makeFolderButton(for: presets[index + 3]))
             } else {
                 let spacer = UIView()
                 spacer.backgroundColor = .clear
@@ -626,31 +604,26 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         var config = UIButton.Configuration.filled()
         config.title = preset.name
         config.image = UIImage(systemName: isSelected ? "checkmark.circle.fill" : preset.symbolName)
-        config.imagePadding = 6
-        config.imagePlacement = .top
+        config.imagePadding = 8
+        config.imagePlacement = .leading
         config.cornerStyle = .large
         config.baseBackgroundColor = isSelected ? theme.color.withAlphaComponent(0.18) : .white
         config.baseForegroundColor = isSelected ? theme.color : .label
-        config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 4, bottom: 10, trailing: 4)
-        config.titleAlignment = .center
-        config.subtitle = isSelected ? "Selected" : nil
+        config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
+        config.titleAlignment = .leading
+        config.subtitle = nil
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 11, weight: .semibold)
-            return outgoing
-        }
-        config.subtitleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
-            var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 10, weight: .medium)
+            outgoing.font = .systemFont(ofSize: 13, weight: .semibold)
             return outgoing
         }
 
         let button = UIButton(configuration: config)
-        button.contentHorizontalAlignment = .center
+        button.contentHorizontalAlignment = .leading
         button.layer.cornerRadius = 18
         button.layer.borderWidth = 1
         button.layer.borderColor = (isSelected ? theme.color.withAlphaComponent(0.28) : UIColor.separator.withAlphaComponent(0.22)).cgColor
-        button.heightAnchor.constraint(equalToConstant: 62).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 54).isActive = true
         button.tag = availableFolders.firstIndex(where: { $0.id == preset.id }) ?? 0
         button.addTarget(self, action: #selector(folderTapped(_:)), for: .touchUpInside)
         return button
