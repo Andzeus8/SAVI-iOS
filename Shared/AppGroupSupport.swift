@@ -5,7 +5,6 @@ enum SAVISharedContainer {
     static let pendingSharesDirectory = "pending_shares"
     static let pendingAssetsDirectory = "pending_assets"
     static let foldersFileName = "folders.json"
-    static let recentFoldersFileName = "recent_folders.json"
 }
 
 struct PendingShare: Codable, Identifiable {
@@ -23,7 +22,6 @@ struct PendingShare: Codable, Identifiable {
     var itemDescription: String?
     var folderId: String?
     var tags: [String]?
-    var needsMetadata: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -40,7 +38,6 @@ struct PendingShare: Codable, Identifiable {
         case itemDescription = "description"
         case folderId = "folder_id"
         case tags
-        case needsMetadata = "needs_metadata"
     }
 }
 
@@ -48,7 +45,6 @@ struct SharedFolder: Codable, Identifiable {
     var id: String
     var name: String
     var color: String?
-    var image: String?
     var system: Bool
     var symbolName: String?
     var order: Int
@@ -57,28 +53,9 @@ struct SharedFolder: Codable, Identifiable {
         case id
         case name
         case color
-        case image
         case system
         case symbolName = "symbol_name"
         case order
-    }
-}
-
-struct RecentFolder: Codable, Identifiable {
-    var id: String
-    var name: String
-    var color: String?
-    var image: String?
-    var symbolName: String?
-    var lastUsedAt: Double
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case color
-        case image
-        case symbolName = "symbol_name"
-        case lastUsedAt = "last_used_at"
     }
 }
 
@@ -136,10 +113,6 @@ final class PendingShareStore {
 
     func foldersFileURL() throws -> URL {
         try containerURL().appendingPathComponent(SAVISharedContainer.foldersFileName)
-    }
-
-    func recentFoldersFileURL() throws -> URL {
-        try containerURL().appendingPathComponent(SAVISharedContainer.recentFoldersFileName)
     }
 
     @discardableResult
@@ -200,64 +173,6 @@ final class PendingShareStore {
             }
             return lhs.order < rhs.order
         }
-    }
-
-    func saveRecentFolders(_ folders: [RecentFolder]) throws {
-        let fileURL = try recentFoldersFileURL()
-        let normalized = Array(
-            folders
-                .sorted { lhs, rhs in
-                    if lhs.lastUsedAt == rhs.lastUsedAt {
-                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                    }
-                    return lhs.lastUsedAt > rhs.lastUsedAt
-                }
-                .prefix(8)
-        )
-        let data = try encoder.encode(normalized)
-        try data.write(to: fileURL, options: .atomic)
-    }
-
-    func loadRecentFolders() -> [RecentFolder] {
-        guard let fileURL = try? recentFoldersFileURL(),
-              let data = try? Data(contentsOf: fileURL),
-              let folders = try? decoder.decode([RecentFolder].self, from: data)
-        else {
-            return []
-        }
-
-        return folders.sorted { lhs, rhs in
-            if lhs.lastUsedAt == rhs.lastUsedAt {
-                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-            }
-            return lhs.lastUsedAt > rhs.lastUsedAt
-        }
-    }
-
-    func touchRecentFolder(id: String, timestamp: Double = Date().timeIntervalSince1970 * 1000) {
-        let sharedFolders = loadFolders()
-        let recentFolders = loadRecentFolders()
-
-        let shared = sharedFolders.first(where: { $0.id == id })
-        let fallbackName = shared?.name ?? "Folder"
-        let fallbackColor = shared?.color
-        let fallbackImage = shared?.image
-        let fallbackSymbol = shared?.symbolName
-
-        var merged = recentFolders.filter { $0.id != id }
-        merged.insert(
-            RecentFolder(
-                id: id,
-                name: fallbackName,
-                color: fallbackColor,
-                image: fallbackImage,
-                symbolName: fallbackSymbol,
-                lastUsedAt: timestamp
-            ),
-            at: 0
-        )
-
-        try? saveRecentFolders(merged)
     }
 
     func remove(_ share: PendingShare) {

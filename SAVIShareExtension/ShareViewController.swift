@@ -14,11 +14,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private let previewSubtitleLabel = UILabel()
     private let spinner = UIActivityIndicatorView(style: .medium)
 
-    private let recentFoldersCard = UIView()
-    private let recentFoldersScrollView = UIScrollView()
-    private let recentFoldersRow = UIStackView()
-    private let recentFoldersHintLabel = UILabel()
-
     private let folderSummaryCard = UIView()
     private let folderSummaryIconWrap = UIView()
     private let folderSummaryIconView = UIImageView()
@@ -39,12 +34,9 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private let saveButton = UIButton(type: .system)
     private let cancelButton = UIButton(type: .system)
-    private let quickBannerLabel = UILabel()
 
-    private var rawShare: PendingShare?
     private var pendingShare: PendingShare?
     private var availableFolders: [FolderPreset] = ShareItemExtractor.folderPresets()
-    private var recentFolders: [FolderPreset] = ShareItemExtractor.recentFolderPresets()
     private var selectedFolderId = "f-must-see"
     private var selectedTags: [String] = []
     private var suggestedTags: [String] = []
@@ -60,7 +52,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         view.backgroundColor = UIColor(red: 0.967, green: 0.973, blue: 0.988, alpha: 1)
 
         configureTopBar()
-        configureQuickBanner()
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.showsVerticalScrollIndicator = false
@@ -86,13 +77,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         ])
 
         configurePreviewCard()
-        configureRecentFoldersCard()
         configureFolderSummaryCard()
-
-        let quickSection = makeSectionCard(emphasized: true)
-        quickSection.addArrangedSubview(makeSectionLabel("Quick send"))
-        quickSection.addArrangedSubview(makeHintLabel("This is the closest fast path to WhatsApp-style recents on iOS. Tap a folder once and SAVI will save it instantly there."))
-        quickSection.addArrangedSubview(recentFoldersCard)
 
         let folderSection = makeSectionCard(emphasized: true)
         folderSection.addArrangedSubview(makeSectionLabel("Save in"))
@@ -133,13 +118,12 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         notesTextView.heightAnchor.constraint(equalToConstant: 94).isActive = true
         notesSection.addArrangedSubview(notesTextView)
 
-        [previewCard, quickSection, folderSection, titleSection, tagsSection, notesSection].forEach { contentStack.addArrangedSubview($0) }
+        [previewCard, folderSection, titleSection, tagsSection, notesSection].forEach { contentStack.addArrangedSubview($0) }
 
         setNotesExpanded(false, animated: false)
         if let firstFolder = availableFolders.first?.id, !firstFolder.isEmpty {
             selectedFolderId = firstFolder
         }
-        rebuildRecentFolders()
         rebuildFolderButtons()
         rebuildTagViews()
         updateSaveButton(isReady: false)
@@ -314,55 +298,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         innerStack.addArrangedSubview(textStack)
     }
 
-    private func configureQuickBanner() {
-        quickBannerLabel.translatesAutoresizingMaskIntoConstraints = false
-        quickBannerLabel.font = .preferredFont(forTextStyle: .subheadline).bold()
-        quickBannerLabel.textColor = .white
-        quickBannerLabel.backgroundColor = UIColor.black.withAlphaComponent(0.82)
-        quickBannerLabel.layer.cornerRadius = 16
-        quickBannerLabel.layer.masksToBounds = true
-        quickBannerLabel.textAlignment = .center
-        quickBannerLabel.alpha = 0
-        quickBannerLabel.numberOfLines = 2
-        view.addSubview(quickBannerLabel)
-
-        NSLayoutConstraint.activate([
-            quickBannerLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            quickBannerLabel.topAnchor.constraint(equalTo: topBar.bottomAnchor, constant: 10),
-            quickBannerLabel.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, multiplier: 0.82),
-        ])
-    }
-
-    private func configureRecentFoldersCard() {
-        recentFoldersCard.backgroundColor = .secondarySystemBackground
-        recentFoldersCard.layer.cornerRadius = 18
-        recentFoldersCard.layer.borderWidth = 1
-        recentFoldersCard.layer.borderColor = UIColor.separator.withAlphaComponent(0.24).cgColor
-
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 10
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        recentFoldersCard.addSubview(stack)
-
-        recentFoldersHintLabel.font = .preferredFont(forTextStyle: .footnote)
-        recentFoldersHintLabel.textColor = .secondaryLabel
-        recentFoldersHintLabel.numberOfLines = 2
-        recentFoldersHintLabel.text = "Your most recently used folders show up here."
-
-        configureHorizontalStrip(scrollView: recentFoldersScrollView, row: recentFoldersRow, height: 116)
-
-        stack.addArrangedSubview(recentFoldersHintLabel)
-        stack.addArrangedSubview(recentFoldersScrollView)
-
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: recentFoldersCard.leadingAnchor, constant: 14),
-            stack.trailingAnchor.constraint(equalTo: recentFoldersCard.trailingAnchor, constant: -14),
-            stack.topAnchor.constraint(equalTo: recentFoldersCard.topAnchor, constant: 14),
-            stack.bottomAnchor.constraint(equalTo: recentFoldersCard.bottomAnchor, constant: -14),
-        ])
-    }
-
     private func configureFolderSummaryCard() {
         folderSummaryCard.backgroundColor = .secondarySystemBackground
         folderSummaryCard.layer.cornerRadius = 18
@@ -515,7 +450,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         do {
             let share = try await ShareItemExtractor.extract(from: extensionContext)
             await MainActor.run {
-                rawShare = share
                 pendingShare = share
                 applyShare(share, animated: false)
                 statusBadge.text = "Auto-filling"
@@ -561,7 +495,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
                 .prefix(4)
         )
 
-        rebuildRecentFolders()
         rebuildFolderButtons()
         rebuildTagViews()
         configurePreview(for: share)
@@ -627,7 +560,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         availableFolders = ShareItemExtractor.folderPresets()
         let presets = availableFolders
-        let selectedPreset = presets.first(where: { $0.id == selectedFolderId }) ?? FolderPreset(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill", colorHex: "#F7C948", image: nil)
+        let selectedPreset = presets.first(where: { $0.id == selectedFolderId }) ?? FolderPreset(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill", colorHex: "#F7C948")
         let theme = folderTheme(for: selectedPreset)
 
         folderSummaryCard.backgroundColor = theme.color.withAlphaComponent(0.09)
@@ -661,116 +594,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
             folderGridStack.addArrangedSubview(row)
         }
-    }
-
-    private func rebuildRecentFolders() {
-        clearArrangedSubviews(of: recentFoldersRow)
-        recentFolders = ShareItemExtractor.recentFolderPresets(limit: 5)
-
-        if recentFolders.isEmpty {
-            recentFoldersHintLabel.text = "Save to a few folders and SAVI will float your recent ones here for one-tap sends."
-            let label = makeInlineHint("No recent folders yet")
-            recentFoldersRow.addArrangedSubview(label)
-            return
-        }
-
-        recentFoldersHintLabel.text = "Tap once to save there instantly. SAVI will fetch the rich metadata the next time the app wakes up."
-        recentFolders.forEach { folder in
-            recentFoldersRow.addArrangedSubview(makeRecentFolderButton(for: folder))
-        }
-    }
-
-    private func makeRecentFolderButton(for preset: FolderPreset) -> UIControl {
-        let control = UIControl()
-        control.translatesAutoresizingMaskIntoConstraints = false
-        control.widthAnchor.constraint(equalToConstant: 92).isActive = true
-
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.alignment = .center
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        control.addSubview(stack)
-
-        let imageWrap = UIView()
-        imageWrap.translatesAutoresizingMaskIntoConstraints = false
-        imageWrap.widthAnchor.constraint(equalToConstant: 64).isActive = true
-        imageWrap.heightAnchor.constraint(equalToConstant: 64).isActive = true
-        imageWrap.layer.cornerRadius = 20
-        imageWrap.layer.masksToBounds = true
-
-        let theme = folderTheme(for: preset)
-        imageWrap.backgroundColor = theme.color.withAlphaComponent(0.18)
-
-        if let imageValue = preset.image, !imageValue.isEmpty {
-            let imageView = UIImageView()
-            imageView.translatesAutoresizingMaskIntoConstraints = false
-            imageView.contentMode = .scaleAspectFill
-            imageView.clipsToBounds = true
-            imageWrap.addSubview(imageView)
-            NSLayoutConstraint.activate([
-                imageView.leadingAnchor.constraint(equalTo: imageWrap.leadingAnchor),
-                imageView.trailingAnchor.constraint(equalTo: imageWrap.trailingAnchor),
-                imageView.topAnchor.constraint(equalTo: imageWrap.topAnchor),
-                imageView.bottomAnchor.constraint(equalTo: imageWrap.bottomAnchor),
-            ])
-
-            if let image = imageFromDataURL(imageValue) {
-                imageView.image = image
-            } else if let url = URL(string: imageValue), url.scheme?.hasPrefix("http") == true {
-                Task {
-                    let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 12)
-                    if let (data, _) = try? await URLSession.shared.data(for: request),
-                       let image = UIImage(data: data) {
-                        await MainActor.run { imageView.image = image }
-                    }
-                }
-            }
-
-            let overlay = UIView()
-            overlay.translatesAutoresizingMaskIntoConstraints = false
-            overlay.backgroundColor = UIColor.black.withAlphaComponent(0.16)
-            imageWrap.addSubview(overlay)
-            NSLayoutConstraint.activate([
-                overlay.leadingAnchor.constraint(equalTo: imageWrap.leadingAnchor),
-                overlay.trailingAnchor.constraint(equalTo: imageWrap.trailingAnchor),
-                overlay.topAnchor.constraint(equalTo: imageWrap.topAnchor),
-                overlay.bottomAnchor.constraint(equalTo: imageWrap.bottomAnchor),
-            ])
-        } else {
-            let iconView = UIImageView(image: UIImage(systemName: preset.symbolName))
-            iconView.translatesAutoresizingMaskIntoConstraints = false
-            iconView.tintColor = .white
-            iconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
-            imageWrap.addSubview(iconView)
-            NSLayoutConstraint.activate([
-                iconView.centerXAnchor.constraint(equalTo: imageWrap.centerXAnchor),
-                iconView.centerYAnchor.constraint(equalTo: imageWrap.centerYAnchor),
-            ])
-        }
-
-        let titleLabel = UILabel()
-        titleLabel.font = .preferredFont(forTextStyle: .caption1).bold()
-        titleLabel.textColor = .label
-        titleLabel.textAlignment = .center
-        titleLabel.numberOfLines = 2
-        titleLabel.text = preset.name
-
-        stack.addArrangedSubview(imageWrap)
-        stack.addArrangedSubview(titleLabel)
-
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: control.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: control.trailingAnchor),
-            stack.topAnchor.constraint(equalTo: control.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: control.bottomAnchor),
-        ])
-
-        control.addAction(UIAction(handler: { [weak self] _ in
-            self?.quickSave(to: preset)
-        }), for: .touchUpInside)
-
-        return control
     }
 
     private func makeFolderButton(for preset: FolderPreset) -> UIButton {
@@ -892,45 +715,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         saveButton.isEnabled = isReady
     }
 
-    private func showBanner(_ text: String) {
-        quickBannerLabel.text = "  \(text)  "
-        UIView.animate(withDuration: 0.16) {
-            self.quickBannerLabel.alpha = 1
-        }
-    }
-
-    private func hideBanner() {
-        UIView.animate(withDuration: 0.18) {
-            self.quickBannerLabel.alpha = 0
-        }
-    }
-
-    private func shouldDeferMetadata(for share: PendingShare) -> Bool {
-        if let url = share.url, !url.isEmpty {
-            return url.lowercased().hasPrefix("http")
-        }
-        return false
-    }
-
-    private func quickSave(to preset: FolderPreset) {
-        guard var share = rawShare ?? pendingShare else { return }
-        share.folderId = preset.id
-        share.needsMetadata = shouldDeferMetadata(for: share)
-        share.tags = dedupeTags(share.tags ?? [])
-
-        do {
-            try PendingShareStore.shared.save(share)
-            PendingShareStore.shared.touchRecentFolder(id: preset.id, timestamp: share.timestamp)
-            showBanner("Saved to \(preset.name)")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { [weak self] in
-                self?.hideBanner()
-                self?.extensionContext?.completeRequest(returningItems: nil)
-            }
-        } catch {
-            previewSubtitleLabel.text = error.localizedDescription
-        }
-    }
-
     @objc private func toggleNotes() {
         setNotesExpanded(!notesExpanded, animated: true)
     }
@@ -1042,11 +826,9 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         pendingShare.itemDescription = notesExpanded ? trimmedNotes.nilIfEmpty : pendingShare.itemDescription
         pendingShare.folderId = selectedFolderId
         pendingShare.tags = dedupeTags(selectedTags + manualTags)
-        pendingShare.needsMetadata = false
 
         do {
             try PendingShareStore.shared.save(pendingShare)
-            PendingShareStore.shared.touchRecentFolder(id: selectedFolderId, timestamp: pendingShare.timestamp)
             updateSaveButton(isReady: false, titleOverride: "Saved")
             extensionContext?.completeRequest(returningItems: nil)
         } catch {

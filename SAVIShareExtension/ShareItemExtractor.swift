@@ -253,22 +253,21 @@ struct FolderPreset {
     let name: String
     let symbolName: String
     let colorHex: String?
-    let image: String?
 }
 
 extension ShareItemExtractor {
     static let defaultFolderPresets: [FolderPreset] = [
-        .init(id: "f-private-vault", name: "Private Vault", symbolName: "lock.fill", colorHex: "#6C63FF", image: nil),
-        .init(id: "f-growth", name: "Growth Hacks", symbolName: "bolt.fill", colorHex: "#1CB5A3", image: nil),
-        .init(id: "f-wtf-favorites", name: "WTF Favorites", symbolName: "sparkles", colorHex: "#F15BB5", image: nil),
-        .init(id: "f-tinfoil", name: "Tinfoil Hat Club", symbolName: "eye.fill", colorHex: "#6D4AFF", image: nil),
-        .init(id: "f-lmao", name: "LMAO", symbolName: "theatermasks.fill", colorHex: "#FF7A59", image: nil),
-        .init(id: "f-health", name: "Health Hacks", symbolName: "heart.fill", colorHex: "#1CBF75", image: nil),
-        .init(id: "f-recipes", name: "Recipes & Food", symbolName: "fork.knife", colorHex: "#FF6B57", image: nil),
-        .init(id: "f-travel", name: "Travel & Places", symbolName: "airplane", colorHex: "#3498FF", image: nil),
-        .init(id: "f-design", name: "Design Inspo", symbolName: "paintpalette.fill", colorHex: "#FF4DC4", image: nil),
-        .init(id: "f-research", name: "Research", symbolName: "magnifyingglass", colorHex: "#7B61FF", image: nil),
-        .init(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill", colorHex: "#F7C948", image: nil),
+        .init(id: "f-private-vault", name: "Private Vault", symbolName: "lock.fill", colorHex: "#6C63FF"),
+        .init(id: "f-growth", name: "Growth Hacks", symbolName: "bolt.fill", colorHex: "#1CB5A3"),
+        .init(id: "f-wtf-favorites", name: "WTF Favorites", symbolName: "sparkles", colorHex: "#F15BB5"),
+        .init(id: "f-tinfoil", name: "Tinfoil Hat Club", symbolName: "eye.fill", colorHex: "#6D4AFF"),
+        .init(id: "f-lmao", name: "LMAO", symbolName: "theatermasks.fill", colorHex: "#FF7A59"),
+        .init(id: "f-health", name: "Health Hacks", symbolName: "heart.fill", colorHex: "#1CBF75"),
+        .init(id: "f-recipes", name: "Recipes & Food", symbolName: "fork.knife", colorHex: "#FF6B57"),
+        .init(id: "f-travel", name: "Travel & Places", symbolName: "airplane", colorHex: "#3498FF"),
+        .init(id: "f-design", name: "Design Inspo", symbolName: "paintpalette.fill", colorHex: "#FF4DC4"),
+        .init(id: "f-research", name: "Research", symbolName: "magnifyingglass", colorHex: "#7B61FF"),
+        .init(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill", colorHex: "#F7C948"),
     ]
 
     static func folderPresets() -> [FolderPreset] {
@@ -291,29 +290,11 @@ extension ShareItemExtractor {
                     id: shared.id,
                     name: shared.name,
                     symbolName: shared.symbolName ?? fallback?.symbolName ?? inferredSymbolName(for: shared.name, id: shared.id),
-                    colorHex: shared.color ?? fallback?.colorHex,
-                    image: shared.image ?? fallback?.image
+                    colorHex: shared.color ?? fallback?.colorHex
                 )
             }
 
         return normalized.isEmpty ? defaultFolderPresets : normalized
-    }
-
-    static func recentFolderPresets(limit: Int = 5) -> [FolderPreset] {
-        let recents = PendingShareStore.shared.loadRecentFolders()
-        guard !recents.isEmpty else { return Array(folderPresets().prefix(limit)) }
-
-        let allFolders = folderPresets()
-        return recents.prefix(limit).map { recent in
-            let fallback = allFolders.first(where: { $0.id == recent.id })
-            return FolderPreset(
-                id: recent.id,
-                name: recent.name,
-                symbolName: recent.symbolName ?? fallback?.symbolName ?? inferredSymbolName(for: recent.name, id: recent.id),
-                colorHex: recent.color ?? fallback?.colorHex,
-                image: recent.image ?? fallback?.image
-            )
-        }
     }
 }
 
