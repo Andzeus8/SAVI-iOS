@@ -2442,12 +2442,12 @@ function WelcomeWizard({ onFinish }) {
 function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiveFolder, browseMode, setBrowseMode, activeType, setActiveType, activeSource, setActiveSource, viewMode, setViewMode, folderCounts, typeCounts, sourceCounts, sourceOptions, search, setSearch, onSelect, onShare, onShareItem }) {
   const activeFolderName = folders.find(f => f.id === activeFolder)?.name || "All Saves";
   const activeSourceLabel = sourceOptions.find((option) => option.key === activeSource)?.label || (activeSource === "all" ? "All Apps" : titleize(activeSource));
-  const heroEyebrow = searchMode ? "Search" : browseMode === "all" ? "Your library" : browseMode === "folders" ? "Folders" : browseMode === "types" ? "Types" : "Apps";
-  const heroTitle = searchMode ? "Find anything" : browseMode === "all" ? "All Saves" : browseMode === "folders" ? (activeFolder === "f-all" ? "All folders" : activeFolderName) : browseMode === "types" ? displayTypeLabel(activeType) : activeSourceLabel;
+  const heroEyebrow = searchMode ? "Search" : browseMode === "all" ? "Dashboard" : browseMode === "folders" ? "Folders" : browseMode === "types" ? "Types" : "Apps";
+  const heroTitle = searchMode ? "Find anything" : browseMode === "all" ? "Home" : browseMode === "folders" ? (activeFolder === "f-all" ? "All folders" : activeFolderName) : browseMode === "types" ? displayTypeLabel(activeType) : activeSourceLabel;
   const heroDescription = searchMode
     ? "Search works across every folder, tag, app, and file detail in your library."
     : browseMode === "all"
-      ? "Browse the whole archive with a calmer filter system and switch views whenever you want."
+      ? "Search fast, jump into your top folders, and keep the latest saves right under your thumb."
       : browseMode === "folders"
         ? "Use folder chips to narrow the stream below without leaving the page."
         : browseMode === "types"
@@ -2455,6 +2455,24 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
           : "Jump into the apps and platforms that generated the save.";
   const heroCount = items.length;
   const searchInputRef = useRef(null);
+  const topFolders = folders
+    .filter((folder) => !folder.system)
+    .map((folder) => ({
+      ...folder,
+      count: folderCounts[folder.id] ?? 0,
+      latest: items.find((item) => item.folderId === folder.id),
+    }))
+    .filter((folder) => folder.count > 0)
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      const aOrder = DEFAULT_FOLDER_ORDER_MAP[a.id] ?? 1000;
+      const bOrder = DEFAULT_FOLDER_ORDER_MAP[b.id] ?? 1000;
+      return aOrder - bOrder;
+    })
+    .slice(0, 4);
+  const quickTypeFilters = ["video", "article", "place", "file"].filter((key) => (typeCounts[key] ?? 0) > 0);
+  const quickSourceFilters = sourceOptions.slice(0, 4);
+  const showDashboard = browseMode === "all" && !search;
 
   useEffect(() => {
     if (!searchMode) return;
@@ -2552,6 +2570,98 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
         </div>
       </div>
 
+      {showDashboard && (
+        <div style={{ padding: "0 20px 18px", display: "grid", gap: 18 }}>
+          <div style={{ padding: 16, borderRadius: 22, background: "linear-gradient(160deg, rgba(22,26,35,0.98) 0%, rgba(65,74,118,0.96) 100%)", color: T.paper, boxShadow: "0 22px 40px -28px rgba(22,26,35,0.72)" }}>
+            <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(245,241,234,0.68)", marginBottom: 10 }}>
+              Quick jump
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+              <button onClick={() => { setBrowseMode("all"); setSearch(""); }} style={{ padding: "14px 12px", borderRadius: 16, background: "rgba(255,255,255,0.08)", color: T.paper, textAlign: "left", border: "1px solid rgba(255,255,255,0.12)" }}>
+                <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.66, marginBottom: 6 }}>All saves</div>
+                <div className="serif" style={{ fontSize: 24, lineHeight: 1 }}>{heroCount}</div>
+              </button>
+              <button onClick={() => { setBrowseMode("folders"); setActiveFolder("f-all"); }} style={{ padding: "14px 12px", borderRadius: 16, background: "rgba(255,255,255,0.08)", color: T.paper, textAlign: "left", border: "1px solid rgba(255,255,255,0.12)" }}>
+                <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.66, marginBottom: 6 }}>Folders</div>
+                <div className="serif" style={{ fontSize: 24, lineHeight: 1 }}>{folders.filter(f => !f.system).length}</div>
+              </button>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+              {quickTypeFilters.map((key) => (
+                <button
+                  key={key}
+                  onClick={() => { setBrowseMode("types"); setActiveType(key); }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 10px", borderRadius: 999, background: "rgba(255,255,255,0.08)", color: T.paper, border: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  {typeIconFor(key, { size: 12, stroke: 1.8 })}
+                  <span className="mono" style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>{displayTypeLabel(key)}</span>
+                </button>
+              ))}
+              {quickSourceFilters.map((option) => (
+                <button
+                  key={option.key}
+                  onClick={() => { setBrowseMode("sources"); setActiveSource(option.key); }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 10px", borderRadius: 999, background: "rgba(255,255,255,0.08)", color: T.paper, border: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  <BrandBadge visual={{ ...sourceVisualForKey(option.key), bg: "rgba(255,255,255,0.16)", gradient: "", fg: T.paper }} size={18} />
+                  <span className="mono" style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {topFolders.length > 0 && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
+                <div className="serif" style={{ fontSize: 24, color: T.ink }}>Top folders</div>
+                <button className="mono" onClick={() => { setBrowseMode("folders"); setActiveFolder("f-all"); }} style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
+                  See all
+                </button>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {topFolders.map((folder) => (
+                  <button
+                    key={folder.id}
+                    onClick={() => { setBrowseMode("folders"); setActiveFolder(folder.id); }}
+                    style={{
+                      minHeight: 132,
+                      textAlign: "left",
+                      padding: 14,
+                      borderRadius: 22,
+                      background: folder.image
+                        ? `center / cover no-repeat url(${folder.image}), ${T.card}`
+                        : `linear-gradient(160deg, ${folder.color}40 0%, ${folder.color}14 100%)`,
+                      border: `1px solid ${folder.image ? "rgba(255,255,255,0.16)" : T.lineSoft}`,
+                      boxShadow: "0 18px 34px -28px rgba(22,26,35,0.55)",
+                      position: "relative",
+                      overflow: "hidden",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    {folder.image && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(8,12,20,0.04) 0%, rgba(8,12,20,0.24) 42%, rgba(8,12,20,0.86) 100%)" }} />}
+                    <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                      <span className="mono" style={{ padding: "7px 9px", borderRadius: 999, background: folder.image ? "rgba(255,255,255,0.14)" : `${folder.color}16`, color: folder.image ? "rgba(255,255,255,0.92)" : T.ink, fontSize: 9.5, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                        {folder.count} saves
+                      </span>
+                    </div>
+                    <div style={{ position: "relative", zIndex: 1 }}>
+                      <div className="serif" style={{ fontSize: 21, lineHeight: 1.02, color: folder.image ? "#fff" : T.ink, marginBottom: 5 }}>
+                        {folder.name}
+                      </div>
+                      <div className="clamp1" style={{ fontSize: 11.5, color: folder.image ? "rgba(255,255,255,0.82)" : T.inkSoft }}>
+                        {folder.latest?.title || "Open this folder"}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {browseMode !== "all" && (
         <div style={{ padding: "0 20px 18px" }}>
           <div className="scroll" style={{ display: "flex", gap: 8, overflowX: "auto", overflowY: "hidden", paddingBottom: 4, margin: "0 -20px", padding: "0 20px" }}>
@@ -2598,12 +2708,28 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
           <EmptyState search={search} searchMode={searchMode} browseMode={browseMode} activeFolderName={activeFolderName} activeSourceLabel={activeSourceLabel} activeType={activeType} />
         </div>
       ) : viewMode === "grid" ? (
-        <div key={`grid-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14, alignItems: "start" }}>
+        <div key={`grid-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Latest saves" : heroTitle}</div>
+            <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
+              {items.length} {items.length === 1 ? "item" : "items"}
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14, alignItems: "start" }}>
           {items.map((item, idx) => <ItemCard key={item.id} item={item} index={idx} onClick={()=>onSelect(item)} onShare={()=>onShareItem(item)} delay={idx * 22} layout="grid" />)}
+          </div>
         </div>
       ) : (
-        <div key={`list-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div key={`list-${browseMode}-${activeFolder}-${activeType}-${activeSource}`} className="anim-fade" style={{ padding: "0 20px 28px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+            <div className="serif" style={{ fontSize: 24, color: T.ink }}>{showDashboard ? "Latest saves" : heroTitle}</div>
+            <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
+              {items.length} {items.length === 1 ? "item" : "items"}
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {items.map((item, idx) => <ItemListRow key={item.id} item={item} onClick={()=>onSelect(item)} onShare={()=>onShareItem(item)} delay={idx * 18} />)}
+          </div>
         </div>
       )}
     </div>
@@ -2799,6 +2925,14 @@ function FoldersScreen({ folders, folderCounts, onOpen, onNew, onEdit }) {
     if (aOrder !== bOrder) return aOrder - bOrder;
     return a.name.localeCompare(b.name);
   });
+  const spotlightFolders = displayFolders.filter((folder) => !folder.system).sort((a, b) => {
+    const aCount = folderCounts[a.id] ?? 0;
+    const bCount = folderCounts[b.id] ?? 0;
+    if (bCount !== aCount) return bCount - aCount;
+    const aOrder = DEFAULT_FOLDER_ORDER_MAP[a.id] ?? 1000;
+    const bOrder = DEFAULT_FOLDER_ORDER_MAP[b.id] ?? 1000;
+    return aOrder - bOrder;
+  }).slice(0, 3);
   return (
     <div className="scroll anim-fade" style={{ height: "100%" }}>
       <div style={{ padding: "16px 20px 14px" }}>
@@ -2807,12 +2941,62 @@ function FoldersScreen({ folders, folderCounts, onOpen, onNew, onEdit }) {
           <div>
             <div className="serif" style={{ fontSize: 40, lineHeight: 1.02, color: T.ink, marginBottom: 6 }}>Folders</div>
             <div style={{ fontSize: 13, lineHeight: 1.45, color: T.inkSoft, maxWidth: 270 }}>
-              Album-style collections for your saved world, with quicker scanning and less visual noise.
+              Your personal buckets. Keep the useful stuff easy to reach and the weird stuff somewhere on purpose.
             </div>
           </div>
           <button aria-label="Create a new folder" onClick={onNew} style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 999, background: T.ink, color: T.paper, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 32px -22px rgba(22,26,35,0.72)" }}>
             <IconFolderPlus size={15} />
           </button>
+        </div>
+      </div>
+      {spotlightFolders.length > 0 && (
+        <div style={{ padding: "0 20px 18px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
+            <div className="serif" style={{ fontSize: 24, color: T.ink }}>Top folders</div>
+            <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
+              most used
+            </div>
+          </div>
+          <div className="scroll" style={{ display: "flex", gap: 12, overflowX: "auto", overflowY: "hidden", margin: "0 -20px", padding: "0 20px 4px" }}>
+            {spotlightFolders.map((folder) => {
+              const coverImage = folder.image || folderCover(folder.id || folder.name || "folder");
+              return (
+                <button
+                  key={folder.id}
+                  onClick={() => onOpen(folder.id)}
+                  style={{
+                    minWidth: 210,
+                    flexShrink: 0,
+                    padding: 14,
+                    borderRadius: 24,
+                    textAlign: "left",
+                    background: coverImage ? `center / cover no-repeat url(${coverImage}), ${T.card}` : `linear-gradient(160deg, ${folder.color}42 0%, ${folder.color}16 100%)`,
+                    border: `1px solid ${coverImage ? "rgba(255,255,255,0.16)" : T.lineSoft}`,
+                    boxShadow: "0 22px 40px -28px rgba(22,26,35,0.6)",
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  {coverImage && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(6,10,18,0.08) 0%, rgba(6,10,18,0.32) 46%, rgba(6,10,18,0.88) 100%)" }} />}
+                  <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                    <span className="mono" style={{ padding: "7px 9px", borderRadius: 999, background: coverImage ? "rgba(255,255,255,0.14)" : `${folder.color}16`, color: coverImage ? "rgba(255,255,255,0.92)" : T.ink, fontSize: 9.5, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                      {folderCounts[folder.id] ?? 0} saves
+                    </span>
+                  </div>
+                  <div style={{ position: "relative", zIndex: 1, marginTop: 68 }}>
+                    <div className="serif" style={{ fontSize: 23, lineHeight: 1.02, color: coverImage ? "#fff" : T.ink, marginBottom: 6 }}>{folder.name}</div>
+                    <div style={{ fontSize: 12, color: coverImage ? "rgba(255,255,255,0.84)" : T.inkSoft }}>Open folder</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <div style={{ padding: "0 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div className="serif" style={{ fontSize: 24, color: T.ink }}>All folders</div>
+        <div className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: T.inkMute }}>
+          {displayFolders.filter((folder) => !folder.system).length} spaces
         </div>
       </div>
       <div style={{ padding: "0 20px 26px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -2827,7 +3011,7 @@ function FoldersScreen({ folders, folderCounts, onOpen, onNew, onEdit }) {
                 textAlign: "left",
                 padding: 14,
                 borderRadius: 24,
-                aspectRatio: "1 / 1.08",
+                aspectRatio: "1 / 1.02",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
