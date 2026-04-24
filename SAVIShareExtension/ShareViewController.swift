@@ -19,6 +19,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private let folderSummaryIconView = UIImageView()
     private let folderSummaryTitleLabel = UILabel()
     private let folderSummaryHintLabel = UILabel()
+    private let folderContextLabel = UILabel()
     private let folderGridStack = UIStackView()
 
     private let titleField = UITextField()
@@ -82,6 +83,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         let folderSection = makeSectionCard(emphasized: true)
         folderSection.addArrangedSubview(makeSectionLabel("Pick the folder"))
         folderSection.addArrangedSubview(makeHintLabel("SAVI already picked the best match. If it feels right, just hit Save. If not, tap a better folder below."))
+        configureFolderContextLabel()
+        folderSection.addArrangedSubview(folderContextLabel)
         folderSection.addArrangedSubview(folderSummaryCard)
         configureFolderGrid()
         folderSection.addArrangedSubview(folderGridStack)
@@ -356,8 +359,15 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private func configureFolderGrid() {
         folderGridStack.axis = .vertical
-        folderGridStack.spacing = 12
+        folderGridStack.spacing = 10
         folderGridStack.translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    private func configureFolderContextLabel() {
+        folderContextLabel.font = .preferredFont(forTextStyle: .subheadline).bold()
+        folderContextLabel.textColor = .label
+        folderContextLabel.numberOfLines = 2
+        folderContextLabel.text = "Saving…"
     }
 
     private func configureHorizontalStrip(scrollView: UIScrollView, row: UIStackView, height: CGFloat) {
@@ -488,16 +498,17 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         notesTextView.text = summary
 
         selectedFolderId = share.folderId ?? selectedFolderId
-        selectedTags = Array(dedupeTags(share.tags ?? []).prefix(3))
+        selectedTags = Array(prioritizedDisplayTags(for: share).prefix(5))
         suggestedTags = Array(
             suggestionTags(for: share)
                 .filter { !selectedTags.map { $0.lowercased() }.contains($0.lowercased()) }
-                .prefix(4)
+                .prefix(6)
         )
 
         rebuildFolderButtons()
         rebuildTagViews()
         configurePreview(for: share)
+        folderContextLabel.text = share.title
 
         if animated {
             UIView.transition(with: previewCard, duration: 0.18, options: .transitionCrossDissolve, animations: {}, completion: nil)
@@ -574,18 +585,26 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             folderSummaryHintLabel.text = "You changed the folder for this save."
         }
 
-        for index in stride(from: 0, to: presets.count, by: 2) {
+        for index in stride(from: 0, to: presets.count, by: 3) {
             let row = UIStackView()
             row.axis = .horizontal
             row.alignment = .fill
             row.distribution = .fillEqually
-            row.spacing = 10
+            row.spacing = 8
 
             let left = makeFolderButton(for: presets[index])
             row.addArrangedSubview(left)
 
             if index + 1 < presets.count {
                 row.addArrangedSubview(makeFolderButton(for: presets[index + 1]))
+            } else {
+                let spacer = UIView()
+                spacer.backgroundColor = .clear
+                row.addArrangedSubview(spacer)
+            }
+
+            if index + 2 < presets.count {
+                row.addArrangedSubview(makeFolderButton(for: presets[index + 2]))
             } else {
                 let spacer = UIView()
                 spacer.backgroundColor = .clear
@@ -608,35 +627,55 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         config.cornerStyle = .large
         config.baseBackgroundColor = isSelected ? theme.color.withAlphaComponent(0.18) : .white
         config.baseForegroundColor = isSelected ? theme.color : .label
-        config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 12, bottom: 14, trailing: 12)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 8, bottom: 12, trailing: 8)
         config.titleAlignment = .center
         config.subtitle = isSelected ? "Selected" : nil
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
-            outgoing.font = .preferredFont(forTextStyle: .subheadline).bold()
+            outgoing.font = .systemFont(ofSize: 12, weight: .semibold)
             return outgoing
         }
         config.subtitleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
-            outgoing.font = .preferredFont(forTextStyle: .caption2)
+            outgoing.font = .systemFont(ofSize: 10, weight: .medium)
             return outgoing
         }
 
         let button = UIButton(configuration: config)
         button.contentHorizontalAlignment = .center
-        button.layer.cornerRadius = 20
-        button.layer.masksToBounds = true
+        button.layer.cornerRadius = 18
         button.layer.borderWidth = 1
         button.layer.borderColor = (isSelected ? theme.color.withAlphaComponent(0.28) : UIColor.separator.withAlphaComponent(0.22)).cgColor
         button.layer.shadowColor = UIColor.black.cgColor
         button.layer.shadowOpacity = isSelected ? 0.08 : 0.04
         button.layer.shadowRadius = isSelected ? 14 : 8
         button.layer.shadowOffset = CGSize(width: 0, height: isSelected ? 6 : 3)
-        button.layer.masksToBounds = false
-        button.heightAnchor.constraint(equalToConstant: 88).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 74).isActive = true
         button.tag = availableFolders.firstIndex(where: { $0.id == preset.id }) ?? 0
         button.addTarget(self, action: #selector(folderTapped(_:)), for: .touchUpInside)
         return button
+    }
+
+    private func prioritizedDisplayTags(for share: PendingShare) -> [String] {
+        let raw = dedupeTags(share.tags ?? [])
+        let generic = Set([
+            share.type.lowercased(),
+            "link",
+            "article",
+            "video",
+            "image",
+            "file",
+            "place",
+            "text",
+            "share-extension",
+            "safari",
+            "photos",
+            "files"
+        ].map { $0.lowercased() })
+
+        let meaningful = raw.filter { !generic.contains($0.lowercased()) }
+        let fallback = raw.filter { generic.contains($0.lowercased()) }
+        return meaningful + fallback
     }
 
     private func rebuildTagViews() {

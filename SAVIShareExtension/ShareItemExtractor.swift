@@ -403,36 +403,46 @@ private extension ShareItemExtractor {
     }
 
     static func suggestedFolderId(type: String, url: String?, title: String?, description: String?) -> String {
-        let haystack = [url ?? "", title ?? "", description ?? ""].joined(separator: " ").lowercased()
+        let urlText = (url ?? "").lowercased()
+        let titleText = (title ?? "").lowercased()
+        let descriptionText = (description ?? "").lowercased()
+        let haystack = [urlText, titleText, descriptionText].joined(separator: " ")
+
         if type == "image" || type == "file" || haystack.matches("passport|insurance|card|social security|tax|lease|medical|wifi|document") {
             return "f-private-vault"
         }
-        if type == "place" || haystack.matches("travel|hotel|flight|map|restaurant|cafe|museum|trip|visit|pin") {
+
+        if type == "place" {
             return "f-travel"
         }
-        if haystack.matches("recipe|pasta|food|cook|kitchen|meal|restaurant|dessert") {
-            return "f-recipes"
+
+        let profiles: [(id: String, keywords: [String])] = [
+            ("f-health", ["parasite", "parasites", "infection", "disease", "symptom", "symptoms", "doctor", "medical", "medicine", "health", "wellness", "fitness", "sleep", "stress", "mental health", "nutrition", "protein", "hydration", "gut", "body"]),
+            ("f-recipes", ["recipe", "recipes", "pasta", "food", "cook", "cooking", "kitchen", "meal", "restaurant", "dessert", "breakfast", "dinner", "lunch", "bake", "chef", "air fryer"]),
+            ("f-growth", ["claude", "chatgpt", "ai", "prompt", "productivity", "career", "business", "startup", "resume", "workflow", "automation", "software", "leadership", "negotiation", "networking"]),
+            ("f-tinfoil", ["alien", "aliens", "atlantis", "sphinx", "pyramid", "pyramids", "mkultra", "northwoods", "cover-up", "coverup", "conspiracy", "pentagon", "ufo", "government secret", "rabbit hole", "ancient egypt", "area 51"]),
+            ("f-lmao", ["funny", "meme", "viral", "laugh", "lmao", "rickroll", "numa", "charlie bit", "keyboard cat", "dramatic chipmunk", "fail compilation", "comedy"]),
+            ("f-travel", ["travel", "hotel", "flight", "map", "maps", "restaurant", "cafe", "museum", "trip", "visit", "pin", "destination", "vacation", "beach", "city guide"]),
+            ("f-design", ["design", "ui", "ux", "figma", "dribbble", "branding", "visual", "typography", "poster", "layout", "interface"]),
+            ("f-research", ["research", "paper", "study", "science", "technical", "gpt-4", "attention is all you need", "webb", "nasa", "quantum", "report", "analysis", "journal"]),
+            ("f-wtf-favorites", ["mind-blowing", "wild", "space", "discovery", "crazy", "mystery", "insane", "unbelievable", "shocking"]),
+        ]
+
+        var best: (id: String, score: Int)? = nil
+        for profile in profiles {
+            let score = folderScore(
+                keywords: profile.keywords,
+                title: titleText,
+                description: descriptionText,
+                url: urlText
+            )
+            if score > (best?.score ?? 0) {
+                best = (profile.id, score)
+            }
         }
-        if haystack.matches("claude|chatgpt|prompt|productivity|career|business|startup|resume|workflow|automation|software") {
-            return "f-growth"
-        }
-        if haystack.matches("alien|atlantis|sphinx|pyramid|mkultra|northwoods|cover-up|conspiracy|pentagon|ufo|government secret|rabbit hole") {
-            return "f-tinfoil"
-        }
-        if haystack.matches("funny|meme|viral|laugh|lmao|rickroll|numa|charlie bit|keyboard cat") {
-            return "f-lmao"
-        }
-        if haystack.matches("health|wellness|fitness|sleep|stress|mental health|nutrition|protein|hydration") {
-            return "f-health"
-        }
-        if haystack.matches("design|ui|ux|figma|dribbble|branding|visual") {
-            return "f-design"
-        }
-        if haystack.matches("research|paper|study|science|technical|gpt-4|attention is all you need|webb|nasa") {
-            return "f-research"
-        }
-        if haystack.matches("mind-blowing|wild|space|discovery|crazy|mystery") {
-            return "f-wtf-favorites"
+
+        if let best, best.score >= 5 {
+            return best.id
         }
 
         let customMatch = folderPresets()
@@ -444,7 +454,7 @@ private extension ShareItemExtractor {
                 score(folderName: lhs.name, haystack: haystack) < score(folderName: rhs.name, haystack: haystack)
             }
 
-        if let customMatch, score(folderName: customMatch.name, haystack: haystack) > 0 {
+        if let customMatch, score(folderName: customMatch.name, haystack: haystack) >= 4 {
             return customMatch.id
         }
 
@@ -457,15 +467,17 @@ private extension ShareItemExtractor {
             .replacingOccurrences(of: " ", with: "-")
             .replacingOccurrences(of: ".", with: "")
         let haystack = [url ?? "", title ?? "", description ?? ""].joined(separator: " ").lowercased()
-        var tags = [type, sourceTag]
+        var tags: [String] = []
+        tags.append(contentsOf: keywordTags(title: title, description: description, url: url, source: source))
+        tags.append(type)
+        tags.append(sourceTag)
         if type == "place" { tags.append("location") }
         if haystack.contains("youtube") { tags.append("video") }
         if haystack.contains("instagram") { tags.append("post") }
         if haystack.contains("pdf") { tags.append("pdf") }
-        for token in ["ai", "claude", "chatgpt", "recipe", "travel", "design", "research", "health", "funny", "meme", "conspiracy", "pentagon", "egypt", "maps", "news", "reddit", "instagram", "youtube", "career", "productivity", "science"] where haystack.contains(token) {
+        for token in ["parasite", "parasites", "infection", "symptoms", "health", "ai", "claude", "chatgpt", "recipe", "travel", "design", "research", "funny", "meme", "conspiracy", "pentagon", "egypt", "maps", "news", "reddit", "instagram", "youtube", "career", "productivity", "science"] where haystack.contains(token) {
             tags.append(token)
         }
-        tags.append(contentsOf: keywordTags(title: title, description: description, url: url, source: source))
         return dedupeTags(tags)
     }
 
@@ -503,6 +515,17 @@ private extension ShareItemExtractor {
         return tokens.reduce(0) { partial, token in
             partial + (haystack.contains(token) ? max(1, token.count - 2) : 0)
         }
+    }
+
+    static func folderScore(keywords: [String], title: String, description: String, url: String) -> Int {
+        var score = 0
+        for keyword in keywords {
+            let normalized = keyword.lowercased()
+            if title.contains(normalized) { score += normalized.count >= 8 ? 8 : 6 }
+            if description.contains(normalized) { score += normalized.count >= 8 ? 5 : 3 }
+            if url.contains(normalized) { score += 2 }
+        }
+        return score
     }
 
     static func fetchRemoteMetadata(for url: URL) async -> RemoteMetadata? {
@@ -820,7 +843,8 @@ private extension ShareItemExtractor {
             "the", "and", "with", "from", "that", "this", "into", "your", "about", "have",
             "will", "just", "they", "them", "their", "were", "what", "when", "where", "which",
             "while", "also", "than", "after", "before", "over", "under", "more", "less", "best",
-            "using", "used", "want", "need", "must", "watch", "read", "save", "link", "video"
+            "using", "used", "want", "need", "must", "watch", "read", "save", "link", "video",
+            "things", "thing", "know", "should"
         ]
 
         var tags: [String] = []
