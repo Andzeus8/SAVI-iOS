@@ -4,6 +4,12 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private let topBar = UIView()
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
+    private let loadingOverlay = UIView()
+    private let loadingCard = UIView()
+    private let loadingTitleLabel = UILabel()
+    private let loadingBodyLabel = UILabel()
+    private let loadingProgressTrack = UIView()
+    private let loadingProgressFill = UIView()
 
     private let previewCard = UIView()
     private let previewImageView = UIImageView()
@@ -41,6 +47,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private var selectedTags: [String] = []
     private var suggestedTags: [String] = []
     private var notesExpanded = false
+    private var loadingProgressWidthConstraint: NSLayoutConstraint?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -52,6 +59,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         view.backgroundColor = UIColor(red: 0.967, green: 0.973, blue: 0.988, alpha: 1)
 
         configureTopBar()
+        configureLoadingOverlay()
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.showsVerticalScrollIndicator = false
@@ -188,6 +196,109 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         ])
     }
 
+    private func configureLoadingOverlay() {
+        loadingOverlay.translatesAutoresizingMaskIntoConstraints = false
+        loadingOverlay.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.92)
+        loadingOverlay.isHidden = true
+        loadingOverlay.alpha = 0
+        view.addSubview(loadingOverlay)
+
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterialLight))
+        blur.translatesAutoresizingMaskIntoConstraints = false
+        loadingOverlay.addSubview(blur)
+
+        loadingCard.translatesAutoresizingMaskIntoConstraints = false
+        loadingCard.backgroundColor = .systemBackground
+        loadingCard.layer.cornerRadius = 28
+        loadingCard.layer.shadowColor = UIColor.black.cgColor
+        loadingCard.layer.shadowOpacity = 0.08
+        loadingCard.layer.shadowRadius = 24
+        loadingCard.layer.shadowOffset = CGSize(width: 0, height: 12)
+        loadingOverlay.addSubview(loadingCard)
+
+        let orb = UIView()
+        orb.translatesAutoresizingMaskIntoConstraints = false
+        orb.backgroundColor = UIColor.systemIndigo.withAlphaComponent(0.12)
+        orb.layer.cornerRadius = 34
+        loadingCard.addSubview(orb)
+
+        let orbIcon = UIImageView(image: UIImage(systemName: "sparkles"))
+        orbIcon.translatesAutoresizingMaskIntoConstraints = false
+        orbIcon.tintColor = .systemIndigo
+        orbIcon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 28, weight: .semibold)
+        orb.addSubview(orbIcon)
+
+        loadingTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        loadingTitleLabel.font = .preferredFont(forTextStyle: .title3).bold()
+        loadingTitleLabel.textAlignment = .center
+        loadingTitleLabel.numberOfLines = 2
+        loadingTitleLabel.text = "SAVI is getting this ready"
+        loadingCard.addSubview(loadingTitleLabel)
+
+        loadingBodyLabel.translatesAutoresizingMaskIntoConstraints = false
+        loadingBodyLabel.font = .preferredFont(forTextStyle: .body)
+        loadingBodyLabel.textColor = .secondaryLabel
+        loadingBodyLabel.textAlignment = .center
+        loadingBodyLabel.numberOfLines = 3
+        loadingBodyLabel.text = "Pulling the title, preview image, best folder, and useful tags so you can save fast."
+        loadingCard.addSubview(loadingBodyLabel)
+
+        loadingProgressTrack.translatesAutoresizingMaskIntoConstraints = false
+        loadingProgressTrack.backgroundColor = UIColor.systemIndigo.withAlphaComponent(0.12)
+        loadingProgressTrack.layer.cornerRadius = 7
+        loadingProgressTrack.layer.masksToBounds = true
+        loadingCard.addSubview(loadingProgressTrack)
+
+        loadingProgressFill.translatesAutoresizingMaskIntoConstraints = false
+        loadingProgressFill.backgroundColor = .systemIndigo
+        loadingProgressFill.layer.cornerRadius = 7
+        loadingProgressTrack.addSubview(loadingProgressFill)
+        loadingProgressWidthConstraint = loadingProgressFill.widthAnchor.constraint(equalToConstant: 0)
+        loadingProgressWidthConstraint?.isActive = true
+
+        NSLayoutConstraint.activate([
+            loadingOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            loadingOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            loadingOverlay.topAnchor.constraint(equalTo: view.topAnchor),
+            loadingOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            blur.leadingAnchor.constraint(equalTo: loadingOverlay.leadingAnchor),
+            blur.trailingAnchor.constraint(equalTo: loadingOverlay.trailingAnchor),
+            blur.topAnchor.constraint(equalTo: loadingOverlay.topAnchor),
+            blur.bottomAnchor.constraint(equalTo: loadingOverlay.bottomAnchor),
+
+            loadingCard.leadingAnchor.constraint(equalTo: loadingOverlay.leadingAnchor, constant: 28),
+            loadingCard.trailingAnchor.constraint(equalTo: loadingOverlay.trailingAnchor, constant: -28),
+            loadingCard.centerYAnchor.constraint(equalTo: loadingOverlay.centerYAnchor),
+
+            orb.topAnchor.constraint(equalTo: loadingCard.topAnchor, constant: 28),
+            orb.centerXAnchor.constraint(equalTo: loadingCard.centerXAnchor),
+            orb.widthAnchor.constraint(equalToConstant: 68),
+            orb.heightAnchor.constraint(equalToConstant: 68),
+
+            orbIcon.centerXAnchor.constraint(equalTo: orb.centerXAnchor),
+            orbIcon.centerYAnchor.constraint(equalTo: orb.centerYAnchor),
+
+            loadingTitleLabel.leadingAnchor.constraint(equalTo: loadingCard.leadingAnchor, constant: 24),
+            loadingTitleLabel.trailingAnchor.constraint(equalTo: loadingCard.trailingAnchor, constant: -24),
+            loadingTitleLabel.topAnchor.constraint(equalTo: orb.bottomAnchor, constant: 18),
+
+            loadingBodyLabel.leadingAnchor.constraint(equalTo: loadingCard.leadingAnchor, constant: 24),
+            loadingBodyLabel.trailingAnchor.constraint(equalTo: loadingCard.trailingAnchor, constant: -24),
+            loadingBodyLabel.topAnchor.constraint(equalTo: loadingTitleLabel.bottomAnchor, constant: 10),
+
+            loadingProgressTrack.leadingAnchor.constraint(equalTo: loadingCard.leadingAnchor, constant: 24),
+            loadingProgressTrack.trailingAnchor.constraint(equalTo: loadingCard.trailingAnchor, constant: -24),
+            loadingProgressTrack.topAnchor.constraint(equalTo: loadingBodyLabel.bottomAnchor, constant: 20),
+            loadingProgressTrack.heightAnchor.constraint(equalToConstant: 14),
+            loadingProgressTrack.bottomAnchor.constraint(equalTo: loadingCard.bottomAnchor, constant: -24),
+
+            loadingProgressFill.leadingAnchor.constraint(equalTo: loadingProgressTrack.leadingAnchor),
+            loadingProgressFill.topAnchor.constraint(equalTo: loadingProgressTrack.topAnchor),
+            loadingProgressFill.bottomAnchor.constraint(equalTo: loadingProgressTrack.bottomAnchor),
+        ])
+    }
+
     private func configurePreviewCard() {
         previewCard.backgroundColor = .systemBackground
         previewCard.layer.cornerRadius = 22
@@ -211,13 +322,13 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         let innerStack = UIStackView()
         innerStack.axis = .horizontal
-        innerStack.alignment = .top
-        innerStack.spacing = 12
+        innerStack.alignment = .center
+        innerStack.spacing = 14
 
         let mediaWrap = UIView()
         mediaWrap.translatesAutoresizingMaskIntoConstraints = false
-        mediaWrap.widthAnchor.constraint(equalToConstant: 64).isActive = true
-        mediaWrap.heightAnchor.constraint(equalToConstant: 64).isActive = true
+        mediaWrap.widthAnchor.constraint(equalToConstant: 72).isActive = true
+        mediaWrap.heightAnchor.constraint(equalToConstant: 72).isActive = true
         mediaWrap.layer.cornerRadius = 18
         mediaWrap.layer.masksToBounds = true
         mediaWrap.backgroundColor = UIColor.systemIndigo.withAlphaComponent(0.12)
@@ -255,8 +366,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         statusBadge.heightAnchor.constraint(equalToConstant: 24).isActive = true
         statusBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 104).isActive = true
 
-        detectedTitleLabel.font = .preferredFont(forTextStyle: .subheadline).bold()
-        detectedTitleLabel.textColor = .label
+        detectedTitleLabel.font = .preferredFont(forTextStyle: .caption1).bold()
+        detectedTitleLabel.textColor = .secondaryLabel
         detectedTitleLabel.numberOfLines = 2
         detectedTitleLabel.text = "Preparing your save…"
 
@@ -266,7 +377,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         previewSubtitleLabel.font = .preferredFont(forTextStyle: .footnote)
         previewSubtitleLabel.textColor = .secondaryLabel
-        previewSubtitleLabel.numberOfLines = 3
+        previewSubtitleLabel.numberOfLines = 2
         previewSubtitleLabel.text = "Pulling the title, a clean preview, the best folder, and useful tags."
 
         spinner.startAnimating()
@@ -277,7 +388,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         let textStack = UIStackView(arrangedSubviews: [topRow, detectedTitleLabel, previewMetaLabel, previewSubtitleLabel])
         textStack.axis = .vertical
-        textStack.spacing = 5
+        textStack.spacing = 4
 
         innerStack.addArrangedSubview(mediaWrap)
         innerStack.addArrangedSubview(textStack)
@@ -455,6 +566,11 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             let share = try await ShareItemExtractor.extract(from: extensionContext)
             await MainActor.run {
                 pendingShare = share
+                setLoadingOverlay(
+                    visible: true,
+                    title: "SAVI is getting this ready",
+                    body: "Pulling the title, preview image, best folder, and useful tags so you can save fast."
+                )
                 applyShare(share, animated: false)
                 statusBadge.text = "Auto-filling"
                 previewSubtitleLabel.text = "Pulling the title, a clean preview, the best folder, and useful tags."
@@ -472,6 +588,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
                     ? "We pulled what we could. Fix the title here if needed, add a quick note, then save."
                     : "Looks good. Save now or tweak anything right here."
                 setNotesExpanded(needsReview, animated: true)
+                setLoadingOverlay(visible: false, title: nil, body: nil)
                 updateSaveButton(isReady: true)
             }
         } catch {
@@ -484,6 +601,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
                 statusBadge.text = "Add title"
                 titleField.text = pendingShare?.title ?? ""
                 setNotesExpanded(true, animated: true)
+                setLoadingOverlay(visible: false, title: nil, body: nil)
                 updateSaveButton(isReady: true)
             }
         }
@@ -672,6 +790,35 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         if lower.hasSuffix(" save") { return true }
         if title.count < 12 { return true }
         return false
+    }
+
+    private func setLoadingOverlay(visible: Bool, title: String?, body: String?) {
+        if let title, !title.isEmpty {
+            loadingTitleLabel.text = title
+        }
+        if let body, !body.isEmpty {
+            loadingBodyLabel.text = body
+        }
+
+        if visible {
+            loadingOverlay.isHidden = false
+            loadingOverlay.alpha = 1
+            loadingProgressFill.layer.removeAllAnimations()
+            loadingProgressWidthConstraint?.constant = 0
+            view.layoutIfNeeded()
+            let targetWidth = max(120, view.bounds.width - 150)
+            UIView.animate(withDuration: 0.95, delay: 0, options: [.curveEaseInOut, .repeat, .autoreverse]) {
+                self.loadingProgressWidthConstraint?.constant = targetWidth
+                self.view.layoutIfNeeded()
+            }
+        } else {
+            loadingProgressFill.layer.removeAllAnimations()
+            UIView.animate(withDuration: 0.22, animations: {
+                self.loadingOverlay.alpha = 0
+            }, completion: { _ in
+                self.loadingOverlay.isHidden = true
+            })
+        }
     }
 
     private func rebuildTagViews() {
