@@ -80,8 +80,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         configureFolderSummaryCard()
 
         let folderSection = makeSectionCard(emphasized: true)
-        folderSection.addArrangedSubview(makeSectionLabel("Save in"))
-        folderSection.addArrangedSubview(makeHintLabel("SAVI picked the folder for you. Tap another one only if you want to override it."))
+        folderSection.addArrangedSubview(makeSectionLabel("Pick the folder"))
+        folderSection.addArrangedSubview(makeHintLabel("SAVI already picked the best match. If it feels right, just hit Save. If not, tap a better folder below."))
         folderSection.addArrangedSubview(folderSummaryCard)
         configureFolderGrid()
         folderSection.addArrangedSubview(folderGridStack)
@@ -118,7 +118,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         notesTextView.heightAnchor.constraint(equalToConstant: 94).isActive = true
         notesSection.addArrangedSubview(notesTextView)
 
-        [previewCard, folderSection, titleSection, tagsSection, notesSection].forEach { contentStack.addArrangedSubview($0) }
+        [folderSection, previewCard, titleSection, tagsSection, notesSection].forEach { contentStack.addArrangedSubview($0) }
 
         setNotesExpanded(false, animated: false)
         if let firstFolder = availableFolders.first?.id, !firstFolder.isEmpty {
@@ -300,7 +300,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private func configureFolderSummaryCard() {
         folderSummaryCard.backgroundColor = .secondarySystemBackground
-        folderSummaryCard.layer.cornerRadius = 18
+        folderSummaryCard.layer.cornerRadius = 20
         folderSummaryCard.layer.borderWidth = 1
         folderSummaryCard.layer.borderColor = UIColor.separator.withAlphaComponent(0.24).cgColor
 
@@ -328,7 +328,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             folderSummaryIconView.centerYAnchor.constraint(equalTo: folderSummaryIconWrap.centerYAnchor),
         ])
 
-        folderSummaryTitleLabel.font = .preferredFont(forTextStyle: .headline).bold()
+        folderSummaryTitleLabel.font = .preferredFont(forTextStyle: .title3).bold()
         folderSummaryTitleLabel.numberOfLines = 2
 
         folderSummaryHintLabel.font = .preferredFont(forTextStyle: .footnote)
@@ -356,7 +356,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private func configureFolderGrid() {
         folderGridStack.axis = .vertical
-        folderGridStack.spacing = 10
+        folderGridStack.spacing = 12
         folderGridStack.translatesAutoresizingMaskIntoConstraints = false
     }
 
@@ -563,15 +563,15 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         let selectedPreset = presets.first(where: { $0.id == selectedFolderId }) ?? FolderPreset(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill", colorHex: "#F7C948")
         let theme = folderTheme(for: selectedPreset)
 
-        folderSummaryCard.backgroundColor = theme.color.withAlphaComponent(0.09)
-        folderSummaryCard.layer.borderColor = theme.color.withAlphaComponent(0.18).cgColor
+        folderSummaryCard.backgroundColor = theme.color.withAlphaComponent(0.10)
+        folderSummaryCard.layer.borderColor = theme.color.withAlphaComponent(0.22).cgColor
         folderSummaryIconWrap.backgroundColor = theme.color
         folderSummaryIconView.image = UIImage(systemName: selectedPreset.symbolName)
         folderSummaryTitleLabel.text = selectedPreset.name
         if pendingShare?.folderId == selectedFolderId {
-            folderSummaryHintLabel.text = "Auto-picked and ready to save. Tap another folder below if you want to move it."
+            folderSummaryHintLabel.text = "Auto-picked and ready to save."
         } else {
-            folderSummaryHintLabel.text = "You changed the folder for this save. SAVI will use this instead."
+            folderSummaryHintLabel.text = "You changed the folder for this save."
         }
 
         for index in stride(from: 0, to: presets.count, by: 2) {
@@ -603,20 +603,37 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         var config = UIButton.Configuration.filled()
         config.title = preset.name
         config.image = UIImage(systemName: isSelected ? "checkmark.circle.fill" : preset.symbolName)
-        config.imagePadding = 8
-        config.imagePlacement = .leading
+        config.imagePadding = 10
+        config.imagePlacement = .top
         config.cornerStyle = .large
-        config.baseBackgroundColor = isSelected ? theme.color.withAlphaComponent(0.16) : .white
+        config.baseBackgroundColor = isSelected ? theme.color.withAlphaComponent(0.18) : .white
         config.baseForegroundColor = isSelected ? theme.color : .label
-        config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 12, bottom: 14, trailing: 12)
+        config.titleAlignment = .center
+        config.subtitle = isSelected ? "Selected" : nil
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = .preferredFont(forTextStyle: .subheadline).bold()
+            return outgoing
+        }
+        config.subtitleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = .preferredFont(forTextStyle: .caption2)
+            return outgoing
+        }
 
         let button = UIButton(configuration: config)
-        button.contentHorizontalAlignment = .leading
-        button.layer.cornerRadius = 18
+        button.contentHorizontalAlignment = .center
+        button.layer.cornerRadius = 20
         button.layer.masksToBounds = true
         button.layer.borderWidth = 1
-        button.layer.borderColor = (isSelected ? theme.color.withAlphaComponent(0.22) : UIColor.separator.withAlphaComponent(0.22)).cgColor
-        button.heightAnchor.constraint(equalToConstant: 52).isActive = true
+        button.layer.borderColor = (isSelected ? theme.color.withAlphaComponent(0.28) : UIColor.separator.withAlphaComponent(0.22)).cgColor
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = isSelected ? 0.08 : 0.04
+        button.layer.shadowRadius = isSelected ? 14 : 8
+        button.layer.shadowOffset = CGSize(width: 0, height: isSelected ? 6 : 3)
+        button.layer.masksToBounds = false
+        button.heightAnchor.constraint(equalToConstant: 88).isActive = true
         button.tag = availableFolders.firstIndex(where: { $0.id == preset.id }) ?? 0
         button.addTarget(self, action: #selector(folderTapped(_:)), for: .touchUpInside)
         return button
