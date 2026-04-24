@@ -129,6 +129,7 @@ const Icon = ({ d, size = 16, stroke = 1.8, fill = "none" }) => (
 );
 const IconSearch = p => <Icon {...p} d={<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>} />;
 const IconPlus = p => <Icon {...p} d={<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>} />;
+const IconClipboard = p => <Icon {...p} d={<><rect x="9" y="3" width="6" height="4" rx="1.5"/><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/></>} />;
 const IconFolderPlus = p => <Icon {...p} d={<><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></>} />;
 const IconLink = p => <Icon {...p} d={<><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></>} />;
 const IconFile = p => <Icon {...p} d={<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></>} />;
@@ -414,6 +415,7 @@ const DEFAULT_FOLDER_ORDER = [
   "f-design",
   "f-research",
   "f-must-see",
+  "f-paste-bin",
   "f-random",
   "f-all",
 ];
@@ -430,6 +432,7 @@ const SEED_FOLDERS = [
   { id: "f-design", name: "Design Inspo", color: "#F15BB5", image: "https://picsum.photos/seed/colorburst/800/600" },
   { id: "f-research", name: "Research", color: "#6E68FF", image: "https://picsum.photos/seed/deepnotes/800/600" },
   { id: "f-must-see", name: "Watch / Read Later", color: "#F7C948", image: "https://picsum.photos/seed/cinebook/800/600" },
+  { id: "f-paste-bin", name: "Paste Bin", color: "#7A8798", image: "https://picsum.photos/seed/pastebin/800/600" },
   { id: "f-random", name: "Random AF", color: "#9AA5B1", image: "https://picsum.photos/seed/weirdchaos/800/600" },
   { id: "f-all", name: "All Saves", system: true, image: folderCover("library") },
 ];
@@ -795,6 +798,7 @@ const REFRESHABLE_SEED_IMAGES = new Set([
   "https://picsum.photos/seed/minimal/800/600",
   "https://picsum.photos/seed/laboratory/800/600",
   "https://picsum.photos/seed/watchreadlater/800/600",
+  "https://picsum.photos/seed/pastebin/800/600",
   "https://picsum.photos/seed/randomaf/800/600",
   "https://commons.wikimedia.org/wiki/Special:FilePath/30C3%20TinFoil-Hat%20(cropped).jpg",
 ]);
@@ -910,6 +914,50 @@ const pickTextSnippet = (text = "") => {
     .filter(Boolean)
     .filter(line => !/^([#>*-]|\d+\.)\s*$/.test(line));
   return clampText(lines.slice(0, 3).join(" "), 180);
+};
+const titleFromPlainText = (text = "") => {
+  const firstLine = (text || "")
+    .split(/\r?\n/)
+    .map((line) => sanitizeText(line))
+    .find(Boolean);
+  return clampText(firstLine || "Untitled note", 84);
+};
+const tagsFromPlainText = (text = "") => {
+  const cleaned = (text || "").toLowerCase();
+  const manual = [];
+  if (/\b(api|token|secret|password|ssh|credential|bearer|private key|apikey)\b/.test(cleaned)) manual.push("sensitive");
+  if (/\b(url|link|http|https|www\.)\b/.test(cleaned)) manual.push("link");
+  if (/\b(todo|idea|remember|later|watch|read)\b/.test(cleaned)) manual.push("note");
+  const words = dedupe(
+    cleaned
+      .replace(/https?:\/\/\S+/g, " ")
+      .replace(/[^a-z0-9\s_-]/g, " ")
+      .split(/\s+/)
+      .map((word) => word.trim())
+      .filter((word) => word.length >= 4)
+      .filter((word) => !["this","that","with","from","have","your","need","later","into","just","random","plain","text","paste","note","notes","save","saved","thing","stuff","share"].includes(word))
+      .slice(0, 6)
+  );
+  return dedupe([...manual, ...words]).slice(0, 6);
+};
+const deriveTextSaveDraft = (text = "", folders = []) => {
+  const normalized = (text || "").trim();
+  const title = titleFromPlainText(normalized);
+  const description = normalized;
+  const tags = tagsFromPlainText(normalized);
+  const lower = normalized.toLowerCase();
+  let folderId = folders.find((folder) => folder.id === "f-paste-bin")?.id || folders.find((folder) => folder.id === "f-random")?.id || "";
+  if (/\b(api|token|secret|password|ssh|credential|bearer|private key|apikey)\b/.test(lower)) {
+    folderId = folders.find((folder) => folder.id === "f-private-vault")?.id || folderId;
+  }
+  return {
+    title,
+    description,
+    tags,
+    folderId,
+    source: "Paste",
+    type: "file",
+  };
 };
 
 let assetDbPromise = null;
@@ -1162,6 +1210,7 @@ const displayTypeLabel = (type = "") => ({
   video: "Video",
   image: "Image",
   file: "File",
+  text: "Text",
   place: "Place",
   link: "Link",
   all: "All types",
@@ -1175,6 +1224,7 @@ const sourceProfileForValue = (value = "", fallbackSource = "") => {
 
   if (!normalized && !normalizedHost) return { key: "web", label: "Web" };
   if (normalized.includes("device") || normalizedHost === "device") return { key: "device", label: "Device" };
+  if (normalized.includes("paste") || normalized.includes("manual text") || normalizedHost === "paste") return { key: "paste", label: "Paste" };
   if (normalized === "maps" || normalized === "google maps") return { key: "maps", label: "Google Maps" };
   if (isMapsUrl(value || fallbackSource)) return { key: "maps", label: "Google Maps" };
   if (/instagram/.test(normalized) || /(^|\.)instagram\.com$/.test(normalizedHost)) return { key: "instagram", label: "Instagram" };
@@ -1251,6 +1301,11 @@ const sourceVisualForKey = (key = "web") => ({
     fg: "#FFFFFF",
     icon: (size) => <IconUpload size={size} stroke={2.05} />,
   },
+  paste: {
+    bg: "#7A8798",
+    fg: "#FFFFFF",
+    icon: (size) => <IconClipboard size={size} stroke={2.05} />,
+  },
   behance: {
     bg: "#1769FF",
     fg: "#FFFFFF",
@@ -1280,6 +1335,7 @@ const typeVisualForKey = (type = "link") => ({
   file: { bg: "#E1E6F2", fg: "#465F88", icon: (size) => <IconFile size={size} stroke={2.05} /> },
   place: { bg: "#E3F1E6", fg: "#2E8B57", icon: (size) => <IconPin size={size} stroke={2.05} /> },
   link: { bg: "#ECE7F2", fg: "#6E5B8E", icon: (size) => <IconLink size={size} stroke={2.05} /> },
+  text: { bg: "#E8EDF4", fg: "#5A6B82", icon: (size) => <IconClipboard size={size} stroke={2.05} /> },
 }[type] || { bg: "#ECE7F2", fg: "#6E5B8E", icon: (size) => <IconLink size={size} stroke={2.05} /> });
 
 const sanitizeText = (value = "") => value.replace(/\[(.*?)\]\(.*?\)/g, "$1").replace(/\s+/g, " ").trim();
@@ -1581,6 +1637,7 @@ const typeIconFor = (type, props) => {
   if (type === "video") return <IconPlayCircle {...P} />;
   if (type === "image") return <IconImage {...P} />;
   if (type === "file") return <IconFile {...P} />;
+  if (type === "text") return <IconClipboard {...P} />;
   if (type === "place") return <IconPin {...P} />;
   return <IconLink {...P} />;
 };
@@ -2686,7 +2743,7 @@ function HomeScreen({ folders, items, searchMode = false, activeFolder, setActiv
                 </button>
               );
             })}
-            {browseMode === "types" && ["all", "article", "video", "image", "file", "place", "link"].filter((key) => typeCounts[key] > 0 || key === "all").map((key) => {
+            {browseMode === "types" && ["all", "article", "video", "image", "file", "text", "place", "link"].filter((key) => typeCounts[key] > 0 || key === "all").map((key) => {
               const active = key === activeType;
               const visual = typeVisualForKey(key);
               return (
@@ -3282,6 +3339,7 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
   const [step, setStep] = useState(1);
   const [inputMode, setInputMode] = useState("link");
   const [url, setUrl] = useState(initialUrl || "");
+  const [textBody, setTextBody] = useState("");
   const [source, setSource] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -3321,7 +3379,7 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
     if (autoAnalyzeTimerRef.current) window.clearTimeout(autoAnalyzeTimerRef.current);
     setIsAnalyzing(false);
   };
-  const hasDraft = Boolean(selectedFile || url.trim() || title.trim() || description.trim() || tags.trim() || thumbnail || step === 2);
+  const hasDraft = Boolean(selectedFile || url.trim() || textBody.trim() || title.trim() || description.trim() || tags.trim() || thumbnail || step === 2);
   const requestClose = () => {
     if (isSaving) return;
     if (hasDraft && !confirm("Discard this draft?")) return;
@@ -3368,11 +3426,22 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
       setThumbnail("");
       setSource("");
       setType("article");
+      setTextBody("");
       if (fileInputRef.current) fileInputRef.current.value = "";
       window.setTimeout(() => {
         urlInputRef.current?.focus({ preventScroll: true });
       }, 90);
+    } else if (nextMode === "text") {
+      cancelAnalyze();
+      setSelectedFile(null);
+      setUrl("");
+      setThumbnail("");
+      setSource("Paste");
+      setType("text");
+      setFolderId(folders.find((f) => f.id === "f-paste-bin")?.id || folders.find((f) => f.id === "f-random")?.id || folders.find((f) => !f.system)?.id || "f-random");
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } else {
+      setTextBody("");
       setSource("Device");
       setType("file");
     }
@@ -3564,6 +3633,22 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
         return;
       }
 
+      if (inputMode === "text") {
+        const textDraft = deriveTextSaveDraft(textBody, folders);
+        await onSave({
+          title: title.trim() || textDraft.title,
+          description: description.trim() || textDraft.description,
+          url: "",
+          source: "Paste",
+          type: "text",
+          folderId,
+          tags: nextTags.length ? nextTags : textDraft.tags,
+          color: folder?.color || T.accent,
+          thumbnail: "",
+        });
+        return;
+      }
+
       await onSave({
         title: title.trim() || "Untitled save",
         description: description.trim(),
@@ -3622,6 +3707,37 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const clearTextInput = () => {
+    cancelAnalyze();
+    setTextBody("");
+    setSource("Paste");
+    setTitle("");
+    setDescription("");
+    setTags("");
+    setThumbnail("");
+    setAnalysisNote("");
+    setClipboardNote("");
+    setStep(1);
+    setShowAdvanced(false);
+  };
+
+  const prepareTextDraft = () => {
+    const normalized = textBody.trim();
+    if (!normalized) return;
+    const draft = deriveTextSaveDraft(normalized, folders);
+    setTitle(draft.title);
+    setDescription(draft.description);
+    setSource(draft.source);
+    setType(draft.type);
+    if (draft.folderId) setFolderId(draft.folderId);
+    setTags(draft.tags.join(", "));
+    setThumbnail("");
+    setStep(2);
+    setAnalysisNote(draft.folderId === "f-private-vault"
+      ? "SAVI spotted something sensitive and nudged it into Private Vault."
+      : "SAVI turned that paste into a simple text save. Rename it or move it if you want.");
+  };
+
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -3639,7 +3755,7 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
 
   const activeFolder = folders.find(f => f.id === folderId);
   const privateVaultFolder = folders.find(f => f.id === "f-private-vault");
-  const activeSourceProfile = inputMode === "file" ? sourceProfileForValue("device", source || "device") : sourceProfileForValue(url, source || "");
+  const activeSourceProfile = inputMode === "file" ? sourceProfileForValue("device", source || "device") : inputMode === "text" ? sourceProfileForValue("paste", source || "paste") : sourceProfileForValue(url, source || "");
   const loadingTitle = inputMode === "file" ? "Reading your file, preview, and folder" : "Pulling your title, description, and tags";
   const loadingBody = inputMode === "file"
     ? "SAVI is checking the file name, type, and preview so it can sort this into the right folder for you."
@@ -3662,9 +3778,10 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
         </div>
 
         <div ref={scrollRef} className="scroll" style={{ padding: "0 20px 20px" }} onFocusCapture={handleFocusCapture}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, marginBottom: 8 }}>
             {[
               { id: "link", label: "Link", icon: <IconLink size={14} /> },
+              { id: "text", label: "Text", icon: <IconClipboard size={14} /> },
               { id: "file", label: "File", icon: <IconFile size={14} /> },
             ].map(option => (
               <button key={option.id} onClick={() => switchMode(option.id)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px 12px", borderRadius: 12, background: inputMode === option.id ? T.ink : T.paperDim, color: inputMode === option.id ? T.paper : T.inkSoft, border: `1px solid ${inputMode === option.id ? T.ink : T.lineSoft}` }}>
@@ -3701,6 +3818,43 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 16, fontSize: 11.5, padding: 12, borderRadius: 12, background: T.paperDim, border: `1px solid ${T.lineSoft}`, color: T.inkSoft }}>
                     <div style={{ color: T.accent, flexShrink: 0, marginTop: 2 }}><IconSparkles size={13} /></div>
                     <span>Tap plus and SAVI will try your clipboard first, then keep going automatically once it sees a real link.</span>
+                  </div>
+                </>
+              ) : inputMode === "text" ? (
+                <>
+                  <Label>Paste plain text</Label>
+                  <div style={{ position: "relative" }}>
+                    <textarea aria-label="Paste plain text to save" value={textBody} onChange={e=>setTextBody(e.target.value)} placeholder="Paste an API key, note, snippet, address, copied garbage, whatever future-you might need..." rows={8} style={{ ...inputStyle(), minHeight: 190, resize: "vertical", paddingRight: textBody ? 42 : 12 }} />
+                    {textBody && (
+                      <button onClick={clearTextInput} aria-label="Clear pasted text" style={{ position: "absolute", top: 10, right: 10, width: 30, height: 30, borderRadius: 999, background: T.paperDim, color: T.inkSoft, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${T.lineSoft}` }}>
+                        <IconX size={12} />
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 10 }}>
+                    <button onClick={async () => {
+                      if (!navigator.clipboard?.readText) return;
+                      try {
+                        const rawText = await navigator.clipboard.readText();
+                        if (rawText) {
+                          setTextBody(rawText);
+                          setClipboardNote("Pasted plain text from your clipboard.");
+                        }
+                      } catch {
+                        setClipboardNote("Clipboard paste is blocked here. Long-press and paste manually.");
+                      }
+                    }} style={{ padding: "9px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: T.card, color: T.ink, border: `1px solid ${T.lineSoft}` }}>
+                      Paste clipboard
+                    </button>
+                    {clipboardNote && (
+                      <div className="mono" style={{ flex: 1, textAlign: "right", fontSize: 10, color: T.inkMute }}>
+                        {clipboardNote}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 16, fontSize: 11.5, padding: 12, borderRadius: 12, background: T.paperDim, border: `1px solid ${T.lineSoft}`, color: T.inkSoft }}>
+                    <div style={{ color: T.accent, flexShrink: 0, marginTop: 2 }}><IconClipboard size={13} /></div>
+                    <span>Perfect for API keys, shipping notes, copied addresses, scraps of text, or random junk you need later. SAVI will default these into Paste Bin unless it looks sensitive.</span>
                   </div>
                 </>
               ) : (
@@ -3757,6 +3911,11 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
               {inputMode === "link" && (
                 <button onClick={() => analyze()} disabled={!url.trim() || isAnalyzing} style={{ width: "100%", marginTop: 20, padding: 14, borderRadius: 12, fontSize: 15, fontWeight: 500, background: T.ink, color: T.paper, opacity: url.trim() && !isAnalyzing ? 1 : 0.3 }}>
                   {isAnalyzing ? "Analyzing..." : "Continue"}
+                </button>
+              )}
+              {inputMode === "text" && (
+                <button onClick={prepareTextDraft} disabled={!textBody.trim()} style={{ width: "100%", marginTop: 20, padding: 14, borderRadius: 12, fontSize: 15, fontWeight: 500, background: T.ink, color: T.paper, opacity: textBody.trim() ? 1 : 0.3 }}>
+                  Continue
                 </button>
               )}
             </div>
@@ -3869,7 +4028,7 @@ function SaveSheet({ initialUrl, prefillFromClipboard = false, autoAnalyzeInitia
                   </Field>
                   <Field label="Type">
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-                      {["article", "video", "image", "file", "place", "link"].map(t => (
+                      {["article", "video", "image", "file", "text", "place", "link"].map(t => (
                         <button key={t} onClick={()=>setType(t)} className="mono" style={{ padding: "8px 0", borderRadius: 8, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", background: type === t ? T.ink : T.card, color: type === t ? T.paper : T.inkSoft, border: `1px solid ${type === t ? T.ink : T.lineSoft}` }}>{displayTypeLabel(t)}</button>
                       ))}
                     </div>
