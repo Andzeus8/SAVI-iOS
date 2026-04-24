@@ -267,16 +267,17 @@ private extension SAVIWebViewModel {
     func folderSymbolName(for id: String, name: String, system: Bool) -> String {
         let key = "\(id) \(name)".lowercased()
         if key.contains("vault") || key.contains("private") || key.contains("passport") || key.contains("insurance") { return "lock.fill" }
-        if key.contains("growth") || key.contains("career") || key.contains("business") || key.contains("productivity") { return "bolt.fill" }
-        if key.contains("wtf") || key.contains("wild") || key.contains("favorites") { return "sparkles" }
+        if key.contains("growth") || key.contains("career") || key.contains("business") || key.contains("productivity") || key.contains("ai hack") { return "bolt.fill" }
+        if key.contains("wtf") || key.contains("wild") || key.contains("favorites") || key.contains("science stuff") { return "atom" }
         if key.contains("tinfoil") || key.contains("conspiracy") || key.contains("alien") { return "eye.fill" }
-        if key.contains("lmao") || key.contains("meme") || key.contains("funny") || key.contains("lol") { return "theatermasks.fill" }
+        if key.contains("lmao") || key.contains("lulz") || key.contains("meme") || key.contains("funny") || key.contains("lol") { return "theatermasks.fill" }
         if key.contains("health") || key.contains("fitness") || key.contains("wellness") { return "heart.fill" }
         if key.contains("recipe") || key.contains("food") || key.contains("cook") { return "fork.knife" }
-        if key.contains("travel") || key.contains("place") || key.contains("map") || key.contains("trip") { return "airplane" }
+        if key.contains("travel") || key.contains("place") || key.contains("map") || key.contains("trip") || key.contains("gps") { return "mappin.and.ellipse" }
         if key.contains("design") || key.contains("inspo") || key.contains("brand") || key.contains("ui") || key.contains("ux") { return "paintpalette.fill" }
         if key.contains("research") || key.contains("study") || key.contains("paper") { return "magnifyingglass" }
         if key.contains("must") || key.contains("later") || key.contains("watch") || key.contains("read") { return "bookmark.fill" }
+        if key.contains("random") || key.contains("misc") { return "shuffle" }
         return system ? "folder.fill" : "folder"
     }
 
@@ -397,7 +398,8 @@ private extension SAVIWebViewModel {
         'f-travel': '#18B7A0',
         'f-design': '#F15BB5',
         'f-research': '#6E68FF',
-        'f-must-see': '#F7C948'
+        'f-must-see': '#F7C948',
+        'f-random': '#9AA5B1'
       };
 
       var state;
@@ -433,10 +435,14 @@ private extension SAVIWebViewModel {
         var haystack = [source, title, text, share.url || ''].join(' ');
         if (type === 'image' || type === 'file') { return 'f-private-vault'; }
         if (type === 'place') { return 'f-travel'; }
+        if (/health|parasite|parasites|wellness|fitness|doctor|medical/.test(haystack)) { return 'f-health'; }
         if (/recipe|cook|food|pasta|restaurant/.test(haystack)) { return 'f-recipes'; }
-        if (/research|paper|gpt|claude|ai|science/.test(haystack)) { return 'f-research'; }
+        if (/claude|chatgpt|prompt|automation|workflow|productivity|career|business|startup|negotiation|resume|ai /.test(haystack)) { return 'f-growth'; }
+        if (/science|space|nasa|jwst|mars|quantum|discovery/.test(haystack)) { return 'f-wtf-favorites'; }
+        if (/research|paper|analysis|report|study/.test(haystack)) { return 'f-research'; }
         if (/design|figma|dribbble|awwwards/.test(haystack)) { return 'f-design'; }
-        return 'f-must-see';
+        if (/funny|meme|viral|lulz|rickroll|comedy/.test(haystack)) { return 'f-lmao'; }
+        return 'f-random';
       };
 
       var inferSource = function(share) {

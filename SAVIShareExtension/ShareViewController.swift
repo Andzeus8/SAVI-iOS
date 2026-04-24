@@ -45,7 +45,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private var pendingShare: PendingShare?
     private var availableFolders: [FolderPreset] = ShareItemExtractor.folderPresets()
-    private var selectedFolderId = "f-must-see"
+    private var selectedFolderId = "f-random"
     private var selectedTags: [String] = []
     private var suggestedTags: [String] = []
     private var notesExpanded = false
@@ -717,7 +717,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         availableFolders = ShareItemExtractor.folderPresets()
         let presets = availableFolders
-        let selectedPreset = presets.first(where: { $0.id == selectedFolderId }) ?? FolderPreset(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill", colorHex: "#F7C948")
+        let selectedPreset = presets.first(where: { $0.id == selectedFolderId }) ?? FolderPreset(id: "f-random", name: "Random AF", symbolName: "shuffle", colorHex: "#9AA5B1")
         let theme = folderTheme(for: selectedPreset)
 
         folderSummaryCard.backgroundColor = theme.color.withAlphaComponent(0.10)
@@ -1036,6 +1036,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             return (.systemCyan, UIColor.systemCyan.withAlphaComponent(0.18))
         case "f-research":
             return (.systemMint, UIColor.systemMint.withAlphaComponent(0.18))
+        case "f-random":
+            return (.systemGray, UIColor.systemGray.withAlphaComponent(0.18))
         default:
             return (.systemBrown, UIColor.systemBrown.withAlphaComponent(0.18))
         }

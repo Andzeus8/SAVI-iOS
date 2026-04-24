@@ -272,16 +272,17 @@ struct FolderPreset {
 extension ShareItemExtractor {
     static let defaultFolderPresets: [FolderPreset] = [
         .init(id: "f-private-vault", name: "Private Vault", symbolName: "lock.fill", colorHex: "#6C63FF"),
-        .init(id: "f-growth", name: "Growth Hacks", symbolName: "bolt.fill", colorHex: "#1CB5A3"),
-        .init(id: "f-wtf-favorites", name: "WTF Favorites", symbolName: "sparkles", colorHex: "#F15BB5"),
+        .init(id: "f-growth", name: "AI Hacks", symbolName: "bolt.fill", colorHex: "#FF8A3D"),
+        .init(id: "f-wtf-favorites", name: "Science Stuff", symbolName: "atom", colorHex: "#5875FF"),
         .init(id: "f-tinfoil", name: "Tinfoil Hat Club", symbolName: "eye.fill", colorHex: "#6D4AFF"),
-        .init(id: "f-lmao", name: "LMAO", symbolName: "theatermasks.fill", colorHex: "#FF7A59"),
+        .init(id: "f-lmao", name: "LULZ", symbolName: "theatermasks.fill", colorHex: "#FF4D6D"),
         .init(id: "f-health", name: "Health Hacks", symbolName: "heart.fill", colorHex: "#1CBF75"),
         .init(id: "f-recipes", name: "Recipes & Food", symbolName: "fork.knife", colorHex: "#FF6B57"),
-        .init(id: "f-travel", name: "Travel & Places", symbolName: "airplane", colorHex: "#3498FF"),
+        .init(id: "f-travel", name: "Places", symbolName: "mappin.and.ellipse", colorHex: "#18B7A0"),
         .init(id: "f-design", name: "Design Inspo", symbolName: "paintpalette.fill", colorHex: "#FF4DC4"),
         .init(id: "f-research", name: "Research", symbolName: "magnifyingglass", colorHex: "#7B61FF"),
-        .init(id: "f-must-see", name: "Must See", symbolName: "bookmark.fill", colorHex: "#F7C948"),
+        .init(id: "f-must-see", name: "Watch / Read Later", symbolName: "bookmark.fill", colorHex: "#F7C948"),
+        .init(id: "f-random", name: "Random AF", symbolName: "shuffle", colorHex: "#9AA5B1"),
     ]
 
     static func folderPresets() -> [FolderPreset] {
@@ -463,6 +464,7 @@ private extension ShareItemExtractor {
             .filter { preset in
                 let key = preset.name.lowercased()
                 return !["private vault", "growth hacks", "wtf favorites", "tinfoil hat club", "lmao", "health hacks", "recipes & food", "travel & places", "design inspo", "research", "must see"].contains(key)
+                    && !["ai hacks", "science stuff", "lulz", "places", "watch / read later", "random af"].contains(key)
             }
             .max { lhs, rhs in
                 score(folderName: lhs.name, haystack: haystack) < score(folderName: rhs.name, haystack: haystack)
@@ -472,7 +474,7 @@ private extension ShareItemExtractor {
             return customMatch.id
         }
 
-        return "f-must-see"
+        return "f-random"
     }
 
     static func inferredTags(type: String, url: String?, title: String?, description: String?, source: String?) -> [String] {
@@ -508,16 +510,17 @@ private extension ShareItemExtractor {
     static func inferredSymbolName(for name: String, id: String) -> String {
         let key = "\(id) \(name)".lowercased()
         if key.contains("vault") || key.contains("private") || key.contains("passport") || key.contains("insurance") { return "lock.fill" }
-        if key.contains("growth") || key.contains("career") || key.contains("business") || key.contains("productivity") { return "bolt.fill" }
-        if key.contains("wtf") || key.contains("wild") || key.contains("favorite") || key.contains("crazy") { return "sparkles" }
+        if key.contains("growth") || key.contains("career") || key.contains("business") || key.contains("productivity") || key.contains("ai hack") { return "bolt.fill" }
+        if key.contains("wtf") || key.contains("wild") || key.contains("favorite") || key.contains("crazy") || key.contains("science stuff") { return "atom" }
         if key.contains("tinfoil") || key.contains("conspiracy") || key.contains("alien") { return "eye.fill" }
-        if key.contains("lmao") || key.contains("meme") || key.contains("funny") || key.contains("lol") { return "theatermasks.fill" }
+        if key.contains("lmao") || key.contains("lulz") || key.contains("meme") || key.contains("funny") || key.contains("lol") { return "theatermasks.fill" }
         if key.contains("health") || key.contains("fitness") || key.contains("wellness") { return "heart.fill" }
         if key.contains("recipe") || key.contains("food") || key.contains("cook") { return "fork.knife" }
-        if key.contains("travel") || key.contains("place") || key.contains("map") || key.contains("trip") { return "airplane" }
+        if key.contains("travel") || key.contains("place") || key.contains("map") || key.contains("trip") || key.contains("gps") { return "mappin.and.ellipse" }
         if key.contains("design") || key.contains("inspo") || key.contains("brand") || key.contains("ui") || key.contains("ux") { return "paintpalette.fill" }
         if key.contains("research") || key.contains("study") || key.contains("paper") { return "magnifyingglass" }
         if key.contains("must") || key.contains("later") || key.contains("watch") || key.contains("read") { return "bookmark.fill" }
+        if key.contains("random") || key.contains("misc") { return "shuffle" }
         return "folder"
     }
 
