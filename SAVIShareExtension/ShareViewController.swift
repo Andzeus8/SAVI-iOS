@@ -98,6 +98,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         tagsSection.addArrangedSubview(makeSectionLabel("Tags"))
         tagsSection.addArrangedSubview(makeHintLabel("A few smart tags make this easy to find later. Keep the strongest ones."))
         tagsSection.addArrangedSubview(makeSubsectionLabel("Selected"))
+        tagsSection.addArrangedSubview(makeInlineHint("Tap any selected tag to remove it."))
         configureHorizontalStrip(scrollView: selectedTagScrollView, row: selectedTagRow, height: 42)
         tagsSection.addArrangedSubview(selectedTagScrollView)
         tagsSection.addArrangedSubview(makeSubsectionLabel("Suggestions"))
@@ -616,7 +617,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         notesTextView.text = summary
 
         selectedFolderId = share.folderId ?? selectedFolderId
-        selectedTags = Array(prioritizedDisplayTags(for: share).prefix(5))
+        selectedTags = Array(prioritizedDisplayTags(for: share).prefix(3))
         suggestedTags = Array(
             suggestionTags(for: share)
                 .filter { !selectedTags.map { $0.lowercased() }.contains($0.lowercased()) }
@@ -757,6 +758,10 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private func prioritizedDisplayTags(for share: PendingShare) -> [String] {
         let raw = dedupeTags(share.tags ?? [])
+        return classifyTagPool(raw, share: share).strong
+    }
+
+    private func classifyTagPool(_ raw: [String], share: PendingShare) -> (strong: [String], platform: [String], salvageable: [String]) {
         let generic = Set([
             share.type.lowercased(),
             "link",
@@ -781,22 +786,58 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             "camera", "camera-phone", "phone-camera", "sharing", "shared", "open-app",
             "app", "photo", "photos", "mobile", "smartphone", "watch", "save"
         ])
+        let preferredTopicTags = Set([
+            "parasite", "worms", "health", "travel", "food", "science", "design",
+            "conspiracy", "productivity", "funny", "research", "recipe"
+        ])
 
-        let meaningful = raw.filter {
-            let lower = $0.lowercased()
-            return !generic.contains(lower) && !platform.contains(lower) && !banned.contains(lower)
-        }
-        if !meaningful.isEmpty {
-            let preferredPlatform = raw.filter { platform.contains($0.lowercased()) }.prefix(1)
-            return meaningful + preferredPlatform
+        let haystack = [share.title, share.itemDescription, share.text]
+            .compactMap { $0?.lowercased() }
+            .joined(separator: " ")
+
+        var strong: [(String, Int)] = []
+        var platformMatches: [String] = []
+        var salvageable: [String] = []
+
+        for tag in raw {
+            let lower = tag.lowercased()
+            if banned.contains(lower) || generic.contains(lower) {
+                continue
+            }
+            if platform.contains(lower) {
+                platformMatches.append(tag)
+                continue
+            }
+
+            let plain = lower.replacingOccurrences(of: "-", with: " ")
+            var score = 0
+            if preferredTopicTags.contains(lower) { score += 6 }
+            if haystack.contains(plain) { score += 4 }
+            let title = share.title.lowercased()
+            if title.contains(plain) { score += 4 }
+            if lower.count >= 6 { score += 1 }
+
+            if score >= 5 {
+                strong.append((tag, score))
+            } else if lower.count >= 4 {
+                salvageable.append(tag)
+            }
         }
 
-        let minimalPlatform = raw.filter { platform.contains($0.lowercased()) }
-        if !minimalPlatform.isEmpty {
-            return Array(minimalPlatform.prefix(2))
-        }
+        let orderedStrong = strong
+            .sorted {
+                if $0.1 == $1.1 {
+                    return $0.0.localizedCaseInsensitiveCompare($1.0) == .orderedAscending
+                }
+                return $0.1 > $1.1
+            }
+            .map(\.0)
 
-        return []
+        return (
+            strong: Array(dedupeTags(orderedStrong).prefix(3)),
+            platform: Array(dedupeTags(platformMatches).prefix(2)),
+            salvageable: Array(dedupeTags(salvageable).prefix(4))
+        )
     }
 
     private func needsManualReview(_ share: PendingShare) -> Bool {
@@ -871,6 +912,11 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private func makeTagButton(for value: String, selected: Bool) -> UIButton {
         var config = UIButton.Configuration.filled()
         config.title = selected ? value : "+ \(value)"
+        if selected {
+            config.image = UIImage(systemName: "xmark.circle.fill")
+            config.imagePlacement = .trailing
+            config.imagePadding = 6
+        }
         config.cornerStyle = .capsule
         config.baseBackgroundColor = selected ? UIColor.systemIndigo.withAlphaComponent(0.12) : UIColor.secondarySystemBackground
         config.baseForegroundColor = selected ? .systemIndigo : .label
@@ -884,15 +930,22 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     }
 
     private func suggestionTags(for share: PendingShare) -> [String] {
+        let raw = dedupeTags(share.tags ?? [])
+        let classified = classifyTagPool(raw, share: share)
+
+        var tags = classified.strong
+        tags.append(contentsOf: classified.platform)
+        tags.append(contentsOf: classified.salvageable)
+
         let base = [share.title, share.itemDescription, share.url, share.sourceApp]
             .compactMap { $0 }
             .joined(separator: " ")
             .lowercased()
 
-        var tags = share.tags ?? []
-        for token in ["ai", "claude", "chatgpt", "news", "reddit", "instagram", "youtube", "recipe", "travel", "design", "research", "career", "productivity", "video", "article", "maps", "place", "health", "science", "conspiracy"] where base.contains(token) {
+        for token in ["ai", "claude", "chatgpt", "news", "reddit", "instagram", "youtube", "recipe", "travel", "design", "research", "career", "productivity", "maps", "place", "health", "science", "conspiracy", "parasite", "worms"] where base.contains(token) {
             tags.append(token)
         }
+
         return dedupeTags(tags)
     }
 
