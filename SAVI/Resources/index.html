@@ -6443,6 +6443,7 @@ function HomeScreen(_ref52) {
   var topFolders = allFolders.slice(0, 4);
   var showDashboard = !searchMode;
   var anySearchFilterActive = activeFolder !== "f-all" || activeType !== "all" || activeSource !== "all";
+  var hasLiveQuery = searchMode && Boolean(search.trim());
   var resultTitle = searchMode ? search.trim() ? "Results for \u201C".concat(search.trim(), "\u201D") : anySearchFilterActive ? "Filtered SAVIs" : "Everything" : "Recent SAVIs";
   var jumpToResults = function jumpToResults() {
     window.setTimeout(function () {
@@ -6628,6 +6629,15 @@ function HomeScreen(_ref52) {
       });
     }, 120);
   }, [searchMode, searchTopJumpKey]);
+  useEffect(function () {
+    if (!hasLiveQuery) return;
+    var timer = window.setTimeout(function () {
+      jumpToResults();
+    }, 90);
+    return function () {
+      return window.clearTimeout(timer);
+    };
+  }, [hasLiveQuery, search, activeFolder, activeType, activeSource]);
   var filterCount = function filterCount(count, active) {
     return /*#__PURE__*/React.createElement("span", {
       className: "mono",
@@ -6743,6 +6753,9 @@ function HomeScreen(_ref52) {
     onChange: function onChange(e) {
       return setSearch(e.target.value);
     },
+    onKeyDown: function onKeyDown(e) {
+      if (e.key === "Enter") jumpToResults();
+    },
     placeholder: "Search titles, tags, apps, and notes...",
     style: {
       width: "100%",
@@ -6776,7 +6789,7 @@ function HomeScreen(_ref52) {
     style: {
       fontSize: 14
     }
-  }, "Search all your SAVIs"))), searchMode && /*#__PURE__*/React.createElement("div", {
+  }, "Search all your SAVIs"))), searchMode && !hasLiveQuery && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "0 20px 18px",
       display: "grid",
@@ -6991,7 +7004,19 @@ function HomeScreen(_ref52) {
         boxShadow: "0 16px 28px -24px rgba(22,26,35,0.35)"
       }
     }, chip.label);
-  })))), showDashboard && /*#__PURE__*/React.createElement("div", {
+  })))), searchMode && hasLiveQuery && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 20px 12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mono",
+    style: {
+      fontSize: 10,
+      textTransform: "uppercase",
+      letterSpacing: "0.12em",
+      color: T.inkMute
+    }
+  }, items.length, " ", items.length === 1 ? "match" : "matches")), showDashboard && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "0 20px 18px",
       display: "grid",
