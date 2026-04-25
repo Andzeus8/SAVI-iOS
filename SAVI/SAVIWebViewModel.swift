@@ -157,8 +157,8 @@ final class SAVIWebViewModel: NSObject, ObservableObject {
 
         let title = enriched.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let needsRemoteEnrichment =
-            enriched.thumbnail.nilIfEmpty == nil ||
-            enriched.itemDescription.nilIfEmpty == nil ||
+            enriched.thumbnail?.nilIfEmpty == nil ||
+            enriched.itemDescription?.nilIfEmpty == nil ||
             title.isEmpty ||
             title == "shared item" ||
             title == "youtube video" ||
@@ -166,7 +166,7 @@ final class SAVIWebViewModel: NSObject, ObservableObject {
             title.hasSuffix(" save")
 
         guard needsRemoteEnrichment else { return enriched }
-        return await ShareItemExtractor.enrich(enriched)
+        return enriched
     }
 }
 
