@@ -4216,54 +4216,58 @@ function App() {
     _useState22 = _slicedToArray(_useState21, 2),
     resultsJumpKey = _useState22[0],
     setResultsJumpKey = _useState22[1];
-  var _useState23 = useState(false),
+  var _useState23 = useState(0),
     _useState24 = _slicedToArray(_useState23, 2),
-    showSaveSheet = _useState24[0],
-    setShowSaveSheet = _useState24[1];
-  var _useState25 = useState(""),
+    searchTopJumpKey = _useState24[0],
+    setSearchTopJumpKey = _useState24[1];
+  var _useState25 = useState(false),
     _useState26 = _slicedToArray(_useState25, 2),
-    prefillUrl = _useState26[0],
-    setPrefillUrl = _useState26[1];
-  var _useState27 = useState(false),
+    showSaveSheet = _useState26[0],
+    setShowSaveSheet = _useState26[1];
+  var _useState27 = useState(""),
     _useState28 = _slicedToArray(_useState27, 2),
-    prefillFromClipboard = _useState28[0],
-    setPrefillFromClipboard = _useState28[1];
-  var _useState29 = useState(true),
+    prefillUrl = _useState28[0],
+    setPrefillUrl = _useState28[1];
+  var _useState29 = useState(false),
     _useState30 = _slicedToArray(_useState29, 2),
-    prefillAutoAnalyze = _useState30[0],
-    setPrefillAutoAnalyze = _useState30[1];
-  var _useState31 = useState(false),
+    prefillFromClipboard = _useState30[0],
+    setPrefillFromClipboard = _useState30[1];
+  var _useState31 = useState(true),
     _useState32 = _slicedToArray(_useState31, 2),
-    showFolderSheet = _useState32[0],
-    setShowFolderSheet = _useState32[1];
-  var _useState33 = useState(""),
+    prefillAutoAnalyze = _useState32[0],
+    setPrefillAutoAnalyze = _useState32[1];
+  var _useState33 = useState(false),
     _useState34 = _slicedToArray(_useState33, 2),
-    editingFolderId = _useState34[0],
-    setEditingFolderId = _useState34[1];
-  var _useState35 = useState(false),
+    showFolderSheet = _useState34[0],
+    setShowFolderSheet = _useState34[1];
+  var _useState35 = useState(""),
     _useState36 = _slicedToArray(_useState35, 2),
-    showShareSheet = _useState36[0],
-    setShowShareSheet = _useState36[1];
-  var _useState37 = useState(null),
+    editingFolderId = _useState36[0],
+    setEditingFolderId = _useState36[1];
+  var _useState37 = useState(false),
     _useState38 = _slicedToArray(_useState37, 2),
-    selectedItem = _useState38[0],
-    setSelectedItem = _useState38[1];
+    showShareSheet = _useState38[0],
+    setShowShareSheet = _useState38[1];
   var _useState39 = useState(null),
     _useState40 = _slicedToArray(_useState39, 2),
-    editingItem = _useState40[0],
-    setEditingItem = _useState40[1];
-  var _useState41 = useState(shouldShowOnboarding),
+    selectedItem = _useState40[0],
+    setSelectedItem = _useState40[1];
+  var _useState41 = useState(null),
     _useState42 = _slicedToArray(_useState41, 2),
-    showOnboarding = _useState42[0],
-    setShowOnboarding = _useState42[1];
-  var _useState43 = useState(""),
+    editingItem = _useState42[0],
+    setEditingItem = _useState42[1];
+  var _useState43 = useState(shouldShowOnboarding),
     _useState44 = _slicedToArray(_useState43, 2),
-    toastMessage = _useState44[0],
-    setToastMessage = _useState44[1];
-  var _useState45 = useState(null),
+    showOnboarding = _useState44[0],
+    setShowOnboarding = _useState44[1];
+  var _useState45 = useState(""),
     _useState46 = _slicedToArray(_useState45, 2),
-    lightboxImage = _useState46[0],
-    setLightboxImage = _useState46[1];
+    toastMessage = _useState46[0],
+    setToastMessage = _useState46[1];
+  var _useState47 = useState(null),
+    _useState48 = _slicedToArray(_useState47, 2),
+    lightboxImage = _useState48[0],
+    setLightboxImage = _useState48[1];
   var launchClipboardCheckedRef = useRef(false);
   var toastTimerRef = useRef(null);
   var lightboxObjectUrlRef = useRef("");
@@ -4396,6 +4400,13 @@ function App() {
     setActiveSource("all");
     setSearch("");
     setRoute("home");
+  };
+  var goSearch = function goSearch() {
+    dismissActiveField();
+    setRoute("search");
+    setSearchTopJumpKey(function (current) {
+      return current + 1;
+    });
   };
   var closeLightbox = function closeLightbox() {
     if (lightboxObjectUrlRef.current) {
@@ -5061,9 +5072,8 @@ function App() {
     search: search,
     setSearch: setSearch,
     resultsJumpKey: resultsJumpKey,
-    onOpenSearch: function onOpenSearch() {
-      return setRoute("search");
-    },
+    searchTopJumpKey: searchTopJumpKey,
+    onOpenSearch: goSearch,
     onSeeAllFolders: function onSeeAllFolders() {
       return setRoute("folders");
     },
@@ -5097,9 +5107,8 @@ function App() {
     search: search,
     setSearch: setSearch,
     resultsJumpKey: resultsJumpKey,
-    onOpenSearch: function onOpenSearch() {
-      return setRoute("search");
-    },
+    searchTopJumpKey: searchTopJumpKey,
+    onOpenSearch: goSearch,
     onSeeAllFolders: function onSeeAllFolders() {
       return setRoute("folders");
     },
@@ -5146,6 +5155,7 @@ function App() {
     route: route,
     setRoute: setRoute,
     onHomePress: goHome,
+    onSearchPress: goSearch,
     onSavePress: function onSavePress() {
       return openSaveSheet();
     }
@@ -6064,10 +6074,10 @@ function WelcomeWizard(_ref51) {
       }, label));
     })))
   }];
-  var _useState47 = useState(0),
-    _useState48 = _slicedToArray(_useState47, 2),
-    step = _useState48[0],
-    setStep = _useState48[1];
+  var _useState49 = useState(0),
+    _useState50 = _slicedToArray(_useState49, 2),
+    step = _useState50[0],
+    setStep = _useState50[1];
   var touchStartXRef = useRef(0);
   var touchStartTimeRef = useRef(0);
   var touchCurrentXRef = useRef(0);
@@ -6390,6 +6400,8 @@ function HomeScreen(_ref52) {
     setSearch = _ref52.setSearch,
     _ref52$resultsJumpKey = _ref52.resultsJumpKey,
     resultsJumpKey = _ref52$resultsJumpKey === void 0 ? 0 : _ref52$resultsJumpKey,
+    _ref52$searchTopJumpK = _ref52.searchTopJumpKey,
+    searchTopJumpKey = _ref52$searchTopJumpK === void 0 ? 0 : _ref52$searchTopJumpK,
     onSelect = _ref52.onSelect,
     onShareItem = _ref52.onShareItem,
     onOpenSearch = _ref52.onOpenSearch,
@@ -6406,6 +6418,7 @@ function HomeScreen(_ref52) {
   var heroTitle = searchMode ? "Search" : "My SAVIs";
   var heroDescription = searchMode ? "Search works across every folder, tag, app, and file detail in your library." : "Search fast, jump into your top folders, and keep the latest saves right under your thumb.";
   var heroCount = items.length;
+  var scrollContainerRef = useRef(null);
   var searchInputRef = useRef(null);
   var resultSectionRef = useRef(null);
   var allFolders = folders.filter(function (folder) {
@@ -6599,6 +6612,22 @@ function HomeScreen(_ref52) {
     if (!searchMode || !resultsJumpKey) return;
     jumpToResults();
   }, [searchMode, resultsJumpKey]);
+  useEffect(function () {
+    if (!searchMode || !searchTopJumpKey) return;
+    var node = scrollContainerRef.current;
+    if (node && typeof node.scrollTo === "function") {
+      node.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
+    window.setTimeout(function () {
+      var _searchInputRef$curre2;
+      (_searchInputRef$curre2 = searchInputRef.current) === null || _searchInputRef$curre2 === void 0 || _searchInputRef$curre2.focus({
+        preventScroll: true
+      });
+    }, 120);
+  }, [searchMode, searchTopJumpKey]);
   var filterCount = function filterCount(count, active) {
     return /*#__PURE__*/React.createElement("span", {
       className: "mono",
@@ -6628,6 +6657,7 @@ function HomeScreen(_ref52) {
     }
   } : null].filter(Boolean);
   return /*#__PURE__*/React.createElement("div", {
+    ref: scrollContainerRef,
     className: "scroll",
     style: {
       height: "100%"
@@ -7893,42 +7923,42 @@ function ProfileScreen(_ref58) {
     themeMode = _ref58$themeMode === void 0 ? "auto" : _ref58$themeMode,
     setThemeMode = _ref58.setThemeMode;
   var fileInputRef = useRef(null);
-  var _useState49 = useState(""),
-    _useState50 = _slicedToArray(_useState49, 2),
-    backupMessage = _useState50[0],
-    setBackupMessage = _useState50[1];
-  var _useState51 = useState("muted"),
+  var _useState51 = useState(""),
     _useState52 = _slicedToArray(_useState51, 2),
-    backupTone = _useState52[0],
-    setBackupTone = _useState52[1];
-  var _useState53 = useState(false),
+    backupMessage = _useState52[0],
+    setBackupMessage = _useState52[1];
+  var _useState53 = useState("muted"),
     _useState54 = _slicedToArray(_useState53, 2),
-    isImporting = _useState54[0],
-    setIsImporting = _useState54[1];
+    backupTone = _useState54[0],
+    setBackupTone = _useState54[1];
   var _useState55 = useState(false),
     _useState56 = _slicedToArray(_useState55, 2),
-    isExporting = _useState56[0],
-    setIsExporting = _useState56[1];
+    isImporting = _useState56[0],
+    setIsImporting = _useState56[1];
   var _useState57 = useState(false),
     _useState58 = _slicedToArray(_useState57, 2),
-    showDeleteModal = _useState58[0],
-    setShowDeleteModal = _useState58[1];
-  var _useState59 = useState(1),
+    isExporting = _useState58[0],
+    setIsExporting = _useState58[1];
+  var _useState59 = useState(false),
     _useState60 = _slicedToArray(_useState59, 2),
-    deleteStep = _useState60[0],
-    setDeleteStep = _useState60[1];
-  var _useState61 = useState(false),
+    showDeleteModal = _useState60[0],
+    setShowDeleteModal = _useState60[1];
+  var _useState61 = useState(1),
     _useState62 = _slicedToArray(_useState61, 2),
-    isDeletingEverything = _useState62[0],
-    setIsDeletingEverything = _useState62[1];
+    deleteStep = _useState62[0],
+    setDeleteStep = _useState62[1];
   var _useState63 = useState(false),
     _useState64 = _slicedToArray(_useState63, 2),
-    showClearDemoModal = _useState64[0],
-    setShowClearDemoModal = _useState64[1];
+    isDeletingEverything = _useState64[0],
+    setIsDeletingEverything = _useState64[1];
   var _useState65 = useState(false),
     _useState66 = _slicedToArray(_useState65, 2),
-    isClearingDemo = _useState66[0],
-    setIsClearingDemo = _useState66[1];
+    showClearDemoModal = _useState66[0],
+    setShowClearDemoModal = _useState66[1];
+  var _useState67 = useState(false),
+    _useState68 = _slicedToArray(_useState67, 2),
+    isClearingDemo = _useState68[0],
+    setIsClearingDemo = _useState68[1];
   var showBackupMessage = function showBackupMessage(message) {
     var tone = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "muted";
     setBackupMessage(message);
@@ -8676,6 +8706,7 @@ function TabBar(_ref63) {
   var route = _ref63.route,
     setRoute = _ref63.setRoute,
     onHomePress = _ref63.onHomePress,
+    onSearchPress = _ref63.onSearchPress,
     onSavePress = _ref63.onSavePress;
   var TabButton = function TabButton(_ref64) {
     var active = _ref64.active,
@@ -8732,7 +8763,7 @@ function TabBar(_ref63) {
   }), /*#__PURE__*/React.createElement(TabButton, {
     active: route === "search",
     onClick: function onClick() {
-      return setRoute("search");
+      return onSearchPress ? onSearchPress() : setRoute("search");
     },
     IconComp: IconSearch,
     label: "Search"
@@ -8791,88 +8822,88 @@ function SaveSheet(_ref65) {
     folders = _ref65.folders,
     onClose = _ref65.onClose,
     onSave = _ref65.onSave;
-  var _useState67 = useState(1),
-    _useState68 = _slicedToArray(_useState67, 2),
-    step = _useState68[0],
-    setStep = _useState68[1];
-  var _useState69 = useState("link"),
+  var _useState69 = useState(1),
     _useState70 = _slicedToArray(_useState69, 2),
-    inputMode = _useState70[0],
-    setInputMode = _useState70[1];
-  var _useState71 = useState(initialUrl || ""),
+    step = _useState70[0],
+    setStep = _useState70[1];
+  var _useState71 = useState("link"),
     _useState72 = _slicedToArray(_useState71, 2),
-    url = _useState72[0],
-    setUrl = _useState72[1];
-  var _useState73 = useState(""),
+    inputMode = _useState72[0],
+    setInputMode = _useState72[1];
+  var _useState73 = useState(initialUrl || ""),
     _useState74 = _slicedToArray(_useState73, 2),
-    textBody = _useState74[0],
-    setTextBody = _useState74[1];
+    url = _useState74[0],
+    setUrl = _useState74[1];
   var _useState75 = useState(""),
     _useState76 = _slicedToArray(_useState75, 2),
-    source = _useState76[0],
-    setSource = _useState76[1];
+    textBody = _useState76[0],
+    setTextBody = _useState76[1];
   var _useState77 = useState(""),
     _useState78 = _slicedToArray(_useState77, 2),
-    title = _useState78[0],
-    setTitle = _useState78[1];
+    source = _useState78[0],
+    setSource = _useState78[1];
   var _useState79 = useState(""),
     _useState80 = _slicedToArray(_useState79, 2),
-    description = _useState80[0],
-    setDescription = _useState80[1];
-  var _useState81 = useState(((_folders$find5 = folders.find(function (f) {
+    title = _useState80[0],
+    setTitle = _useState80[1];
+  var _useState81 = useState(""),
+    _useState82 = _slicedToArray(_useState81, 2),
+    description = _useState82[0],
+    setDescription = _useState82[1];
+  var _useState83 = useState(((_folders$find5 = folders.find(function (f) {
       return f.id === "f-random";
     })) === null || _folders$find5 === void 0 ? void 0 : _folders$find5.id) || ((_folders$find6 = folders.find(function (f) {
       return f.id === "f-must-see";
     })) === null || _folders$find6 === void 0 ? void 0 : _folders$find6.id) || ((_folders$find7 = folders.find(function (f) {
       return !f.system;
     })) === null || _folders$find7 === void 0 ? void 0 : _folders$find7.id) || "f-random"),
-    _useState82 = _slicedToArray(_useState81, 2),
-    folderId = _useState82[0],
-    setFolderId = _useState82[1];
-  var _useState83 = useState(""),
     _useState84 = _slicedToArray(_useState83, 2),
-    tags = _useState84[0],
-    setTags = _useState84[1];
-  var _useState85 = useState("article"),
+    folderId = _useState84[0],
+    setFolderId = _useState84[1];
+  var _useState85 = useState(""),
     _useState86 = _slicedToArray(_useState85, 2),
-    type = _useState86[0],
-    setType = _useState86[1];
-  var _useState87 = useState(""),
+    tags = _useState86[0],
+    setTags = _useState86[1];
+  var _useState87 = useState("article"),
     _useState88 = _slicedToArray(_useState87, 2),
-    thumbnail = _useState88[0],
-    setThumbnail = _useState88[1];
-  var _useState89 = useState(false),
+    type = _useState88[0],
+    setType = _useState88[1];
+  var _useState89 = useState(""),
     _useState90 = _slicedToArray(_useState89, 2),
-    isAnalyzing = _useState90[0],
-    setIsAnalyzing = _useState90[1];
+    thumbnail = _useState90[0],
+    setThumbnail = _useState90[1];
   var _useState91 = useState(false),
     _useState92 = _slicedToArray(_useState91, 2),
-    isSaving = _useState92[0],
-    setIsSaving = _useState92[1];
-  var _useState93 = useState(""),
+    isAnalyzing = _useState92[0],
+    setIsAnalyzing = _useState92[1];
+  var _useState93 = useState(false),
     _useState94 = _slicedToArray(_useState93, 2),
-    analysisNote = _useState94[0],
-    setAnalysisNote = _useState94[1];
+    isSaving = _useState94[0],
+    setIsSaving = _useState94[1];
   var _useState95 = useState(""),
     _useState96 = _slicedToArray(_useState95, 2),
-    clipboardNote = _useState96[0],
-    setClipboardNote = _useState96[1];
-  var _useState97 = useState(0),
+    analysisNote = _useState96[0],
+    setAnalysisNote = _useState96[1];
+  var _useState97 = useState(""),
     _useState98 = _slicedToArray(_useState97, 2),
-    keyboardInset = _useState98[0],
-    setKeyboardInset = _useState98[1];
-  var _useState99 = useState(false),
+    clipboardNote = _useState98[0],
+    setClipboardNote = _useState98[1];
+  var _useState99 = useState(0),
     _useState100 = _slicedToArray(_useState99, 2),
-    showAdvanced = _useState100[0],
-    setShowAdvanced = _useState100[1];
-  var _useState101 = useState(null),
+    keyboardInset = _useState100[0],
+    setKeyboardInset = _useState100[1];
+  var _useState101 = useState(false),
     _useState102 = _slicedToArray(_useState101, 2),
-    selectedFile = _useState102[0],
-    setSelectedFile = _useState102[1];
-  var _useState103 = useState(false),
+    showAdvanced = _useState102[0],
+    setShowAdvanced = _useState102[1];
+  var _useState103 = useState(null),
     _useState104 = _slicedToArray(_useState103, 2),
-    dragActive = _useState104[0],
-    setDragActive = _useState104[1];
+    selectedFile = _useState104[0],
+    setSelectedFile = _useState104[1];
+  var _useState105 = useState(false),
+    _useState106 = _slicedToArray(_useState105, 2),
+    dragActive = _useState106[0],
+    setDragActive = _useState106[1];
   var sheetRef = useRef(null);
   var scrollRef = useRef(null);
   var advancedRef = useRef(null);
@@ -10317,34 +10348,34 @@ function FolderSheet(_ref73) {
   var folder = _ref73.folder,
     onClose = _ref73.onClose,
     onSave = _ref73.onSave;
-  var _useState105 = useState((folder === null || folder === void 0 ? void 0 : folder.name) || ""),
-    _useState106 = _slicedToArray(_useState105, 2),
-    name = _useState106[0],
-    setName = _useState106[1];
-  var _useState107 = useState((folder === null || folder === void 0 ? void 0 : folder.color) || FOLDER_COLORS[0]),
+  var _useState107 = useState((folder === null || folder === void 0 ? void 0 : folder.name) || ""),
     _useState108 = _slicedToArray(_useState107, 2),
-    color = _useState108[0],
-    setColor = _useState108[1];
-  var _useState109 = useState((folder === null || folder === void 0 ? void 0 : folder.image) || ""),
+    name = _useState108[0],
+    setName = _useState108[1];
+  var _useState109 = useState((folder === null || folder === void 0 ? void 0 : folder.color) || FOLDER_COLORS[0]),
     _useState110 = _slicedToArray(_useState109, 2),
-    image = _useState110[0],
-    setImage = _useState110[1];
-  var _useState111 = useState(""),
+    color = _useState110[0],
+    setColor = _useState110[1];
+  var _useState111 = useState((folder === null || folder === void 0 ? void 0 : folder.image) || ""),
     _useState112 = _slicedToArray(_useState111, 2),
-    imageUrl = _useState112[0],
-    setImageUrl = _useState112[1];
+    image = _useState112[0],
+    setImage = _useState112[1];
   var _useState113 = useState(""),
     _useState114 = _slicedToArray(_useState113, 2),
-    imageNote = _useState114[0],
-    setImageNote = _useState114[1];
-  var _useState115 = useState(false),
+    imageUrl = _useState114[0],
+    setImageUrl = _useState114[1];
+  var _useState115 = useState(""),
     _useState116 = _slicedToArray(_useState115, 2),
-    isReadingImage = _useState116[0],
-    setIsReadingImage = _useState116[1];
-  var _useState117 = useState(0),
+    imageNote = _useState116[0],
+    setImageNote = _useState116[1];
+  var _useState117 = useState(false),
     _useState118 = _slicedToArray(_useState117, 2),
-    keyboardInset = _useState118[0],
-    setKeyboardInset = _useState118[1];
+    isReadingImage = _useState118[0],
+    setIsReadingImage = _useState118[1];
+  var _useState119 = useState(0),
+    _useState120 = _slicedToArray(_useState119, 2),
+    keyboardInset = _useState120[0],
+    setKeyboardInset = _useState120[1];
   var imageInputRef = useRef(null);
   var sheetRef = useRef(null);
   var scrollRef = useRef(null);
@@ -10827,17 +10858,17 @@ function FolderSheet(_ref73) {
 function ImageLightbox(_ref76) {
   var image = _ref76.image,
     onClose = _ref76.onClose;
-  var _useState119 = useState(1),
-    _useState120 = _slicedToArray(_useState119, 2),
-    scale = _useState120[0],
-    setScale = _useState120[1];
-  var _useState121 = useState({
+  var _useState121 = useState(1),
+    _useState122 = _slicedToArray(_useState121, 2),
+    scale = _useState122[0],
+    setScale = _useState122[1];
+  var _useState123 = useState({
       x: 0,
       y: 0
     }),
-    _useState122 = _slicedToArray(_useState121, 2),
-    offset = _useState122[0],
-    setOffset = _useState122[1];
+    _useState124 = _slicedToArray(_useState123, 2),
+    offset = _useState124[0],
+    setOffset = _useState124[1];
   var gestureRef = useRef({
     mode: "",
     startScale: 1,
@@ -11068,18 +11099,18 @@ function ItemSheet(_ref77) {
   });
   var sourceProfile = sourceProfileForItem(item);
   var sourceVisual = sourceVisualForProfile(sourceProfile);
-  var _useState123 = useState(false),
-    _useState124 = _slicedToArray(_useState123, 2),
-    isOpeningAsset = _useState124[0],
-    setIsOpeningAsset = _useState124[1];
-  var _useState125 = useState(0),
+  var _useState125 = useState(false),
     _useState126 = _slicedToArray(_useState125, 2),
-    dragY = _useState126[0],
-    setDragY = _useState126[1];
-  var _useState127 = useState(false),
+    isOpeningAsset = _useState126[0],
+    setIsOpeningAsset = _useState126[1];
+  var _useState127 = useState(0),
     _useState128 = _slicedToArray(_useState127, 2),
-    isDragging = _useState128[0],
-    setIsDragging = _useState128[1];
+    dragY = _useState128[0],
+    setDragY = _useState128[1];
+  var _useState129 = useState(false),
+    _useState130 = _slicedToArray(_useState129, 2),
+    isDragging = _useState130[0],
+    setIsDragging = _useState130[1];
   var hasLocalAsset = Boolean(item.assetId);
   var sheetScrollRef = useRef(null);
   var dragStartYRef = useRef(0);
@@ -11679,46 +11710,46 @@ function ItemEditorSheet(_ref79) {
     folders = _ref79.folders,
     onClose = _ref79.onClose,
     onSave = _ref79.onSave;
-  var _useState129 = useState(item.title || ""),
-    _useState130 = _slicedToArray(_useState129, 2),
-    title = _useState130[0],
-    setTitle = _useState130[1];
-  var _useState131 = useState(item.description || ""),
+  var _useState131 = useState(item.title || ""),
     _useState132 = _slicedToArray(_useState131, 2),
-    description = _useState132[0],
-    setDescription = _useState132[1];
-  var _useState133 = useState(item.folderId || ((_folders$find1 = folders.find(function (f) {
+    title = _useState132[0],
+    setTitle = _useState132[1];
+  var _useState133 = useState(item.description || ""),
+    _useState134 = _slicedToArray(_useState133, 2),
+    description = _useState134[0],
+    setDescription = _useState134[1];
+  var _useState135 = useState(item.folderId || ((_folders$find1 = folders.find(function (f) {
       return f.id === "f-random";
     })) === null || _folders$find1 === void 0 ? void 0 : _folders$find1.id) || ((_folders$find10 = folders.find(function (f) {
       return !f.system;
     })) === null || _folders$find10 === void 0 ? void 0 : _folders$find10.id) || "f-random"),
-    _useState134 = _slicedToArray(_useState133, 2),
-    folderId = _useState134[0],
-    setFolderId = _useState134[1];
-  var _useState135 = useState((item.tags || []).join(", ")),
     _useState136 = _slicedToArray(_useState135, 2),
-    tags = _useState136[0],
-    setTags = _useState136[1];
-  var _useState137 = useState(item.type || "link"),
+    folderId = _useState136[0],
+    setFolderId = _useState136[1];
+  var _useState137 = useState((item.tags || []).join(", ")),
     _useState138 = _slicedToArray(_useState137, 2),
-    type = _useState138[0],
-    setType = _useState138[1];
-  var _useState139 = useState(item.source || ""),
+    tags = _useState138[0],
+    setTags = _useState138[1];
+  var _useState139 = useState(item.type || "link"),
     _useState140 = _slicedToArray(_useState139, 2),
-    source = _useState140[0],
-    setSource = _useState140[1];
-  var _useState141 = useState(item.url || ""),
+    type = _useState140[0],
+    setType = _useState140[1];
+  var _useState141 = useState(item.source || ""),
     _useState142 = _slicedToArray(_useState141, 2),
-    url = _useState142[0],
-    setUrl = _useState142[1];
-  var _useState143 = useState(0),
+    source = _useState142[0],
+    setSource = _useState142[1];
+  var _useState143 = useState(item.url || ""),
     _useState144 = _slicedToArray(_useState143, 2),
-    keyboardInset = _useState144[0],
-    setKeyboardInset = _useState144[1];
-  var _useState145 = useState(false),
+    url = _useState144[0],
+    setUrl = _useState144[1];
+  var _useState145 = useState(0),
     _useState146 = _slicedToArray(_useState145, 2),
-    isSaving = _useState146[0],
-    setIsSaving = _useState146[1];
+    keyboardInset = _useState146[0],
+    setKeyboardInset = _useState146[1];
+  var _useState147 = useState(false),
+    _useState148 = _slicedToArray(_useState147, 2),
+    isSaving = _useState148[0],
+    setIsSaving = _useState148[1];
   var scrollRef = useRef(null);
   var hasLocalAsset = Boolean(item.assetId);
   var hasDraft = title.trim() !== (item.title || "").trim() || description.trim() !== (item.description || "").trim() || folderId !== (item.folderId || "") || type !== (item.type || "link") || source.trim() !== (item.source || "").trim() || url.trim() !== (item.url || "").trim() || tags.trim() !== (item.tags || []).join(", ");
