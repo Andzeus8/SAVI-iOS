@@ -14,12 +14,6 @@ if [[ ! -f "$SOURCE_PATH" ]]; then
 fi
 
 mkdir -p "$(dirname "$DEST_PATH")"
-
-if cmp -s "$SOURCE_PATH" "$DEST_PATH"; then
-  echo "SAVI web bundle already in sync"
-  exit 0
-fi
-
 cp "$SOURCE_PATH" "$DEST_PATH"
 
 if [[ -f "$VENDOR_DIR/react.production.min.js" && -f "$VENDOR_DIR/react-dom.production.min.js" && -f "$VENDOR_DIR/babel.min.js" ]]; then
