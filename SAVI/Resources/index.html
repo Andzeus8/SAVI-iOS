@@ -551,12 +551,23 @@ const BRAND = {
   ink: "#140823",
 };
 const SaviMark = ({ size = 32, glow = false }) => (
-  <div style={{ width: size, height: size, borderRadius: Math.round(size * 0.22), display: "flex", alignItems: "center", justifyContent: "center", boxShadow: glow ? "0 0 40px rgba(139,92,246,0.3)" : "none", flexShrink: 0 }}>
+  <div style={{ width: size, height: size, borderRadius: Math.round(size * 0.22), display: "flex", alignItems: "center", justifyContent: "center", boxShadow: glow ? "0 0 40px rgba(139,92,246,0.3)" : "0 14px 26px -18px rgba(76,29,149,0.52)", flexShrink: 0, overflow: "hidden" }}>
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none" aria-hidden="true">
-      <rect x="2" y="2" width="96" height="96" rx="22" fill={BRAND.lavender} />
-      <path d="M68 22C60 17 45 16 36 23C29 29 30 39 41 44L57 51C67 55 68 65 60 72C52 79 37 80 27 72" stroke={BRAND.cream} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M60 72C52 79 37 80 27 72" stroke={BRAND.chartreuse} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="24" cy="70" r="7.5" fill={BRAND.chartreuse} />
+      <defs>
+        <linearGradient id="saviMarkBg" x1="14" y1="10" x2="85" y2="92" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor={BRAND.lavenderSoft} />
+          <stop offset="0.45" stopColor={BRAND.lavender} />
+          <stop offset="1" stopColor={BRAND.plum} />
+        </linearGradient>
+        <filter id="saviMarkShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="3" stdDeviation="4.5" floodColor="#4C1D95" floodOpacity="0.28" />
+        </filter>
+      </defs>
+      <rect width="100" height="100" rx="24" fill="url(#saviMarkBg)" />
+      <rect x="5.5" y="5.5" width="89" height="89" rx="21" stroke="rgba(245,240,228,0.62)" strokeWidth="2.8" />
+      <path d="M67.4 24.4C60.6 18.6 47.4 18.2 39.2 24C32.3 28.9 31.5 38.1 40.7 43.2L56.4 51.8C66.1 57.1 67.6 66.6 60.2 73.8C52.3 81.5 39.6 82.3 29.4 76.1" stroke={BRAND.cream} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" filter="url(#saviMarkShadow)" />
+      <path d="M57.8 75.4C50 81.4 39 82.1 29.4 76.1" stroke={BRAND.chartreuse} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="24.8" cy="73.3" r="6.7" fill={BRAND.chartreuse} />
     </svg>
   </div>
 );
