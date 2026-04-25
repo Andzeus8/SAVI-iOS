@@ -4388,6 +4388,15 @@ function App() {
       return current + 1;
     });
   };
+  var goHome = function goHome() {
+    dismissActiveField();
+    setBrowseMode("all");
+    setActiveFolder("f-all");
+    setActiveType("all");
+    setActiveSource("all");
+    setSearch("");
+    setRoute("home");
+  };
   var closeLightbox = function closeLightbox() {
     if (lightboxObjectUrlRef.current) {
       URL.revokeObjectURL(lightboxObjectUrlRef.current);
@@ -5064,11 +5073,8 @@ function App() {
         folderId: id
       });
     },
-    onBack: function onBack() {
-      return setRoute("home");
-    },
+    onBack: goHome,
     onSelect: setSelectedItem,
-    onShare: shareApp,
     onShareItem: handleShareItem
   }), route === "search" && /*#__PURE__*/React.createElement(HomeScreen, {
     folders: folders,
@@ -5103,11 +5109,8 @@ function App() {
         folderId: id
       });
     },
-    onBack: function onBack() {
-      return setRoute("home");
-    },
+    onBack: goHome,
     onSelect: setSelectedItem,
-    onShare: shareApp,
     onShareItem: handleShareItem
   }), route === "folders" && /*#__PURE__*/React.createElement(FoldersScreen, {
     folders: folders,
@@ -5142,6 +5145,7 @@ function App() {
   }, /*#__PURE__*/React.createElement(TabBar, {
     route: route,
     setRoute: setRoute,
+    onHomePress: goHome,
     onSavePress: function onSavePress() {
       return openSaveSheet();
     }
@@ -6387,7 +6391,6 @@ function HomeScreen(_ref52) {
     _ref52$resultsJumpKey = _ref52.resultsJumpKey,
     resultsJumpKey = _ref52$resultsJumpKey === void 0 ? 0 : _ref52$resultsJumpKey,
     onSelect = _ref52.onSelect,
-    onShare = _ref52.onShare,
     onShareItem = _ref52.onShareItem,
     onOpenSearch = _ref52.onOpenSearch,
     onSeeAllFolders = _ref52.onSeeAllFolders,
@@ -6399,9 +6402,9 @@ function HomeScreen(_ref52) {
   var activeSourceLabel = ((_sourceOptions$find = sourceOptions.find(function (option) {
     return option.key === activeSource;
   })) === null || _sourceOptions$find === void 0 ? void 0 : _sourceOptions$find.label) || (activeSource === "all" ? "All Apps" : titleize(activeSource));
-  var heroEyebrow = searchMode ? "Search" : browseMode === "all" ? "My SAVIs" : browseMode === "folders" ? "Folders" : browseMode === "types" ? "Types" : "Apps";
-  var heroTitle = searchMode ? "Search" : browseMode === "all" ? "My SAVIs" : browseMode === "folders" ? activeFolder === "f-all" ? "All folders" : activeFolderName : browseMode === "types" ? displayTypeLabel(activeType) : activeSourceLabel;
-  var heroDescription = searchMode ? "Search works across every folder, tag, app, and file detail in your library." : browseMode === "all" ? "Search fast, jump into your top folders, and keep the latest saves right under your thumb." : browseMode === "folders" ? "Use folder chips to narrow the stream below without leaving the page." : browseMode === "types" ? "Scan by format when you know the shape of what you saved." : "Jump into the apps and platforms that generated the save.";
+  var heroEyebrow = searchMode ? "Search" : "My SAVIs";
+  var heroTitle = searchMode ? "Search" : "My SAVIs";
+  var heroDescription = searchMode ? "Search works across every folder, tag, app, and file detail in your library." : "Search fast, jump into your top folders, and keep the latest saves right under your thumb.";
   var heroCount = items.length;
   var searchInputRef = useRef(null);
   var resultSectionRef = useRef(null);
@@ -6683,52 +6686,7 @@ function HomeScreen(_ref52) {
       textTransform: "uppercase",
       color: T.inkMute
     }
-  }, heroCount, " ", heroCount === 1 ? "item" : "items"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8
-    }
-  }, !searchMode && /*#__PURE__*/React.createElement("button", {
-    onClick: onShare,
-    className: "mono",
-    style: {
-      fontSize: 10,
-      textTransform: "uppercase",
-      letterSpacing: "0.08em",
-      padding: "10px 12px",
-      borderRadius: 14,
-      border: "1px solid ".concat(T.lineSoft),
-      background: T.card,
-      color: T.inkSoft,
-      boxShadow: "0 12px 24px -22px rgba(22,26,35,0.55)"
-    }
-  }, "Share"))), !searchMode && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "mono",
-    style: {
-      fontSize: 10,
-      textTransform: "uppercase",
-      letterSpacing: "0.22em",
-      marginBottom: 8,
-      color: T.inkMute
-    }
-  }, heroEyebrow), /*#__PURE__*/React.createElement("h1", {
-    className: "serif",
-    style: {
-      fontSize: 42,
-      lineHeight: 1.02,
-      margin: 0,
-      marginBottom: 10,
-      color: T.ink
-    }
-  }, heroTitle), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      lineHeight: 1.45,
-      color: T.inkSoft,
-      maxWidth: 310
-    }
-  }, heroDescription))), /*#__PURE__*/React.createElement("div", {
+  }, heroCount, " ", heroCount === 1 ? "item" : "items"))), /*#__PURE__*/React.createElement("div", null)), !searchMode && null), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "0 20px 14px"
     }
@@ -8717,6 +8675,7 @@ function ProfileScreen(_ref58) {
 function TabBar(_ref63) {
   var route = _ref63.route,
     setRoute = _ref63.setRoute,
+    onHomePress = _ref63.onHomePress,
     onSavePress = _ref63.onSavePress;
   var TabButton = function TabButton(_ref64) {
     var active = _ref64.active,
@@ -8766,7 +8725,7 @@ function TabBar(_ref63) {
   }, /*#__PURE__*/React.createElement(TabButton, {
     active: route === "home",
     onClick: function onClick() {
-      return setRoute("home");
+      return onHomePress ? onHomePress() : setRoute("home");
     },
     IconComp: IconHome,
     label: "Home"
