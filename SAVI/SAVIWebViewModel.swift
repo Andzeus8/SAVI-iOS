@@ -10,6 +10,7 @@ final class SAVIWebViewModel: NSObject, ObservableObject {
     private var didLoadInitialPage = false
     private var pageReady = false
     private var importInFlight = false
+    private var didAttemptRemoteFallback = false
 
     override init() {
         let contentController = WKUserContentController()
@@ -56,7 +57,14 @@ final class SAVIWebViewModel: NSObject, ObservableObject {
     func loadIfNeeded() {
         guard !didLoadInitialPage else { return }
         didLoadInitialPage = true
+        loadPrimaryPage()
+    }
 
+    private func loadPrimaryPage() {
+        loadBundledPage()
+    }
+
+    private func loadBundledPage() {
         let bundledIndexURL =
             Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "Resources") ??
             Bundle.main.url(forResource: "index", withExtension: "html")
@@ -66,6 +74,16 @@ final class SAVIWebViewModel: NSObject, ObservableObject {
         }
 
         webView.loadFileURL(indexURL, allowingReadAccessTo: indexURL.deletingLastPathComponent())
+    }
+
+    private func fallbackToRemotePageIfNeeded() {
+        guard !didAttemptRemoteFallback,
+              let remoteURL = URL(string: "https://andzeus8.github.io/Savi-/")
+        else { return }
+        didAttemptRemoteFallback = true
+        var request = URLRequest(url: remoteURL)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        webView.load(request)
     }
 
     @objc private func handleForegroundTransition() {
@@ -174,6 +192,8 @@ extension SAVIWebViewModel: WKNavigationDelegate, WKUIDelegate, WKScriptMessageH
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         pageReady = true
         importPendingSharesIfPossible()
+        logWebViewState(after: 0.25)
+        logWebViewState(after: 1.5)
     }
 
     func webView(
@@ -190,6 +210,16 @@ extension SAVIWebViewModel: WKNavigationDelegate, WKUIDelegate, WKScriptMessageH
         }
 
         decisionHandler(.allow)
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        NSLog("[SAVIWeb] navigation failed: \(error.localizedDescription)")
+        fallbackToRemotePageIfNeeded()
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        NSLog("[SAVIWeb] provisional navigation failed: \(error.localizedDescription)")
+        fallbackToRemotePageIfNeeded()
     }
 
     func webView(
@@ -210,6 +240,13 @@ extension SAVIWebViewModel: WKNavigationDelegate, WKUIDelegate, WKScriptMessageH
            let type = body["type"] as? String {
             if type == "requestPendingImports" {
                 importPendingSharesIfPossible()
+                return
+            }
+
+            if type == "console",
+               let level = body["level"] as? String,
+               let message = body["message"] as? String {
+                NSLog("[SAVIWeb] \(level): \(message)")
                 return
             }
 
@@ -340,6 +377,33 @@ private extension SAVIWebViewModel {
         window.webkit.messageHandlers.savi.postMessage({ type: type, payload: payload || {} });
       } catch (error) {}
     };
+    window.addEventListener('error', function(event) {
+      var message = event && event.message ? String(event.message) : 'Unknown error';
+      var source = event && event.filename ? String(event.filename) : '';
+      var line = event && event.lineno ? ':' + String(event.lineno) : '';
+      var column = event && event.colno ? ':' + String(event.colno) : '';
+      window.SAVINative.postMessage('console', { level: 'error', message: message + ' ' + source + line + column });
+    });
+    window.addEventListener('unhandledrejection', function(event) {
+      var reason = event && event.reason ? String(event.reason) : 'Unknown rejection';
+      window.SAVINative.postMessage('console', { level: 'error', message: 'Unhandled rejection: ' + reason });
+    });
+    (function() {
+      var levels = ['log', 'info', 'warn', 'error'];
+      levels.forEach(function(level) {
+        var original = console[level];
+        console[level] = function() {
+          try {
+            var message = Array.prototype.slice.call(arguments).map(function(part) {
+              if (typeof part === 'string') { return part; }
+              try { return JSON.stringify(part); } catch (error) { return String(part); }
+            }).join(' ');
+            window.SAVINative.postMessage('console', { level: level, message: message });
+          } catch (error) {}
+          if (original) { original.apply(console, arguments); }
+        };
+      });
+    })();
     window.SAVINative.publishFolders = function() {
       var STORAGE_KEY = 'savi_v1';
       var state;
@@ -502,4 +566,44 @@ private extension SAVIWebViewModel {
       return imported;
     };
     """
+}
+
+private extension SAVIWebViewModel {
+    func logWebViewState(after delay: TimeInterval) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self else { return }
+            let script = """
+            (function() {
+              var root = document.getElementById('root');
+              return JSON.stringify({
+                readyState: document.readyState,
+                title: document.title || '',
+                rootLength: root ? root.innerHTML.length : -1,
+                bodyLength: document.body ? document.body.innerText.length : -1,
+                bg: document.body ? getComputedStyle(document.body).backgroundColor : '',
+                reactType: typeof React,
+                reactDomType: typeof ReactDOM,
+                babelType: typeof Babel,
+                bundleStarted: !!window.__saviBundleStarted,
+                bundleExecuted: !!window.__saviBundleExecuted,
+                bundleError: window.__saviBundleError || '',
+                scriptCount: document.scripts ? document.scripts.length : -1,
+                lastScriptType: document.scripts && document.scripts.length ? (document.scripts[document.scripts.length - 1].type || '') : '',
+                lastScriptSrc: document.scripts && document.scripts.length ? (document.scripts[document.scripts.length - 1].src || '') : ''
+              });
+            })();
+            """
+            self.webView.evaluateJavaScript(script) { result, error in
+                if let error {
+                    NSLog("[SAVIWeb] eval error: \(error.localizedDescription)")
+                    return
+                }
+                if let text = result as? String {
+                    NSLog("[SAVIWeb] state: \(text)")
+                } else {
+                    NSLog("[SAVIWeb] state: \(String(describing: result))")
+                }
+            }
+        }
+    }
 }
