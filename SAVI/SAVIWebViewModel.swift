@@ -3,6 +3,34 @@ import SwiftUI
 import UIKit
 import WebKit
 
+private struct NativeImportMetadata {
+    let title: String?
+    let description: String?
+    let imageURL: String?
+    let provider: String?
+    let tags: [String]
+}
+
+private enum NativeImportMetadataResult {
+    case metadata(NativeImportMetadata)
+    case empty
+    case timedOut
+}
+
+private struct NativeOEmbedResponse: Decodable {
+    let title: String?
+    let authorName: String?
+    let providerName: String?
+    let thumbnailURL: String?
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case authorName = "author_name"
+        case providerName = "provider_name"
+        case thumbnailURL = "thumbnail_url"
+    }
+}
+
 final class SAVIWebViewModel: NSObject, ObservableObject {
     let webView: WKWebView
 
@@ -184,7 +212,261 @@ final class SAVIWebViewModel: NSObject, ObservableObject {
             title.hasSuffix(" save")
 
         guard needsRemoteEnrichment else { return enriched }
+        guard let metadata = await fetchImportMetadata(for: url) else { return enriched }
+
+        if shouldReplaceImportTitle(current: enriched.title, with: metadata.title) {
+            enriched.title = metadata.title ?? enriched.title
+        }
+        if enriched.itemDescription?.nilIfEmpty == nil,
+           let description = metadata.description?.nilIfEmpty {
+            enriched.itemDescription = description
+        }
+        if enriched.thumbnail?.nilIfEmpty == nil,
+           let imageURL = metadata.imageURL?.nilIfEmpty {
+            enriched.thumbnail = imageURL
+        }
+        if enriched.sourceApp.isEmpty || enriched.sourceApp == "Share Extension",
+           let provider = metadata.provider?.nilIfEmpty {
+            enriched.sourceApp = provider
+        }
+        enriched.tags = dedupeImportTags((enriched.tags ?? []) + metadata.tags)
         return enriched
+    }
+}
+
+private extension SAVIWebViewModel {
+    func fetchImportMetadata(for url: URL) async -> NativeImportMetadata? {
+        let startedAt = Date()
+        return await withTaskGroup(of: NativeImportMetadataResult.self) { group in
+            if isYouTubeImportURL(url) {
+                group.addTask { [self] in
+                    guard let metadata = try? await self.fetchYouTubeImportMetadata(for: url) else { return .empty }
+                    return .metadata(metadata)
+                }
+            }
+            group.addTask { [self] in
+                guard let metadata = try? await self.fetchNoembedImportMetadata(for: url) else { return .empty }
+                return .metadata(metadata)
+            }
+            group.addTask { [self] in
+                guard let metadata = try? await self.fetchHTMLImportMetadata(for: url) else { return .empty }
+                return .metadata(metadata)
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 2_200_000_000)
+                return .timedOut
+            }
+
+            var candidates: [NativeImportMetadata] = []
+            while let result = await group.next() {
+                switch result {
+                case .metadata(let metadata):
+                    candidates.append(metadata)
+                    if importMetadataLooksComplete(metadata) {
+                        group.cancelAll()
+                        NSLog("[SAVIWeb] import metadata ready in %.2fs for %@", Date().timeIntervalSince(startedAt), url.absoluteString)
+                        return mergeImportMetadata(candidates)
+                    }
+                case .empty:
+                    continue
+                case .timedOut:
+                    group.cancelAll()
+                    NSLog("[SAVIWeb] import metadata timed out after %.2fs for %@", Date().timeIntervalSince(startedAt), url.absoluteString)
+                    return candidates.isEmpty ? nil : mergeImportMetadata(candidates)
+                }
+            }
+
+            return candidates.isEmpty ? nil : mergeImportMetadata(candidates)
+        }
+    }
+
+    func fetchYouTubeImportMetadata(for url: URL) async throws -> NativeImportMetadata {
+        let canonicalURL = canonicalYouTubeImportURL(from: url)
+        let endpoint = "https://www.youtube.com/oembed?url=\(canonicalURL.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? canonicalURL.absoluteString)&format=json"
+        let decoded = try JSONDecoder().decode(NativeOEmbedResponse.self, from: try await fetchImportData(from: endpoint))
+        let author = decoded.authorName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        return NativeImportMetadata(
+            title: cleanedImportTitle(decoded.title, for: canonicalURL),
+            description: author.map { "\($0) via YouTube" } ?? "YouTube video",
+            imageURL: decoded.thumbnailURL ?? youtubeImportThumbnailURL(for: canonicalURL),
+            provider: decoded.providerName ?? "YouTube",
+            tags: ["youtube", "video"]
+        )
+    }
+
+    func fetchNoembedImportMetadata(for url: URL) async throws -> NativeImportMetadata {
+        let endpoint = "https://noembed.com/embed?url=\(url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url.absoluteString)"
+        let decoded = try JSONDecoder().decode(NativeOEmbedResponse.self, from: try await fetchImportData(from: endpoint))
+        let author = decoded.authorName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        let provider = decoded.providerName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        return NativeImportMetadata(
+            title: cleanedImportTitle(decoded.title, for: url),
+            description: author.map { author in
+                provider.map { "\(author) via \($0)" } ?? author
+            } ?? provider,
+            imageURL: decoded.thumbnailURL,
+            provider: provider,
+            tags: dedupeImportTags([decoded.providerName, decoded.title].compactMap { $0 }.flatMap { value in
+                ["youtube", "instagram", "tiktok", "reddit", "spotify", "video", "post"].filter { value.lowercased().contains($0) }
+            })
+        )
+    }
+
+    func fetchHTMLImportMetadata(for url: URL) async throws -> NativeImportMetadata {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 2
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse,
+              (200..<400).contains(http.statusCode),
+              let html = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .unicode)
+        else {
+            throw URLError(.badServerResponse)
+        }
+
+        let title = cleanedImportTitle(firstHTMLMetaContent(in: html, keys: ["og:title", "twitter:title"]) ?? htmlTitle(in: html), for: url)
+        let description = firstHTMLMetaContent(in: html, keys: ["og:description", "description", "twitter:description"])
+        let image = firstHTMLMetaContent(in: html, keys: ["og:image", "twitter:image"]).flatMap { resolveImportURL($0, relativeTo: url) }
+        let provider = firstHTMLMetaContent(in: html, keys: ["og:site_name", "application-name"]) ?? hostDisplayName(for: url)
+        return NativeImportMetadata(title: title, description: description, imageURL: image, provider: provider, tags: [])
+    }
+
+    func fetchImportData(from urlString: String) async throws -> Data {
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 2
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<400).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        return data
+    }
+
+    func mergeImportMetadata(_ candidates: [NativeImportMetadata]) -> NativeImportMetadata {
+        NativeImportMetadata(
+            title: candidates.first(where: { $0.title?.nilIfEmpty != nil })?.title,
+            description: candidates.compactMap(\.description).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }.max(by: { $0.count < $1.count }),
+            imageURL: candidates.first(where: { $0.imageURL?.nilIfEmpty != nil })?.imageURL,
+            provider: candidates.first(where: { $0.provider?.nilIfEmpty != nil })?.provider,
+            tags: dedupeImportTags(candidates.flatMap(\.tags))
+        )
+    }
+
+    func importMetadataLooksComplete(_ metadata: NativeImportMetadata) -> Bool {
+        guard metadata.title?.nilIfEmpty != nil else { return false }
+        return metadata.description?.nilIfEmpty != nil || metadata.imageURL?.nilIfEmpty != nil || metadata.provider?.nilIfEmpty != nil
+    }
+
+    func shouldReplaceImportTitle(current: String, with fetched: String?) -> Bool {
+        guard let fetched = fetched?.nilIfEmpty else { return false }
+        let normalized = current.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return normalized.isEmpty ||
+            normalized == "shared item" ||
+            normalized == "youtube video" ||
+            normalized.hasPrefix("http") ||
+            normalized.hasSuffix(" save") ||
+            fetched.count > current.count + 8
+    }
+
+    func dedupeImportTags(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().replacingOccurrences(of: " ", with: "-") }
+            .filter { !$0.isEmpty && seen.insert($0).inserted }
+    }
+
+    func isYouTubeImportURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("youtube.com") || host.contains("youtu.be") || host.contains("youtube-nocookie.com")
+    }
+
+    func canonicalYouTubeImportURL(from url: URL) -> URL {
+        guard let id = youtubeImportVideoID(from: url) else { return url }
+        return URL(string: "https://www.youtube.com/watch?v=\(id)") ?? url
+    }
+
+    func youtubeImportVideoID(from url: URL) -> String? {
+        let host = url.host?.lowercased() ?? ""
+        if host.contains("youtu.be") {
+            let id = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            return id.isEmpty ? nil : id
+        }
+        if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+           let id = components.queryItems?.first(where: { $0.name == "v" })?.value,
+           !id.isEmpty {
+            return id
+        }
+        let parts = url.path.split(separator: "/")
+        if let marker = parts.firstIndex(where: { ["shorts", "embed", "live"].contains(String($0).lowercased()) }),
+           parts.indices.contains(parts.index(after: marker)) {
+            return String(parts[parts.index(after: marker)])
+        }
+        return nil
+    }
+
+    func youtubeImportThumbnailURL(for url: URL) -> String? {
+        guard let id = youtubeImportVideoID(from: url) else { return nil }
+        return "https://i.ytimg.com/vi/\(id)/hqdefault.jpg"
+    }
+
+    func cleanedImportTitle(_ value: String?, for url: URL) -> String? {
+        guard var title = value?.decodedHTMLString.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty else {
+            return nil
+        }
+        if isYouTubeImportURL(url) {
+            title = title.replacingOccurrences(of: #"(?i)\s*-\s*youtube$"#, with: "", options: .regularExpression)
+                .replacingOccurrences(of: #"(?i)^watch\s*-\s*"#, with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return ["youtube", "watch"].contains(title.lowercased()) ? nil : title
+    }
+
+    func firstHTMLMetaContent(in html: String, keys: [String]) -> String? {
+        for key in keys {
+            let escapedKey = NSRegularExpression.escapedPattern(for: key)
+            let patterns = [
+                #"<meta[^>]+(?:property|name)=["']"# + escapedKey + #"["'][^>]+content=["']([^"']+)["'][^>]*>"#,
+                #"<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']"# + escapedKey + #"["'][^>]*>"#
+            ]
+            for pattern in patterns {
+                guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { continue }
+                let range = NSRange(html.startIndex..<html.endIndex, in: html)
+                guard let match = regex.firstMatch(in: html, range: range),
+                      match.numberOfRanges > 1,
+                      let valueRange = Range(match.range(at: 1), in: html)
+                else { continue }
+                let value = String(html[valueRange]).decodedHTMLString.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !value.isEmpty { return value }
+            }
+        }
+        return nil
+    }
+
+    func htmlTitle(in html: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: #"<title[^>]*>(.*?)</title>"#, options: [.caseInsensitive, .dotMatchesLineSeparators]) else {
+            return nil
+        }
+        let range = NSRange(html.startIndex..<html.endIndex, in: html)
+        guard let match = regex.firstMatch(in: html, range: range),
+              match.numberOfRanges > 1,
+              let valueRange = Range(match.range(at: 1), in: html)
+        else { return nil }
+        let value = String(html[valueRange]).decodedHTMLString.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
+    func hostDisplayName(for url: URL) -> String? {
+        guard let host = url.host?.lowercased() else { return nil }
+        let cleaned = host.replacingOccurrences(of: "www.", with: "")
+        return cleaned.split(separator: ".").first.map { String($0).capitalized }
+    }
+
+    func resolveImportURL(_ value: String, relativeTo baseURL: URL) -> String? {
+        if let absolute = URL(string: value), absolute.scheme != nil {
+            return absolute.absoluteString
+        }
+        return URL(string: value, relativeTo: baseURL)?.absoluteURL.absoluteString
     }
 }
 
@@ -265,6 +547,15 @@ extension SAVIWebViewModel: WKNavigationDelegate, WKUIDelegate, WKScriptMessageH
 }
 
 private extension String {
+    var decodedHTMLString: String {
+        guard let data = data(using: .utf8) else { return self }
+        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+            .documentType: NSAttributedString.DocumentType.html,
+            .characterEncoding: String.Encoding.utf8.rawValue,
+        ]
+        return (try? NSAttributedString(data: data, options: options, documentAttributes: nil).string) ?? self
+    }
+
     var nilIfEmpty: String? {
         isEmpty ? nil : self
     }

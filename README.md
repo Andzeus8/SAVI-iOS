@@ -1,98 +1,53 @@
 # SAVI iOS
 
-Native iOS app and Share Extension for SAVI.
+This is the active SAVI product codebase.
 
-## What Is Included
+## Canonical Project
 
-- `SAVI` iOS app target
-- `SAVIShareExtension` Share Extension target
-- App Group setup for `group.com.savi.shared`
-- Bundled copy of the existing SAVI `index.html`
-- Native share handoff through `pending_shares/` in the shared container
-- Sync script so the native app always bundles the latest web app
+- Native iOS app: `/Users/guest1/Documents/SAVI-iOS`
+- Xcode project: `/Users/guest1/Documents/SAVI-iOS/SAVI.xcodeproj`
+- App target: `SAVI`
+- Share Extension target: `SAVIShareExtension`
+- App Group: `group.com.savi.shared`
 
-## Project Layout
+All current product work should happen here unless a request explicitly says to edit the old web prototype.
 
-- `SAVI/`
-  App target sources, plist, entitlements, assets, bundled web app resources
+## Current Architecture
+
+- `SAVI/ContentView.swift`
+  Native SwiftUI app, storage, navigation, search, Explore, Keepers, backup/import, previews, Face ID keeper locks, metadata enrichment, Apple Intelligence/fallback refinement, and migration host.
 - `SAVIShareExtension/`
-  Share Extension source, plist, entitlements
-- `Shared/`
-  App Group constants, pending share model, and shared storage helpers
-- `scripts/`
-  Utilities for syncing the web app into the native bundle
-- `SAVI.xcodeproj/`
-  Generated Xcode project
+  Native share extension UI and fast-save import pipeline.
+- `Shared/AppGroupSupport.swift`
+  App Group models, pending-share contract, folder classifier, learning signals, and folder decision audit.
+- `SAVI/Resources/index.html`
+  Frozen legacy web snapshot used only for hidden one-time migration/recovery. It is not the visible app UI.
 
-## Source Of Truth
+## Important Guardrail
 
-SAVI now lives in two separate codebases:
+Do not sync or rebuild from `/Users/guest1/Documents/SAVI /index.html` during normal iOS work. The old web app is a legacy prototype now. The Xcode build no longer runs the web sync script automatically.
 
-- Web app source of truth:
-  `/Users/guest1/Documents/SAVI /index.html`
-- Native iOS source of truth:
-  `/Users/guest1/Documents/SAVI-iOS/`
+If a task involves SAVI app UI, metadata, search, Keepers, sharing, folder decisions, Apple Intelligence, Face ID, Explore, thumbnails, previews, profile/settings, backup/import, or simulator testing, edit the native iOS files in this repo.
 
-Rule of thumb:
+## Build And Run
 
-- If you are changing the SAVI library UI, item cards, item detail, folders, or general app behavior inside the web experience, edit the web repo first.
-- If you are changing the Share Extension, App Groups, native import pipeline, or any Swift code, edit this repo.
-- The iOS app bundles a copy of the web app. That bundled copy should not be hand-edited unless you are debugging a sync problem.
-
-## Build Notes
-
-1. Open `/Users/guest1/Documents/SAVI-iOS/SAVI.xcodeproj` in Xcode.
-2. Set your Apple Developer team under Signing for both targets if Xcode asks.
-3. Confirm the App Group capability is enabled for both targets with:
-   `group.com.savi.shared`
-4. Build and run the `SAVI` scheme in the iOS Simulator.
-5. Build the Share Extension as part of the app target, then test sharing from Safari, Photos, or Files.
-
-## Sync Workflow
-
-Before running the iOS app, sync the latest web app into the native bundle:
+Use the `SAVI` scheme with the iOS Simulator.
 
 ```bash
-/Users/guest1/Documents/SAVI-iOS/scripts/sync_web_bundle.sh
+xcodebuild \
+  -project /Users/guest1/Documents/SAVI-iOS/SAVI.xcodeproj \
+  -scheme SAVI \
+  -configuration Debug \
+  -destination 'platform=iOS Simulator,name=SAVI Fresh iPhone 17'
 ```
 
-That script copies:
+The share extension is embedded by the app target.
 
-- from `/Users/guest1/Documents/SAVI /index.html`
-- to `/Users/guest1/Documents/SAVI-iOS/SAVI/Resources/index.html`
+## Legacy Web Notes
 
-The Xcode project is also configured to run this sync automatically during the `SAVI` target build, so local builds stay current.
+The old web folders may still exist for reference:
 
-## Recommended Daily Workflow
+- `/Users/guest1/Documents/SAVI`
+- `/Users/guest1/Documents/SAVI `
 
-### When working on the web app
-
-1. Edit `/Users/guest1/Documents/SAVI /index.html`
-2. Commit/push the web repo
-3. Run `scripts/sync_web_bundle.sh`
-4. Build/run the iOS app in Xcode
-
-### When working on the native app
-
-1. Edit Swift/Xcode files in `/Users/guest1/Documents/SAVI-iOS`
-2. Commit/push this repo
-3. Rebuild in Xcode
-
-### When a feature touches both
-
-1. Update the web app
-2. Sync the bundle into iOS
-3. Update native bridge/share-extension code if needed
-4. Commit each repo separately
-
-## How Sharing Works
-
-- The Share Extension accepts URLs, text, images, PDFs, and general files.
-- Each shared item is written as JSON into the App Group container under:
-  `pending_shares/`
-- The main app checks for pending shares whenever the web view finishes loading and whenever the app returns to the foreground.
-- Imported shares are merged into the existing SAVI web app local storage (`savi_v1`) from native code.
-
-## Important Note
-
-The native app now compiles locally in Xcode and from the command line for the iOS Simulator. The remaining Apple-specific setup is choosing your signing team in Xcode for device/TestFlight builds.
+They are not the active production app. Only touch them when a request explicitly asks for the web prototype.

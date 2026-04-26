@@ -9,9 +9,7 @@
 /* Begin PBXBuildFile section */
 		053B53F65947BE5A89AED001 /* ShareItemExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22F59BE4ED4D78D7DFA5510 /* ShareItemExtractor.swift */; };
 		17450B03B5250677DE7C0400 /* AppGroupSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */; };
-		18C5779324E60FB0461B8F97 /* SAVIWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F14E3577FECF7CCEA55977 /* SAVIWebView.swift */; };
 		21369F7A43FA24862791478A /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = E31AD178E16028A5BC865A87 /* index.html */; };
-		561B6142D6588AD8B581634F /* SAVIWebViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D8759EA3E096D82F0BC9FE1 /* SAVIWebViewModel.swift */; };
 		6F56B5EA8EC5CA14D357CD09 /* SAVIShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, CodeSignOnCopy, ); }; };
 		75AB82B9897966CCF7028E0D /* AppGroupSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */; };
 		8D3C48C404FF29E62E974B6A /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E0E01594654714FD620E2F /* ShareViewController.swift */; };
@@ -45,13 +43,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0D8759EA3E096D82F0BC9FE1 /* SAVIWebViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAVIWebViewModel.swift; sourceTree = "<group>"; };
 		11333F90426CE69B5643FED6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1DB32B332BE1517C41DD323F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupSupport.swift; sourceTree = "<group>"; };
 		25AEFE6C525A4559AFE2FCB0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		454E8F99EB5E199E927BA378 /* SAVIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAVIApp.swift; sourceTree = "<group>"; };
-		51F14E3577FECF7CCEA55977 /* SAVIWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAVIWebView.swift; sourceTree = "<group>"; };
 		8065247801A22C3651B51CB2 /* SAVI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SAVI.entitlements; sourceTree = "<group>"; };
 		8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SAVIShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		98D87BA38D841BBC3186FCAC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -112,8 +108,6 @@
 			children = (
 				454E8F99EB5E199E927BA378 /* SAVIApp.swift */,
 				25AEFE6C525A4559AFE2FCB0 /* ContentView.swift */,
-				0D8759EA3E096D82F0BC9FE1 /* SAVIWebViewModel.swift */,
-				51F14E3577FECF7CCEA55977 /* SAVIWebView.swift */,
 				11333F90426CE69B5643FED6 /* Info.plist */,
 				8065247801A22C3651B51CB2 /* SAVI.entitlements */,
 				98D87BA38D841BBC3186FCAC /* Assets.xcassets */,
@@ -167,7 +161,6 @@
 			buildPhases = (
 				6B366E3A6159DC0A46CE6169 /* Sources */,
 				0F87A878AEB94E823836E22B /* Frameworks */,
-				A6B19C71F6D245509912A001 /* Sync Web Bundle */,
 				34E903FB6EA77173817200D0 /* Resources */,
 				E05BAD85F796B970FA8BBD01 /* Embed App Extensions */,
 			);
@@ -239,32 +232,6 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		A6B19C71F6D245509912A001 /* Sync Web Bundle */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(PROJECT_DIR)/../SAVI /index.html",
-				"$(PROJECT_DIR)/../SAVI /vendor/react.production.min.js",
-				"$(PROJECT_DIR)/../SAVI /vendor/react-dom.production.min.js",
-				"$(PROJECT_DIR)/../SAVI /vendor/babel.min.js",
-			);
-			name = "Sync Web Bundle";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(PROJECT_DIR)/SAVI/Resources/index.html",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/zsh;
-			shellScript = "\"$PROJECT_DIR/scripts/sync_web_bundle.sh\"\n";
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
 		6B366E3A6159DC0A46CE6169 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -272,8 +239,6 @@
 			files = (
 				BADCDEFE3A64A6DE77A5879A /* SAVIApp.swift in Sources */,
 				9E0BF8DF6A2ACE7388B73DA7 /* ContentView.swift in Sources */,
-				561B6142D6588AD8B581634F /* SAVIWebViewModel.swift in Sources */,
-				18C5779324E60FB0461B8F97 /* SAVIWebView.swift in Sources */,
 				17450B03B5250677DE7C0400 /* AppGroupSupport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

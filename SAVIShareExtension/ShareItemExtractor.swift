@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationModels)
+import FoundationModels
+#endif
 import LinkPresentation
 import MobileCoreServices
 import UniformTypeIdentifiers
@@ -51,7 +54,7 @@ enum ShareItemExtractor {
                 filePath: nil,
                 mimeType: nil,
                 itemDescription: itemText,
-                folderId: suggestedFolderId(type: type, url: canonicalURLString, title: itemTitle, description: itemText),
+                folderId: suggestedFolderId(type: type, url: canonicalURLString, title: itemTitle ?? fallbackTitle, description: itemText),
                 tags: inferredTags(type: type, url: canonicalURLString, title: itemTitle, description: itemText, source: sourceBundleID)
             )
         }
@@ -72,7 +75,7 @@ enum ShareItemExtractor {
                 filePath: nil,
                 mimeType: UTType.plainText.identifier,
                 itemDescription: text,
-                folderId: suggestedFolderId(type: "article", url: nil, title: title, description: text),
+                folderId: suggestedFolderId(type: "text", url: nil, title: title, description: text, source: sourceBundleID),
                 tags: inferredTags(type: "article", url: nil, title: title, description: text, source: sourceBundleID)
             )
         }
@@ -96,7 +99,7 @@ enum ShareItemExtractor {
                 filePath: copiedURL.path,
                 mimeType: UTType.image.identifier,
                 itemDescription: itemText,
-                folderId: "f-private-vault",
+                folderId: suggestedFolderId(type: "image", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: UTType.image.identifier, source: sourceBundleID),
                 tags: inferredTags(type: "image", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, source: sourceBundleID)
             )
         }
@@ -118,7 +121,7 @@ enum ShareItemExtractor {
                 filePath: copiedURL.path,
                 mimeType: UTType.pdf.identifier,
                 itemDescription: itemText,
-                folderId: "f-private-vault",
+                folderId: suggestedFolderId(type: "pdf", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: UTType.pdf.identifier, source: sourceBundleID),
                 tags: inferredTags(type: "file", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, source: sourceBundleID)
             )
         }
@@ -139,7 +142,7 @@ enum ShareItemExtractor {
                 filePath: copiedURL.path,
                 mimeType: preferred,
                 itemDescription: itemText,
-                folderId: "f-private-vault",
+                folderId: suggestedFolderId(type: "file", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: preferred, source: sourceBundleID),
                 tags: inferredTags(type: "file", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, source: sourceBundleID)
             )
         }
@@ -162,7 +165,22 @@ enum ShareItemExtractor {
               let url = URL(string: urlString),
               url.scheme?.hasPrefix("http") == true
         else {
-            resolved.folderId = resolved.folderId ?? suggestedFolderId(type: resolved.type, url: resolved.url, title: resolved.title, description: resolved.itemDescription ?? resolved.text)
+            let classification = suggestedFolderClassification(
+                type: resolved.type,
+                url: resolved.url,
+                title: resolved.title,
+                description: resolved.itemDescription ?? resolved.text,
+                fileName: resolved.fileName,
+                mimeType: resolved.mimeType,
+                tags: resolved.tags ?? [],
+                source: resolved.sourceApp
+            )
+            resolved.folderId = resolved.folderId ?? classification.folderId
+            if (resolved.folderSource ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                resolved.folderSource = "rules"
+                resolved.folderConfidence = classification.confidence
+                resolved.folderReason = classification.reason
+            }
             resolved.tags = dedupeTags(resolved.tags ?? inferredTags(type: resolved.type, url: resolved.url, title: resolved.title, description: resolved.itemDescription ?? resolved.text, source: resolved.sourceApp))
             return resolved
         }
@@ -192,12 +210,20 @@ enum ShareItemExtractor {
             resolved.tags = dedupeTags((resolved.tags ?? []) + metadata.tags)
         }
 
-        resolved.folderId = suggestedFolderId(
+        let classification = suggestedFolderClassification(
             type: resolved.type,
             url: resolved.url,
             title: resolved.title,
-            description: resolved.itemDescription ?? resolved.text
+            description: resolved.itemDescription ?? resolved.text,
+            fileName: resolved.fileName,
+            mimeType: resolved.mimeType,
+            tags: resolved.tags ?? [],
+            source: resolved.sourceApp
         )
+        resolved.folderId = classification.folderId
+        resolved.folderSource = "metadata"
+        resolved.folderConfidence = classification.confidence
+        resolved.folderReason = classification.reason
         resolved.tags = dedupeTags(
             (resolved.tags ?? []) +
             inferredTags(
@@ -210,6 +236,15 @@ enum ShareItemExtractor {
         )
         return resolved
     }
+
+    static func improveWithAppleIntelligence(_ share: PendingShare) async -> PendingShare {
+#if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            return await improveWithFoundationModels(share)
+        }
+#endif
+        return share
+    }
 }
 
 private struct RemoteMetadata {
@@ -220,45 +255,75 @@ private struct RemoteMetadata {
     let tags: [String]
 }
 
+private struct ShareIntelligenceDraft: Codable {
+    var title: String?
+    var folderId: String?
+    var tags: [String]?
+}
+
+private enum MetadataFetchResult {
+    case metadata(RemoteMetadata)
+    case empty
+    case timedOut
+}
+
 private struct YouTubeOEmbedResponse: Decodable {
     let title: String?
+    let description: String?
     let authorName: String?
     let providerName: String?
     let thumbnailURL: String?
+    let html: String?
+    let type: String?
 
     enum CodingKeys: String, CodingKey {
         case title
+        case description
         case authorName = "author_name"
         case providerName = "provider_name"
         case thumbnailURL = "thumbnail_url"
+        case html
+        case type
     }
 }
 
 private struct NoembedResponse: Decodable {
     let title: String?
+    let description: String?
     let authorName: String?
     let providerName: String?
     let thumbnailURL: String?
+    let html: String?
+    let type: String?
 
     enum CodingKeys: String, CodingKey {
         case title
+        case description
         case authorName = "author_name"
         case providerName = "provider_name"
         case thumbnailURL = "thumbnail_url"
+        case html
+        case type
     }
 }
 
 private struct GenericOEmbedResponse: Decodable {
     let title: String?
+    let description: String?
     let authorName: String?
     let providerName: String?
     let thumbnailURL: String?
+    let html: String?
+    let type: String?
 
     enum CodingKeys: String, CodingKey {
         case title
+        case description
         case authorName = "author_name"
         case providerName = "provider_name"
         case thumbnailURL = "thumbnail_url"
+        case html
+        case type
     }
 }
 
@@ -272,6 +337,7 @@ struct FolderPreset {
 extension ShareItemExtractor {
     static let defaultFolderPresets: [FolderPreset] = [
         .init(id: "f-private-vault", name: "Private Vault", symbolName: "lock.fill", colorHex: "#6C63FF"),
+        .init(id: "f-paste-bin", name: "Paste Bin", symbolName: "clipboard.fill", colorHex: "#C4B5FD"),
         .init(id: "f-growth", name: "AI Hacks", symbolName: "bolt.fill", colorHex: "#FF8A3D"),
         .init(id: "f-wtf-favorites", name: "Science Stuff", symbolName: "atom", colorHex: "#5875FF"),
         .init(id: "f-tinfoil", name: "Tinfoil Hat Club", symbolName: "eye.fill", colorHex: "#6D4AFF"),
@@ -314,6 +380,65 @@ extension ShareItemExtractor {
 }
 
 private extension ShareItemExtractor {
+#if canImport(FoundationModels)
+    @available(iOS 26.0, *)
+    static func improveWithFoundationModels(_ share: PendingShare) async -> PendingShare {
+        let model = SystemLanguageModel(useCase: .contentTagging)
+        guard case .available = model.availability else {
+            NSLog("[SAVIShareExtension] Apple Intelligence unavailable in share extension: %@", String(describing: model.availability))
+            return share
+        }
+
+        let startedAt = Date()
+        let draft = await withTaskGroup(of: ShareIntelligenceDraft?.self) { group in
+            group.addTask {
+                await requestShareDraft(share: share, model: model)
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 1_600_000_000)
+                return nil
+            }
+
+            while let result = await group.next() {
+                group.cancelAll()
+                return result
+            }
+            return nil
+        }
+
+        guard let draft else {
+            NSLog("[SAVIShareExtension] Apple Intelligence share draft timed out in %.3fs", Date().timeIntervalSince(startedAt))
+            return share
+        }
+        NSLog("[SAVIShareExtension] Apple Intelligence share draft returned in %.3fs", Date().timeIntervalSince(startedAt))
+        return applyingIntelligenceDraft(draft, to: share)
+    }
+
+    @available(iOS 26.0, *)
+    static func requestShareDraft(share: PendingShare, model: SystemLanguageModel) async -> ShareIntelligenceDraft? {
+        let session = LanguageModelSession(
+            model: model,
+            instructions: """
+            You improve SAVI share-sheet drafts. Return only compact JSON. Do not include markdown.
+            JSON shape: {"title":"clear short title","folderId":"one-folder-id","tags":["tag-one","tag-two"]}.
+            Keep titles specific, human-readable, and under 70 characters.
+            Tags must be lowercase search tags without #.
+            """
+        )
+
+        do {
+            let response = try await session.respond(
+                to: shareDraftPrompt(for: share),
+                options: GenerationOptions(temperature: 0.0, maximumResponseTokens: 180)
+            )
+            return decodeShareDraft(response.content)
+        } catch {
+            NSLog("[SAVI Share] Apple Intelligence draft skipped: \(error.localizedDescription)")
+            return nil
+        }
+    }
+#endif
+
     static func fallbackTitle(for share: PendingShare) -> String {
         if let fileName = share.fileName, !fileName.isEmpty { return fileName }
         if let url = share.url { return fallbackTitleForURLString(url) }
@@ -323,6 +448,19 @@ private extension ShareItemExtractor {
     static func fallbackTitleForURLString(_ urlString: String) -> String {
         guard let url = URL(string: urlString) else { return "Shared item" }
         if isYouTubeURL(url) { return "YouTube video" }
+        if isTikTokURL(url) { return "TikTok video" }
+        if isInstagramReelURL(url) { return "Instagram Reel" }
+        if isInstagramURL(url) { return "Instagram Post" }
+        if isTwitterXURL(url) { return "X post" }
+        if isRedditURL(url) { return "Reddit post" }
+        if isVimeoURL(url) { return "Vimeo video" }
+        if isSpotifyURL(url) { return "Spotify save" }
+        if isSoundCloudURL(url) { return "SoundCloud save" }
+        if isPinterestURL(url) { return "Pinterest pin" }
+        if isFacebookURL(url) { return "Facebook post" }
+        if isThreadsURL(url) { return "Threads post" }
+        if isBlueskyURL(url) { return "Bluesky post" }
+        if isLinkedInURL(url) { return "LinkedIn save" }
         if let host = hostDisplayName(for: url), !host.isEmpty { return "\(host) save" }
         if !url.lastPathComponent.isEmpty { return url.lastPathComponent }
         return "Shared item"
@@ -333,8 +471,11 @@ private extension ShareItemExtractor {
         if value.contains("maps.google.") || value.contains("google.com/maps") || value.contains("goo.gl/maps") || value.contains("maps.apple.com") {
             return "place"
         }
-        if value.contains("youtube.com") || value.contains("youtu.be") || value.contains("vimeo.com") || value.contains("tiktok.com") {
+        if value.contains("youtube.com") || value.contains("youtu.be") || value.contains("vimeo.com") || value.contains("tiktok.com") || value.contains("instagram.com/reel/") || value.contains("facebook.com/watch") || value.contains("fb.watch") {
             return "video"
+        }
+        if value.contains("pinterest.") || value.contains("pin.it") {
+            return "image"
         }
         if value.contains("cnn.com") || value.contains("bbc.") || value.contains("nytimes.com") || value.contains("reuters.com") || value.contains("theverge.com") || value.contains("wired.com") || value.contains("medium.com") || value.contains("/article/") || value.contains("/news/") {
             return "article"
@@ -356,9 +497,15 @@ private extension ShareItemExtractor {
             if host.contains("instagram") { return "Instagram" }
             if host.contains("tiktok") { return "TikTok" }
             if host.contains("reddit") { return "Reddit" }
+            if host.contains("vimeo") { return "Vimeo" }
             if host.contains("spotify") { return "Spotify" }
+            if host.contains("soundcloud") { return "SoundCloud" }
             if host.contains("x.com") || host.contains("twitter.com") { return "X" }
             if host.contains("pinterest") { return "Pinterest" }
+            if host.contains("facebook.com") || host.contains("fb.watch") { return "Facebook" }
+            if host.contains("threads.net") || host.contains("threads.com") { return "Threads" }
+            if host.contains("bsky.app") || host.contains("bsky.social") { return "Bluesky" }
+            if host.contains("linkedin.com") { return "LinkedIn" }
             if host.contains("google.") && sharedURL.contains("/maps") { return "Google Maps" }
             if host.contains("apple.com") && sharedURL.contains("maps") { return "Apple Maps" }
             if host.contains("cnn.com") { return "CNN" }
@@ -389,11 +536,167 @@ private extension ShareItemExtractor {
             || currentLower == "shared item"
             || currentLower == "youtube video"
             || currentLower == "youtube save"
+            || currentLower == "tiktok video"
+            || currentLower == "instagram reel"
+            || currentLower == "instagram post"
+            || currentLower == "x post"
+            || currentLower == "twitter post"
+            || currentLower == "reddit post"
+            || currentLower == "vimeo video"
+            || currentLower == "spotify save"
+            || currentLower == "soundcloud save"
+            || currentLower == "pinterest pin"
+            || currentLower == "facebook post"
+            || currentLower == "threads post"
+            || currentLower == "bluesky post"
+            || currentLower == "linkedin save"
+            || currentLower == "reddit - please wait for verification"
             || currentLower == "watch"
             || currentLower == "share"
             || currentLower.contains("youtube.com")
             || currentLower.contains("maps.google")
             || candidateLower == "youtube"
+    }
+
+    static func applyingIntelligenceDraft(_ draft: ShareIntelligenceDraft, to share: PendingShare) -> PendingShare {
+        var resolved = share
+
+        if let title = cleanedIntelligenceTitle(draft.title),
+           shouldReplaceTitle(current: resolved.title, with: title) || title.count > resolved.title.count + 8 {
+            resolved.title = title
+        }
+
+        let validFolderIds = Set(folderPresets().map(\.id))
+        if let folderId = draft.folderId?.trimmingCharacters(in: .whitespacesAndNewlines),
+           validFolderIds.contains(folderId) {
+            let input = SAVIFolderClassificationInput(
+                title: resolved.title,
+                description: resolved.itemDescription ?? resolved.text ?? "",
+                url: resolved.url,
+                type: resolved.type,
+                source: resolved.sourceApp,
+                fileName: resolved.fileName,
+                mimeType: resolved.mimeType,
+                tags: resolved.tags ?? []
+            )
+            let localResult = SAVIFolderClassifier.classify(
+                input,
+                availableFolders: folderPresets().map { SAVIFolderOption(id: $0.id, name: $0.name) },
+                learningSignals: PendingShareStore.shared.loadFolderLearning()
+            )
+            if SAVIFolderClassifier.shouldAcceptIntelligenceFolder(folderId, localResult: localResult, input: input) {
+                resolved.folderId = folderId
+                resolved.folderSource = "apple-intelligence"
+                resolved.folderConfidence = nil
+                resolved.folderReason = "apple-intelligence"
+            }
+        }
+
+        let aiTags = (draft.tags ?? [])
+            .map(cleanedIntelligenceTag)
+            .compactMap { $0 }
+        if !aiTags.isEmpty {
+            resolved.tags = Array(dedupeTags((resolved.tags ?? []) + aiTags).prefix(10))
+        }
+
+        return resolved
+    }
+
+    static func cleanedIntelligenceTitle(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let cleaned = value
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard cleaned.count >= 3, cleaned.count <= 90 else { return nil }
+        let lowered = cleaned.lowercased()
+        if ["untitled", "shared item", "new save", "link", "file"].contains(lowered) { return nil }
+        return cleaned
+    }
+
+    static func cleanedIntelligenceTag(_ value: String) -> String? {
+        let cleaned = value
+            .lowercased()
+            .replacingOccurrences(of: "#", with: "")
+            .replacingOccurrences(of: "[^a-z0-9\\s_-]", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: "\\s+", with: "-", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-_ ").union(.whitespacesAndNewlines))
+        guard cleaned.count >= 2, cleaned.count <= 32 else { return nil }
+        return cleaned
+    }
+
+    static func shareDraftPrompt(for share: PendingShare) -> String {
+        let presets = folderPresets()
+        let folderOptions = presets.map { SAVIFolderOption(id: $0.id, name: $0.name) }
+        let folderChoices = presets
+            .map { "\($0.id): \($0.name)" }
+            .joined(separator: "\n")
+        let description = String((share.itemDescription ?? share.text ?? "").prefix(1_200))
+        let url = String((share.url ?? "").prefix(500))
+        let fileName = share.fileName ?? ""
+        let mimeType = share.mimeType ?? ""
+        let tags = (share.tags ?? []).prefix(8).joined(separator: ", ")
+        let learningExamples = SAVIFolderClassifier.learningExamples(
+            from: PendingShareStore.shared.loadFolderLearning(),
+            availableFolders: folderOptions,
+            limit: 8
+        )
+        let learningBlock = learningExamples.isEmpty ? "" : """
+
+        Local user correction examples:
+        \(learningExamples.map { "- \($0)" }.joined(separator: "\n"))
+
+        Prefer these local examples when the current share clearly matches them.
+        """
+
+        return """
+        Improve this SAVI save draft. Choose a better title only if the current one is generic, a filename, or a raw URL.
+
+        Folder choices:
+        \(folderChoices)
+        \(learningBlock)
+
+        Draft:
+        current title: \(share.title)
+        description/text: \(description)
+        url: \(url)
+        source: \(share.sourceApp)
+        type: \(share.type)
+        filename: \(fileName)
+        mime type: \(mimeType)
+        existing tags: \(tags)
+
+        Use exactly one folderId from the choices. For private documents, IDs, receipts, medical, insurance, banking, credentials, or tax files, choose f-private-vault.
+        Entertainment, trailers, news, and fandom posts are not private just because their title says secret, leaked, vault, or password.
+        Return only JSON.
+        """
+    }
+
+    static func decodeShareDraft(_ text: String) -> ShareIntelligenceDraft? {
+        let cleaned = text
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let candidates = [cleaned, extractJSONObject(from: cleaned)].compactMap { $0 }
+        for candidate in candidates {
+            guard let data = candidate.data(using: .utf8),
+                  let decoded = try? JSONDecoder().decode(ShareIntelligenceDraft.self, from: data)
+            else { continue }
+            if cleanedIntelligenceTitle(decoded.title) != nil ||
+                decoded.folderId?.isEmpty == false ||
+                !(decoded.tags ?? []).isEmpty {
+                return decoded
+            }
+        }
+        return nil
+    }
+
+    static func extractJSONObject(from text: String) -> String? {
+        guard let start = text.firstIndex(of: "{"),
+              let end = text.lastIndex(of: "}"),
+              start <= end else { return nil }
+        return String(text[start...end])
     }
 
     static func extractPlaceName(from url: URL) -> String? {
@@ -417,64 +720,86 @@ private extension ShareItemExtractor {
         return nil
     }
 
-    static func suggestedFolderId(type: String, url: String?, title: String?, description: String?) -> String {
-        let urlText = (url ?? "").lowercased()
-        let titleText = (title ?? "").lowercased()
-        let descriptionText = (description ?? "").lowercased()
-        let haystack = [urlText, titleText, descriptionText].joined(separator: " ")
+    static func suggestedFolderId(
+        type: String,
+        url: String?,
+        title: String?,
+        description: String?,
+        fileName: String? = nil,
+        mimeType: String? = nil,
+        tags: [String] = [],
+        source: String? = nil
+    ) -> String {
+        suggestedFolderClassification(
+            type: type,
+            url: url,
+            title: title,
+            description: description,
+            fileName: fileName,
+            mimeType: mimeType,
+            tags: tags,
+            source: source
+        ).folderId
+    }
 
-        if type == "image" || type == "file" || haystack.matches("passport|insurance|card|social security|tax|lease|medical|wifi|document") {
-            return "f-private-vault"
-        }
+    static func suggestedFolderClassification(
+        type: String,
+        url: String?,
+        title: String?,
+        description: String?,
+        fileName: String? = nil,
+        mimeType: String? = nil,
+        tags: [String] = [],
+        source: String? = nil
+    ) -> SAVIFolderClassification {
+        let options = folderPresets().map { SAVIFolderOption(id: $0.id, name: $0.name) }
+        let input = SAVIFolderClassificationInput(
+            title: title ?? "",
+            description: description ?? "",
+            url: url,
+            type: type,
+            source: source ?? "",
+            fileName: fileName,
+            mimeType: mimeType,
+            tags: tags
+        )
+        let result = SAVIFolderClassifier.classify(
+            input,
+            availableFolders: options,
+            learningSignals: PendingShareStore.shared.loadFolderLearning()
+        )
+        recordFolderDecision(input: input, result: result, options: options, context: "Share Extension")
+        return result
+    }
 
-        if type == "place" {
-            return "f-travel"
-        }
-
-        let profiles: [(id: String, keywords: [String])] = [
-            ("f-health", ["parasite", "parasites", "infection", "disease", "symptom", "symptoms", "doctor", "medical", "medicine", "health", "wellness", "fitness", "sleep", "stress", "mental health", "nutrition", "protein", "hydration", "gut", "body"]),
-            ("f-recipes", ["recipe", "recipes", "pasta", "food", "cook", "cooking", "kitchen", "meal", "restaurant", "dessert", "breakfast", "dinner", "lunch", "bake", "chef", "air fryer"]),
-            ("f-growth", ["claude", "chatgpt", "ai", "prompt", "productivity", "career", "business", "startup", "resume", "workflow", "automation", "software", "leadership", "negotiation", "networking"]),
-            ("f-tinfoil", ["alien", "aliens", "atlantis", "sphinx", "pyramid", "pyramids", "mkultra", "northwoods", "cover-up", "coverup", "conspiracy", "pentagon", "ufo", "government secret", "rabbit hole", "ancient egypt", "area 51"]),
-            ("f-lmao", ["funny", "meme", "viral", "laugh", "lmao", "rickroll", "numa", "charlie bit", "keyboard cat", "dramatic chipmunk", "fail compilation", "comedy"]),
-            ("f-travel", ["travel", "hotel", "flight", "map", "maps", "restaurant", "cafe", "museum", "trip", "visit", "pin", "destination", "vacation", "beach", "city guide"]),
-            ("f-design", ["design", "ui", "ux", "figma", "dribbble", "branding", "visual", "typography", "poster", "layout", "interface"]),
-            ("f-research", ["research", "paper", "study", "science", "technical", "gpt-4", "attention is all you need", "webb", "nasa", "quantum", "report", "analysis", "journal"]),
-            ("f-wtf-favorites", ["mind-blowing", "wild", "space", "discovery", "crazy", "mystery", "insane", "unbelievable", "shocking"]),
-        ]
-
-        var best: (id: String, score: Int)? = nil
-        for profile in profiles {
-            let score = folderScore(
-                keywords: profile.keywords,
-                title: titleText,
-                description: descriptionText,
-                url: urlText
-            )
-            if score > (best?.score ?? 0) {
-                best = (profile.id, score)
-            }
-        }
-
-        if let best, best.score >= 5 {
-            return best.id
-        }
-
-        let customMatch = folderPresets()
-            .filter { preset in
-                let key = preset.name.lowercased()
-                return !["private vault", "growth hacks", "wtf favorites", "tinfoil hat club", "lmao", "health hacks", "recipes & food", "travel & places", "design inspo", "research", "must see"].contains(key)
-                    && !["ai hacks", "science stuff", "lulz", "places", "watch / read later", "random af"].contains(key)
-            }
-            .max { lhs, rhs in
-                score(folderName: lhs.name, haystack: haystack) < score(folderName: rhs.name, haystack: haystack)
-            }
-
-        if let customMatch, score(folderName: customMatch.name, haystack: haystack) >= 4 {
-            return customMatch.id
-        }
-
-        return "f-random"
+    static func recordFolderDecision(
+        input: SAVIFolderClassificationInput,
+        result: SAVIFolderClassification,
+        options: [SAVIFolderOption],
+        context: String
+    ) {
+        let rawTitle = input.title.nilIfBlank ??
+            input.fileName?.nilIfBlank ??
+            input.url?.nilIfBlank ??
+            input.description.nilIfBlank ??
+            "Untitled share"
+        let safeTitle = (SAVIFolderClassifier.isSensitive(input) || SAVIFolderClassifier.looksPrivateDocument(input)) ?
+            "Private item" :
+            String(rawTitle.prefix(90))
+        let folderName = options.first(where: { $0.id == result.folderId })?.name ??
+            SAVIFolderClassifier.defaultFolderOptions.first(where: { $0.id == result.folderId })?.name ??
+            "Unknown folder"
+        let record = SAVIFolderDecisionRecord(
+            id: UUID().uuidString,
+            title: safeTitle,
+            folderId: result.folderId,
+            folderName: folderName,
+            confidence: result.confidence,
+            reason: result.reason,
+            context: context,
+            createdAt: Date().timeIntervalSince1970
+        )
+        PendingShareStore.shared.saveFolderDecision(record)
     }
 
     static func inferredTags(type: String, url: String?, title: String?, description: String?, source: String?) -> [String] {
@@ -482,20 +807,40 @@ private extension ShareItemExtractor {
             .lowercased()
             .replacingOccurrences(of: " ", with: "-")
             .replacingOccurrences(of: ".", with: "")
-        let haystack = [url ?? "", title ?? "", description ?? ""].joined(separator: " ").lowercased()
+        let haystack = [url ?? "", title ?? "", description ?? "", source ?? ""].joined(separator: " ").lowercased()
         var tags: [String] = []
         tags.append(contentsOf: keywordTags(title: title, description: description, url: url, source: source))
         tags.append(contentsOf: topicalTags(from: haystack))
         if type != "link" && type != "text" {
             tags.append(type)
         }
+        if ["pdf", "file"].contains(type) { tags.append("document") }
+        if type == "text" { tags.append("note") }
         if !sourceTag.isEmpty, sourceTag != "share-extension" {
             tags.append(sourceTag)
         }
-        if type == "place" { tags.append("location") }
-        if haystack.contains("youtube") { tags.append("video") }
-        if haystack.contains("instagram") { tags.append("post") }
-        if haystack.contains("pdf") { tags.append("pdf") }
+        if type == "place" { tags += ["location", "place"] }
+        if haystack.contains("youtube") || haystack.contains("youtu.be") { tags += ["youtube", "video"] }
+        if haystack.contains("instagram") {
+            tags.append("instagram")
+            tags.append("post")
+            if haystack.contains("/reel/") { tags += ["reel", "video"] }
+        }
+        if haystack.contains("tiktok") { tags += ["tiktok", "video"] }
+        if haystack.contains("twitter.com") || haystack.contains("x.com/") { tags += ["x", "twitter", "post"] }
+        if haystack.contains("reddit") { tags += ["reddit", "post"] }
+        if haystack.contains("vimeo") { tags += ["vimeo", "video"] }
+        if haystack.contains("spotify") { tags += ["spotify", "music"] }
+        if haystack.contains("soundcloud") { tags += ["soundcloud", "music"] }
+        if haystack.contains("pinterest") || haystack.contains("pin.it") { tags += ["pinterest", "image"] }
+        if haystack.contains("facebook") || haystack.contains("fb.watch") { tags += ["facebook", "post"] }
+        if haystack.contains("threads.net") || haystack.contains("threads.com") { tags += ["threads", "post"] }
+        if haystack.contains("bsky.app") || haystack.contains("bluesky") { tags += ["bluesky", "post"] }
+        if haystack.contains("linkedin") { tags += ["linkedin", "post"] }
+        if haystack.contains("pdf") || haystack.range(of: #"\.pdf(\?|$|\s)"#, options: .regularExpression) != nil { tags += ["pdf", "document"] }
+        if haystack.contains("screenshot") || haystack.contains("screen shot") { tags += ["screenshot", "image"] }
+        if haystack.contains("prompt") { tags.append("prompt") }
+        if haystack.contains("todo") || haystack.contains("checklist") { tags.append("checklist") }
         return dedupeTags(tags)
     }
 
@@ -548,36 +893,84 @@ private extension ShareItemExtractor {
     }
 
     static func fetchRemoteMetadata(for url: URL) async -> RemoteMetadata? {
-        async let youtubeMetadata: RemoteMetadata? = isYouTubeURL(url) ? (try? await fetchYouTubeMetadata(for: url)) : nil
-        async let providerMetadata: RemoteMetadata? = try? await fetchProviderSpecificMetadata(for: url)
-        async let noembedMetadata: RemoteMetadata? = try? await fetchNoembedMetadata(for: url)
-        async let linkPresentationMetadata: RemoteMetadata? = try? await fetchLinkPresentationMetadata(for: url)
-        async let htmlMetadata: RemoteMetadata? = try? await fetchHTMLMetadata(for: url)
+        let startedAt = Date()
+        return await withTaskGroup(of: MetadataFetchResult.self) { group in
+            if isYouTubeURL(url) {
+                group.addTask {
+                    guard let metadata = try? await fetchYouTubeMetadata(for: url) else { return .empty }
+                    return .metadata(metadata)
+                }
+            }
 
-        let candidates = await [
-            youtubeMetadata,
-            providerMetadata,
-            noembedMetadata,
-            linkPresentationMetadata,
-            htmlMetadata
-        ].compactMap { $0 }
-        guard !candidates.isEmpty else { return nil }
-        return mergeMetadata(candidates)
+            group.addTask {
+                guard let metadata = try? await fetchProviderSpecificMetadata(for: url) else { return .empty }
+                return .metadata(metadata)
+            }
+            group.addTask {
+                guard let metadata = try? await fetchNoembedMetadata(for: url) else { return .empty }
+                return .metadata(metadata)
+            }
+            group.addTask {
+                guard let metadata = try? await fetchHTMLMetadata(for: url) else { return .empty }
+                return .metadata(metadata)
+            }
+            group.addTask {
+                guard let metadata = try? await fetchLinkPresentationMetadata(for: url) else { return .empty }
+                return .metadata(metadata)
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 2_200_000_000)
+                return .timedOut
+            }
+
+            var candidates: [RemoteMetadata] = []
+            while let result = await group.next() {
+                switch result {
+                case .metadata(let metadata):
+                    candidates.append(metadata)
+                    if metadataLooksComplete(metadata) {
+                        group.cancelAll()
+                        NSLog("[SAVIShareExtension] metadata ready in %.2fs for %@", Date().timeIntervalSince(startedAt), url.absoluteString)
+                        return mergeMetadata(candidates)
+                    }
+                case .empty:
+                    continue
+                case .timedOut:
+                    group.cancelAll()
+                    NSLog("[SAVIShareExtension] metadata timed out after %.2fs for %@", Date().timeIntervalSince(startedAt), url.absoluteString)
+                    return candidates.isEmpty ? nil : mergeMetadata(candidates)
+                }
+            }
+
+            guard !candidates.isEmpty else { return nil }
+            NSLog("[SAVIShareExtension] metadata finished in %.2fs for %@", Date().timeIntervalSince(startedAt), url.absoluteString)
+            return mergeMetadata(candidates)
+        }
+    }
+
+    static func metadataLooksComplete(_ metadata: RemoteMetadata) -> Bool {
+        guard let title = metadata.title?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !title.isEmpty,
+              titleQualityScore(title) > 0
+        else {
+            return false
+        }
+        let normalizedTitle = title.lowercased()
+        let provider = metadata.provider?.lowercased() ?? ""
+        if provider.contains("instagram"),
+           metadata.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false,
+           ["instagram reel", "instagram post"].contains(normalizedTitle) {
+            return false
+        }
+        return metadata.description?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            || metadata.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            || metadata.provider?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
 
     static func fetchYouTubeMetadata(for url: URL) async throws -> RemoteMetadata {
         let canonicalURL = canonicalYouTubeURL(from: url)
 
-        if let metadata = try? await fetchYouTubeOEmbed(for: canonicalURL) {
-            if let richer = try? await fetchHTMLMetadata(for: url) {
-                return RemoteMetadata(
-                    title: metadata.title ?? richer.title,
-                    description: richer.description ?? metadata.description,
-                    imageURL: metadata.imageURL ?? richer.imageURL ?? youtubeThumbnailURL(for: canonicalURL),
-                    provider: metadata.provider ?? richer.provider ?? "YouTube",
-                    tags: dedupeTags(metadata.tags + richer.tags)
-                )
-            }
+        if let metadata = try? await fetchNoembedMetadata(for: canonicalURL) {
             return RemoteMetadata(
                 title: metadata.title,
                 description: metadata.description,
@@ -587,16 +980,7 @@ private extension ShareItemExtractor {
             )
         }
 
-        if let metadata = try? await fetchNoembedMetadata(for: canonicalURL) {
-            if let richer = try? await fetchHTMLMetadata(for: url) {
-                return RemoteMetadata(
-                    title: metadata.title ?? richer.title,
-                    description: richer.description ?? metadata.description,
-                    imageURL: metadata.imageURL ?? richer.imageURL ?? youtubeThumbnailURL(for: canonicalURL),
-                    provider: metadata.provider ?? richer.provider ?? "YouTube",
-                    tags: dedupeTags(metadata.tags + richer.tags)
-                )
-            }
+        if let metadata = try? await fetchYouTubeOEmbed(for: canonicalURL) {
             return RemoteMetadata(
                 title: metadata.title,
                 description: metadata.description,
@@ -625,7 +1009,11 @@ private extension ShareItemExtractor {
     }
 
     static func fetchYouTubeOEmbed(for url: URL) async throws -> RemoteMetadata {
-        let endpoint = "https://www.youtube.com/oembed?url=\(url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url.absoluteString)&format=json"
+        let endpoint = try oEmbedEndpoint(
+            base: "https://www.youtube.com/oembed",
+            url: url,
+            extraItems: [URLQueryItem(name: "format", value: "json")]
+        )
         let data = try await fetchJSONData(from: endpoint)
         let decoded = try JSONDecoder().decode(YouTubeOEmbedResponse.self, from: data)
         return RemoteMetadata(
@@ -640,26 +1028,83 @@ private extension ShareItemExtractor {
     static func fetchProviderSpecificMetadata(for url: URL) async throws -> RemoteMetadata? {
         if isTikTokURL(url) {
             return try await fetchGenericOEmbedMetadata(
-                endpoint: "https://www.tiktok.com/oembed?url=\(url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url.absoluteString)",
+                endpoint: try oEmbedEndpoint(base: "https://www.tiktok.com/oembed", url: url),
                 for: url,
                 defaultProvider: "TikTok",
                 tags: ["tiktok", "video"]
             )
         }
+        if isInstagramURL(url) {
+            return RemoteMetadata(
+                title: isInstagramReelURL(url) ? "Instagram Reel" : "Instagram Post",
+                description: "Shared from Instagram.",
+                imageURL: nil,
+                provider: "Instagram",
+                tags: isInstagramReelURL(url) ? ["instagram", "reel", "video"] : ["instagram", "post"]
+            )
+        }
         if isTwitterXURL(url) {
             return try await fetchGenericOEmbedMetadata(
-                endpoint: "https://publish.twitter.com/oembed?url=\(url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url.absoluteString)&omit_script=true",
+                endpoint: try oEmbedEndpoint(
+                    base: "https://publish.twitter.com/oembed",
+                    url: url,
+                    extraItems: [URLQueryItem(name: "omit_script", value: "true")]
+                ),
                 for: url,
                 defaultProvider: "X",
-                tags: ["x", "post"]
+                tags: ["x", "twitter", "post"]
             )
         }
         if isRedditURL(url) {
             return try await fetchGenericOEmbedMetadata(
-                endpoint: "https://www.reddit.com/oembed?url=\(url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url.absoluteString)",
+                endpoint: try oEmbedEndpoint(base: "https://www.reddit.com/oembed", url: url),
                 for: url,
                 defaultProvider: "Reddit",
                 tags: ["reddit", "post"]
+            )
+        }
+        if isVimeoURL(url) {
+            return try await fetchGenericOEmbedMetadata(
+                endpoint: try oEmbedEndpoint(base: "https://vimeo.com/api/oembed.json", url: url),
+                for: url,
+                defaultProvider: "Vimeo",
+                tags: ["vimeo", "video"]
+            )
+        }
+        if isSpotifyURL(url) {
+            return try await fetchGenericOEmbedMetadata(
+                endpoint: try oEmbedEndpoint(base: "https://open.spotify.com/oembed", url: url),
+                for: url,
+                defaultProvider: "Spotify",
+                tags: ["spotify", "music"]
+            )
+        }
+        if isSoundCloudURL(url) {
+            return try await fetchGenericOEmbedMetadata(
+                endpoint: try oEmbedEndpoint(
+                    base: "https://soundcloud.com/oembed",
+                    url: url,
+                    extraItems: [URLQueryItem(name: "format", value: "json")]
+                ),
+                for: url,
+                defaultProvider: "SoundCloud",
+                tags: ["soundcloud", "music"]
+            )
+        }
+        if isPinterestURL(url) {
+            return try await fetchGenericOEmbedMetadata(
+                endpoint: try oEmbedEndpoint(base: "https://www.pinterest.com/oembed.json", url: url),
+                for: url,
+                defaultProvider: "Pinterest",
+                tags: ["pinterest", "image", "inspiration"]
+            )
+        }
+        if isBlueskyURL(url) {
+            return try await fetchGenericOEmbedMetadata(
+                endpoint: try oEmbedEndpoint(base: "https://embed.bsky.app/oembed", url: url),
+                for: url,
+                defaultProvider: "Bluesky",
+                tags: ["bluesky", "post"]
             )
         }
         return nil
@@ -668,12 +1113,15 @@ private extension ShareItemExtractor {
     static func fetchGenericOEmbedMetadata(endpoint: String, for url: URL, defaultProvider: String, tags: [String]) async throws -> RemoteMetadata {
         let data = try await fetchJSONData(from: endpoint)
         let decoded = try JSONDecoder().decode(GenericOEmbedResponse.self, from: data)
-        let provider = decoded.providerName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-            ? decoded.providerName!.trimmingCharacters(in: .whitespacesAndNewlines)
-            : defaultProvider
+        let provider = providerDisplayName(decoded.providerName, fallback: defaultProvider)
+        let embeddedText = oEmbedPrimaryText(from: decoded.html)
+        let title = cleanedFetchedTitle(decoded.title, for: url) ?? cleanedFetchedTitle(embeddedText, for: url)
+        let description = cleanedMetadataDescription(decoded.description) ??
+            providerFallbackDescription(provider: provider, author: decoded.authorName, url: url) ??
+            (title == nil ? embeddedText : nil)
         return RemoteMetadata(
-            title: cleanedFetchedTitle(decoded.title, for: url),
-            description: providerFallbackDescription(provider: provider, author: decoded.authorName, url: url),
+            title: title,
+            description: description,
             imageURL: decoded.thumbnailURL,
             provider: provider,
             tags: tags
@@ -681,22 +1129,36 @@ private extension ShareItemExtractor {
     }
 
     static func fetchNoembedMetadata(for url: URL) async throws -> RemoteMetadata {
-        let endpoint = "https://noembed.com/embed?url=\(url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url.absoluteString)"
+        let endpoint = try oEmbedEndpoint(base: "https://noembed.com/embed", url: url)
         let data = try await fetchJSONData(from: endpoint)
         let decoded = try JSONDecoder().decode(NoembedResponse.self, from: data)
+        let embeddedText = oEmbedPrimaryText(from: decoded.html)
         return RemoteMetadata(
-            title: cleanedFetchedTitle(decoded.title, for: url),
-            description: providerFallbackDescription(provider: decoded.providerName, author: decoded.authorName, url: url),
+            title: cleanedFetchedTitle(decoded.title, for: url) ?? cleanedFetchedTitle(embeddedText, for: url),
+            description: cleanedMetadataDescription(decoded.description) ??
+                providerFallbackDescription(provider: decoded.providerName, author: decoded.authorName, url: url) ??
+                embeddedText,
             imageURL: decoded.thumbnailURL,
-            provider: decoded.providerName,
+            provider: decoded.providerName.map { providerDisplayName($0, fallback: $0) },
             tags: dedupeTags(noembedTags(from: decoded.providerName, title: decoded.title))
         )
+    }
+
+    static func oEmbedEndpoint(base: String, url: URL, extraItems: [URLQueryItem] = []) throws -> String {
+        guard var components = URLComponents(string: base) else {
+            throw ShareItemExtractorError.failedToLoadContent
+        }
+        components.queryItems = [URLQueryItem(name: "url", value: url.absoluteString)] + extraItems
+        guard let endpoint = components.url?.absoluteString else {
+            throw ShareItemExtractorError.failedToLoadContent
+        }
+        return endpoint
     }
 
     static func fetchJSONData(from urlString: String) async throws -> Data {
         guard let url = URL(string: urlString) else { throw ShareItemExtractorError.failedToLoadContent }
         var request = URLRequest(url: url)
-        request.timeoutInterval = 6
+        request.timeoutInterval = 2
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<400).contains(http.statusCode) else {
@@ -707,20 +1169,24 @@ private extension ShareItemExtractor {
 
     static func fetchLinkPresentationMetadata(for url: URL) async throws -> RemoteMetadata {
         let provider = LPMetadataProvider()
-        let metadata = try await provider.startFetchingMetadata(for: url)
-        let title = metadata.title
-        let providerName = metadata.url?.host?.replacingOccurrences(of: "www.", with: "") ?? metadata.originalURL?.host?.replacingOccurrences(of: "www.", with: "")
-        var imageURL: String?
-        if let remote = metadata.imageProvider {
-            imageURL = try await loadRemoteImageDataURL(from: remote)
+        return try await withTaskCancellationHandler {
+            let metadata = try await provider.startFetchingMetadata(for: url)
+            let title = metadata.title
+            let providerName = metadata.url?.host?.replacingOccurrences(of: "www.", with: "") ?? metadata.originalURL?.host?.replacingOccurrences(of: "www.", with: "")
+            var imageURL: String?
+            if let remote = metadata.imageProvider {
+                imageURL = try await loadRemoteImageDataURL(from: remote)
+            }
+            return RemoteMetadata(
+                title: title,
+                description: nil,
+                imageURL: imageURL,
+                provider: providerName?.capitalized,
+                tags: []
+            )
+        } onCancel: {
+            provider.cancel()
         }
-        return RemoteMetadata(
-            title: title,
-            description: nil,
-            imageURL: imageURL,
-            provider: providerName?.capitalized,
-            tags: []
-        )
     }
 
     static func loadRemoteImageDataURL(from provider: NSItemProvider) async throws -> String? {
@@ -744,7 +1210,7 @@ private extension ShareItemExtractor {
 
     static func fetchHTMLMetadata(for url: URL) async throws -> RemoteMetadata {
         var request = URLRequest(url: url)
-        request.timeoutInterval = 6
+        request.timeoutInterval = 2
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<400).contains(http.statusCode),
@@ -756,7 +1222,9 @@ private extension ShareItemExtractor {
             firstMetaContent(in: html, keys: ["og:title", "twitter:title", "parsely-title", "title"]) ?? htmlTitle(in: html),
             for: url
         )
-        let description = firstMetaContent(in: html, keys: ["og:description", "description", "twitter:description", "parsely-description"])
+        let rawTitle = firstMetaContent(in: html, keys: ["og:title", "twitter:title", "parsely-title", "title"]) ?? htmlTitle(in: html)
+        let description = cleanedMetadataDescription(firstMetaContent(in: html, keys: ["og:description", "description", "twitter:description", "parsely-description"])) ??
+            instagramCaption(from: rawTitle, for: url)
         let imageValue = firstMetaContent(in: html, keys: ["og:image", "twitter:image"])
         let imageURL = imageValue.flatMap { resolve(urlString: $0, relativeTo: url) }
         let provider = firstMetaContent(in: html, keys: ["og:site_name", "application-name"]) ?? hostDisplayName(for: url)
@@ -765,16 +1233,29 @@ private extension ShareItemExtractor {
     }
 
     static func mergeMetadata(_ candidates: [RemoteMetadata]) -> RemoteMetadata {
-        let bestTitle = candidates.first(where: { !($0.title ?? "").isEmpty })?.title
-        let bestDescription = candidates
-            .compactMap(\.description)
+        let bestTitle = candidates
+            .compactMap(\.title)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
+            .max { lhs, rhs in titleQualityScore(lhs) < titleQualityScore(rhs) }
+        let bestDescription = candidates
+            .compactMap(\.description)
+            .compactMap(cleanedMetadataDescription)
             .max(by: { $0.count < $1.count })
         let bestImage = candidates.first(where: { !($0.imageURL ?? "").isEmpty })?.imageURL
         let bestProvider = candidates.first(where: { !($0.provider ?? "").isEmpty })?.provider
         let tags = dedupeTags(candidates.flatMap(\.tags))
         return RemoteMetadata(title: bestTitle, description: bestDescription, imageURL: bestImage, provider: bestProvider, tags: tags)
+    }
+
+    static func titleQualityScore(_ title: String) -> Int {
+        let normalized = title.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if isGenericFetchedTitle(normalized) { return 0 }
+        var score = min(title.count, 80)
+        if normalized.contains(" on instagram:") { score += 30 }
+        if normalized.contains("instagram reel") || normalized.contains("instagram post") { score += 8 }
+        if normalized.contains("#") { score += 6 }
+        return score
     }
 
     static func cleanedFetchedTitle(_ value: String?, for url: URL) -> String? {
@@ -789,17 +1270,97 @@ private extension ShareItemExtractor {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
-        if title.lowercased() == "youtube" || title.lowercased() == "watch" {
+        if isGenericFetchedTitle(title) {
             return nil
         }
 
         return title
     }
 
+    static func providerDisplayName(_ value: String?, fallback: String) -> String {
+        let trimmed = value?.decodedHTMLString.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ?? fallback
+        let normalized = trimmed.lowercased()
+        if normalized == "twitter" || normalized == "x.com" || normalized == "twitter.com" { return "X" }
+        if normalized == "reddit" { return "Reddit" }
+        if normalized == "spotify" { return "Spotify" }
+        if normalized == "vimeo" { return "Vimeo" }
+        if normalized == "pinterest" { return "Pinterest" }
+        if normalized == "soundcloud" { return "SoundCloud" }
+        if normalized == "facebook" { return "Facebook" }
+        if normalized == "threads" { return "Threads" }
+        if normalized == "linkedin" || normalized == "linkedin.com" { return "LinkedIn" }
+        if normalized == "bsky" || normalized.contains("bluesky") { return "Bluesky" }
+        return trimmed
+    }
+
+    static func cleanedMetadataDescription(_ value: String?) -> String? {
+        guard let value = value?.nilIfEmpty else { return nil }
+        let cleaned = value
+            .replacingOccurrences(of: #"(?is)<script[^>]*>.*?</script>"#, with: " ", options: .regularExpression)
+            .replacingOccurrences(of: #"(?is)<style[^>]*>.*?</style>"#, with: " ", options: .regularExpression)
+            .replacingOccurrences(of: #"(?is)<[^>]+>"#, with: " ", options: .regularExpression)
+            .decodedHTMLString
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.nilIfEmpty
+    }
+
+    static func oEmbedPrimaryText(from html: String?) -> String? {
+        guard let html = html?.nilIfEmpty else { return nil }
+        let paragraph = firstCapture(in: html, pattern: #"(?is)<p[^>]*>(.*?)</p>"#) ?? html
+        let cleaned = paragraph
+            .replacingOccurrences(of: #"(?is)<script[^>]*>.*?</script>"#, with: " ", options: .regularExpression)
+            .replacingOccurrences(of: #"(?is)<style[^>]*>.*?</style>"#, with: " ", options: .regularExpression)
+            .replacingOccurrences(of: #"(?is)<[^>]+>"#, with: " ", options: .regularExpression)
+            .decodedHTMLString
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.nilIfEmpty
+    }
+
+    static func instagramCaption(from value: String?, for url: URL) -> String? {
+        guard isInstagramURL(url),
+              let value = value?.decodedHTMLString.trimmingCharacters(in: .whitespacesAndNewlines),
+              let range = value.range(of: #"(?i)\bon instagram:\s*["“](.+?)["”]\s*$"#, options: .regularExpression)
+        else { return nil }
+        let matched = String(value[range])
+        guard let quoteRange = matched.range(of: #"["“](.+?)["”]"#, options: .regularExpression) else { return nil }
+        return String(matched[quoteRange])
+            .trimmingCharacters(in: CharacterSet(charactersIn: "\"“”"))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .nilIfEmpty
+    }
+
+    static func isGenericFetchedTitle(_ value: String) -> Bool {
+        let normalized = value
+            .lowercased()
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return [
+            "youtube",
+            "watch",
+            "instagram",
+            "login • instagram",
+            "tiktok",
+            "tiktok - make your day",
+            "x",
+            "twitter",
+            "facebook",
+            "threads",
+            "linkedin",
+            "reddit - please wait for verification",
+            "x post",
+            "twitter post",
+            "facebook post",
+            "threads post",
+            "bluesky post"
+        ].contains(normalized)
+    }
+
     static func noembedTags(from provider: String?, title: String?) -> [String] {
         let seed = [provider ?? "", title ?? ""].joined(separator: " ").lowercased()
         var tags: [String] = []
-        for token in ["youtube", "instagram", "tiktok", "reddit", "spotify", "pinterest", "video", "playlist", "post"] where seed.contains(token) {
+        for token in ["youtube", "instagram", "tiktok", "reddit", "spotify", "pinterest", "vimeo", "soundcloud", "bluesky", "video", "playlist", "post"] where seed.contains(token) {
             tags.append(token)
         }
         return dedupeTags(tags)
@@ -934,7 +1495,7 @@ private extension ShareItemExtractor {
             if tags.count >= 8 { break }
         }
 
-        if let title {
+        if !titleTokens.isEmpty {
             for index in 0..<(max(titleTokens.count - 1, 0)) {
                 let phrase = "\(titleTokens[index])-\(titleTokens[index + 1])"
                 tags.append(phrase)
@@ -957,7 +1518,17 @@ private extension ShareItemExtractor {
         if let url, let host = URL(string: url)?.host?.lowercased() {
             if host.contains("youtube") || host.contains("youtu.be") { tags.append("youtube") }
             if host.contains("instagram") { tags.append("instagram") }
+            if host.contains("tiktok") { tags.append("tiktok") }
+            if host.contains("x.com") || host.contains("twitter.com") { tags.append("x") }
             if host.contains("reddit") { tags.append("reddit") }
+            if host.contains("vimeo") { tags.append("vimeo") }
+            if host.contains("spotify") { tags.append("spotify") }
+            if host.contains("soundcloud") { tags.append("soundcloud") }
+            if host.contains("pinterest") || host.contains("pin.it") { tags.append("pinterest") }
+            if host.contains("facebook.com") || host.contains("fb.watch") { tags.append("facebook") }
+            if host.contains("threads.net") || host.contains("threads.com") { tags.append("threads") }
+            if host.contains("bsky.app") || host.contains("bsky.social") { tags.append("bluesky") }
+            if host.contains("linkedin") { tags.append("linkedin") }
             if host.contains("cnn.com") || host.contains("bbc.") || host.contains("nytimes.com") || host.contains("reuters.com") { tags.append("news") }
         }
 
@@ -1018,6 +1589,15 @@ private extension ShareItemExtractor {
         return host.contains("tiktok.com")
     }
 
+    static func isInstagramURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("instagram.com")
+    }
+
+    static func isInstagramReelURL(_ url: URL) -> Bool {
+        isInstagramURL(url) && url.path.lowercased().contains("/reel/")
+    }
+
     static func isTwitterXURL(_ url: URL) -> Bool {
         let host = url.host?.lowercased() ?? ""
         return host.contains("x.com") || host.contains("twitter.com")
@@ -1026,6 +1606,46 @@ private extension ShareItemExtractor {
     static func isRedditURL(_ url: URL) -> Bool {
         let host = url.host?.lowercased() ?? ""
         return host.contains("reddit.com") || host.contains("redd.it")
+    }
+
+    static func isVimeoURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("vimeo.com")
+    }
+
+    static func isSpotifyURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("spotify.com") || host.contains("spotify.link")
+    }
+
+    static func isSoundCloudURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("soundcloud.com")
+    }
+
+    static func isPinterestURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("pinterest.") || host.contains("pin.it")
+    }
+
+    static func isFacebookURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("facebook.com") || host == "fb.watch" || host.hasSuffix(".fb.watch")
+    }
+
+    static func isThreadsURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("threads.net") || host.contains("threads.com")
+    }
+
+    static func isBlueskyURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("bsky.app") || host.contains("bsky.social")
+    }
+
+    static func isLinkedInURL(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("linkedin.com")
     }
 
     static func htmlTitle(in html: String) -> String? {
@@ -1089,6 +1709,11 @@ private extension String {
 
     var nilIfEmpty: String? {
         isEmpty ? nil : self
+    }
+
+    var nilIfBlank: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

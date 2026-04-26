@@ -1,32 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
   <defs>
-    <linearGradient id="bg" x1="140" y1="92" x2="876" y2="936" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#C4B5FD"/>
-      <stop offset="0.42" stop-color="#A78BFA"/>
-      <stop offset="1" stop-color="#6D28D9"/>
+    <linearGradient id="bg" x1="126" y1="72" x2="898" y2="956" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E3D8FF"/>
+      <stop offset="0.36" stop-color="#A78BFA"/>
+      <stop offset="0.72" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#4C1D95"/>
     </linearGradient>
-    <filter id="ribbonShadow" x="112" y="120" width="748" height="780" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="26" stdDeviation="24" flood-color="#4C1D95" flood-opacity="0.24"/>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(258 154) rotate(46) scale(806 582)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.42"/>
+      <stop offset="0.46" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="ribbonShadow" x="108" y="116" width="756" height="792" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="30" stdDeviation="30" flood-color="#2E1065" flood-opacity="0.30"/>
     </filter>
   </defs>
 
-  <rect width="1024" height="1024" rx="232" fill="url(#bg)"/>
-  <rect x="56" y="56" width="912" height="912" rx="210" stroke="#F5F0E4" stroke-opacity="0.64" stroke-width="28"/>
+  <rect width="1024" height="1024" fill="#4C1D95"/>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <rect x="76" y="76" width="872" height="872" rx="196" fill="#FFFFFF" fill-opacity="0.08"/>
+  <rect x="76" y="76" width="872" height="872" rx="196" stroke="#FFF7E6" stroke-opacity="0.44" stroke-width="28"/>
 
   <path
-    d="M690 250C618 187 477 183 389 247C315 300 304 397 404 452L576 547C683 606 698 714 619 790C537 869 397 874 286 812"
-    stroke="#F5F0E4"
-    stroke-width="108"
+    d="M700 254C625 188 478 184 386 250C310 305 300 401 402 457L574 552C684 613 700 718 620 795C536 876 392 880 280 816"
+    stroke="#FFF7E6"
+    stroke-width="112"
     stroke-linecap="round"
     stroke-linejoin="round"
     filter="url(#ribbonShadow)"
   />
   <path
-    d="M590 806C512 865 396 871 286 812"
+    d="M592 810C512 870 392 876 280 816"
     stroke="#D8FF3C"
-    stroke-width="108"
+    stroke-width="112"
     stroke-linecap="round"
     stroke-linejoin="round"
   />
-  <circle cx="242" cy="783" r="68" fill="#D8FF3C"/>
+  <circle cx="238" cy="786" r="70" fill="#D8FF3C"/>
 </svg>

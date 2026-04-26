@@ -1,5 +1,82 @@
 import UIKit
 
+private enum ShareTheme {
+    static let background = adaptive(dark: "#100B1C", light: "#FBF8FF")
+    static let surface = adaptive(dark: "#1C1530", light: "#FFFFFF")
+    static let surfaceRaised = adaptive(dark: "#2A2144", light: "#F1EBF8")
+    static let text = adaptive(dark: "#F5F0FF", light: "#160F22")
+    static let muted = adaptive(dark: "#B7A9D6", light: "#5D526C")
+    static let accent = adaptive(dark: "#D8FF3C", light: "#A6DB16")
+    static let accentText = adaptive(dark: "#D8FF3C", light: "#563082")
+    static let accentSoft = adaptive(dark: "#A78BFA", light: "#6B46C1")
+    static let stroke = adaptive(dark: "#2F244C", light: "#D8CEE6")
+    static let shadow = adaptive(dark: "#000000", light: "#5E4A73")
+
+    private static func adaptive(dark: String, light: String) -> UIColor {
+        UIColor { traits in
+            UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light) ?? .systemBackground
+        }
+    }
+}
+
+private enum ShareFolderSelection {
+    static let autoId = "__savi_auto_folder__"
+    static let autoPreset = FolderPreset(
+        id: autoId,
+        name: "Auto",
+        symbolName: "sparkles",
+        colorHex: "#B8EF18"
+    )
+
+    static func isAuto(_ id: String) -> Bool {
+        id == autoId || id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    static func presetsForDisplay() -> [FolderPreset] {
+        [autoPreset] + ShareItemExtractor.folderPresets()
+    }
+}
+
+private enum ShareFolderSelectionSource {
+    case auto
+    case rules
+    case metadata
+    case intelligence
+    case manual
+
+    static func fromPendingValue(_ value: String?, fallback: ShareFolderSelectionSource) -> ShareFolderSelectionSource {
+        switch value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "manual":
+            return .manual
+        case "apple-intelligence":
+            return .intelligence
+        case "metadata":
+            return .metadata
+        case "rules":
+            return .rules
+        case "auto":
+            return .auto
+        default:
+            return fallback
+        }
+    }
+
+    var pendingValue: String {
+        switch self {
+        case .auto:
+            return "auto"
+        case .rules:
+            return "rules"
+        case .metadata:
+            return "metadata"
+        case .intelligence:
+            return "apple-intelligence"
+        case .manual:
+            return "manual"
+        }
+    }
+}
+
 final class ShareViewController: UIViewController, UITextFieldDelegate {
     private let topBar = UIView()
     private let scrollView = UIScrollView()
@@ -44,21 +121,41 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private let cancelButton = UIButton(type: .system)
 
     private var pendingShare: PendingShare?
-    private var availableFolders: [FolderPreset] = ShareItemExtractor.folderPresets()
-    private var selectedFolderId = "f-random"
+    private var availableFolders: [FolderPreset] = ShareFolderSelection.presetsForDisplay()
+    private var selectedFolderId = ShareFolderSelection.autoId
+    private var folderSelectionSource: ShareFolderSelectionSource = .auto
+    private var didEditTitleManually = false
     private var selectedTags: [String] = []
     private var suggestedTags: [String] = []
     private var notesExpanded = false
     private var loadingProgressWidthConstraint: NSLayoutConstraint?
+    private var enrichmentTask: Task<Void, Never>?
+    private var didFinishSaving = false
+
+    private var isLightAppearance: Bool {
+        traitCollection.userInterfaceStyle != .dark
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        overrideUserInterfaceStyle = .unspecified
         configureView()
-        Task { await loadSharedItem() }
+        enrichmentTask = Task { await loadSharedItem() }
+    }
+
+    deinit {
+        enrichmentTask?.cancel()
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        guard previousTraitCollection?.userInterfaceStyle != traitCollection.userInterfaceStyle else { return }
+        refreshResolvedLayerColors()
+        rebuildFolderButtons()
     }
 
     private func configureView() {
-        view.backgroundColor = UIColor(red: 0.967, green: 0.973, blue: 0.988, alpha: 1)
+        view.backgroundColor = ShareTheme.background
 
         configureTopBar()
         configureLoadingOverlay()
@@ -90,31 +187,28 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         configureFolderSummaryCard()
 
         let folderSection = makeSectionCard(emphasized: true)
-        folderSection.addArrangedSubview(makeSectionLabel("Folder"))
-        folderSection.addArrangedSubview(makeHintLabel("Auto-picked for you. Change it only if SAVI guessed wrong."))
+        folderSection.addArrangedSubview(makeSectionLabel("Keeper"))
+        folderSection.addArrangedSubview(makeHintLabel("SAVI suggests one now. Tap any Keeper to override."))
         folderSection.addArrangedSubview(folderSummaryCard)
         configureFolderGrid()
         folderSection.addArrangedSubview(folderGridStack)
 
         let tagsSection = makeSectionCard()
         tagsSection.addArrangedSubview(makeSectionLabel("Tags"))
-        tagsSection.addArrangedSubview(makeHintLabel("A few smart tags make this easy to find later. Keep the strongest ones."))
+        tagsSection.addArrangedSubview(makeHintLabel("Optional. SAVI adds useful search tags when it can."))
         tagsSection.addArrangedSubview(makeSubsectionLabel("Selected"))
-        tagsSection.addArrangedSubview(makeInlineHint("Tap any selected tag to remove it."))
+        tagsSection.addArrangedSubview(makeInlineHint("Tap to remove."))
         configureHorizontalStrip(scrollView: selectedTagScrollView, row: selectedTagRow, height: 42)
         tagsSection.addArrangedSubview(selectedTagScrollView)
         tagsSection.addArrangedSubview(makeSubsectionLabel("Suggestions"))
         configureHorizontalStrip(scrollView: suggestedTagScrollView, row: suggestedTagRow, height: 42)
         tagsSection.addArrangedSubview(suggestedTagScrollView)
-        configureTextField(tagsField, placeholder: "Add extra tags, comma separated")
+        configureTextField(tagsField, placeholder: "Add optional tags")
         tagsSection.addArrangedSubview(tagsField)
 
         [previewCard, folderSection, tagsSection].forEach { contentStack.addArrangedSubview($0) }
 
         setNotesExpanded(false, animated: false)
-        if let firstFolder = availableFolders.first?.id, !firstFolder.isEmpty {
-            selectedFolderId = firstFolder
-        }
         rebuildFolderButtons()
         rebuildTagViews()
         updateSaveButton(isReady: false)
@@ -122,16 +216,16 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private func configureTopBar() {
         topBar.translatesAutoresizingMaskIntoConstraints = false
-        topBar.backgroundColor = UIColor(red: 0.967, green: 0.973, blue: 0.988, alpha: 0.84)
+        topBar.backgroundColor = ShareTheme.background.withAlphaComponent(0.86)
         view.addSubview(topBar)
 
-        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterialLight))
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterial))
         blur.translatesAutoresizingMaskIntoConstraints = false
         topBar.addSubview(blur)
 
         let divider = UIView()
         divider.translatesAutoresizingMaskIntoConstraints = false
-        divider.backgroundColor = UIColor.separator.withAlphaComponent(0.32)
+        divider.backgroundColor = ShareTheme.stroke.withAlphaComponent(0.8)
         topBar.addSubview(divider)
 
         let controls = UIStackView()
@@ -143,7 +237,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         var cancelConfig = UIButton.Configuration.plain()
         cancelConfig.title = "Cancel"
-        cancelConfig.baseForegroundColor = .secondaryLabel
+        cancelConfig.baseForegroundColor = ShareTheme.muted
         cancelButton.configuration = cancelConfig
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
 
@@ -153,21 +247,22 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         let sheetTitle = UILabel()
         sheetTitle.font = .preferredFont(forTextStyle: .headline).bold()
+        sheetTitle.textColor = ShareTheme.text
         sheetTitle.text = "Save to SAVI"
 
         let sheetSubtitle = UILabel()
         sheetSubtitle.font = .preferredFont(forTextStyle: .caption1)
-        sheetSubtitle.textColor = .secondaryLabel
-        sheetSubtitle.text = "Folder first. Save from here."
+        sheetSubtitle.textColor = ShareTheme.muted
+        sheetSubtitle.text = "Instant save."
 
         titleStack.addArrangedSubview(sheetTitle)
         titleStack.addArrangedSubview(sheetSubtitle)
 
         var saveConfig = UIButton.Configuration.filled()
-        saveConfig.title = "Save"
+        saveConfig.title = "Save now"
         saveConfig.cornerStyle = .capsule
-        saveConfig.baseBackgroundColor = .systemIndigo
-        saveConfig.baseForegroundColor = .white
+        saveConfig.baseBackgroundColor = ShareTheme.accent
+        saveConfig.baseForegroundColor = .black
         saveConfig.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
         saveButton.configuration = saveConfig
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
@@ -201,38 +296,39 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private func configureLoadingOverlay() {
         loadingOverlay.translatesAutoresizingMaskIntoConstraints = false
-        loadingOverlay.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.92)
+        loadingOverlay.backgroundColor = ShareTheme.background.withAlphaComponent(0.94)
         loadingOverlay.isHidden = true
         loadingOverlay.alpha = 0
         view.addSubview(loadingOverlay)
 
-        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterialLight))
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterial))
         blur.translatesAutoresizingMaskIntoConstraints = false
         loadingOverlay.addSubview(blur)
 
         loadingCard.translatesAutoresizingMaskIntoConstraints = false
-        loadingCard.backgroundColor = .systemBackground
+        loadingCard.backgroundColor = ShareTheme.surface
         loadingCard.layer.cornerRadius = 28
-        loadingCard.layer.shadowColor = UIColor.black.cgColor
-        loadingCard.layer.shadowOpacity = 0.08
+        loadingCard.layer.shadowColor = ShareTheme.shadow.cgColor
+        loadingCard.layer.shadowOpacity = isLightAppearance ? 0.09 : 0.24
         loadingCard.layer.shadowRadius = 24
         loadingCard.layer.shadowOffset = CGSize(width: 0, height: 12)
         loadingOverlay.addSubview(loadingCard)
 
         let orb = UIView()
         orb.translatesAutoresizingMaskIntoConstraints = false
-        orb.backgroundColor = UIColor.systemIndigo.withAlphaComponent(0.12)
+        orb.backgroundColor = ShareTheme.accentText.withAlphaComponent(isLightAppearance ? 0.10 : 0.16)
         orb.layer.cornerRadius = 34
         loadingCard.addSubview(orb)
 
         let orbIcon = UIImageView(image: UIImage(systemName: "sparkles"))
         orbIcon.translatesAutoresizingMaskIntoConstraints = false
-        orbIcon.tintColor = .systemIndigo
+        orbIcon.tintColor = ShareTheme.accentText
         orbIcon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 28, weight: .semibold)
         orb.addSubview(orbIcon)
 
         loadingTitleLabel.translatesAutoresizingMaskIntoConstraints = false
         loadingTitleLabel.font = .preferredFont(forTextStyle: .title3).bold()
+        loadingTitleLabel.textColor = ShareTheme.text
         loadingTitleLabel.textAlignment = .center
         loadingTitleLabel.numberOfLines = 2
         loadingTitleLabel.text = "SAVI is getting this ready"
@@ -240,17 +336,17 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         loadingBodyLabel.translatesAutoresizingMaskIntoConstraints = false
         loadingBodyLabel.font = .preferredFont(forTextStyle: .body)
-        loadingBodyLabel.textColor = .secondaryLabel
+        loadingBodyLabel.textColor = ShareTheme.muted
         loadingBodyLabel.textAlignment = .center
         loadingBodyLabel.numberOfLines = 3
-        loadingBodyLabel.text = "Pulling the title, preview image, best folder, and useful tags so you can save fast."
+        loadingBodyLabel.text = "Setting up a quick save. You can save without waiting for metadata."
         loadingCard.addSubview(loadingBodyLabel)
 
         var loadingSaveConfig = UIButton.Configuration.filled()
         loadingSaveConfig.title = "Save now"
         loadingSaveConfig.cornerStyle = .capsule
-        loadingSaveConfig.baseBackgroundColor = .systemIndigo
-        loadingSaveConfig.baseForegroundColor = .white
+        loadingSaveConfig.baseBackgroundColor = ShareTheme.accent
+        loadingSaveConfig.baseForegroundColor = .black
         loadingSaveConfig.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
         loadingSaveNowButton.configuration = loadingSaveConfig
         loadingSaveNowButton.translatesAutoresizingMaskIntoConstraints = false
@@ -259,13 +355,13 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         loadingCard.addSubview(loadingSaveNowButton)
 
         loadingProgressTrack.translatesAutoresizingMaskIntoConstraints = false
-        loadingProgressTrack.backgroundColor = UIColor.systemIndigo.withAlphaComponent(0.12)
+        loadingProgressTrack.backgroundColor = ShareTheme.surfaceRaised
         loadingProgressTrack.layer.cornerRadius = 7
         loadingProgressTrack.layer.masksToBounds = true
         loadingCard.addSubview(loadingProgressTrack)
 
         loadingProgressFill.translatesAutoresizingMaskIntoConstraints = false
-        loadingProgressFill.backgroundColor = .systemIndigo
+        loadingProgressFill.backgroundColor = ShareTheme.accent
         loadingProgressFill.layer.cornerRadius = 7
         loadingProgressTrack.addSubview(loadingProgressFill)
         loadingProgressWidthConstraint = loadingProgressFill.widthAnchor.constraint(equalToConstant: 0)
@@ -318,10 +414,10 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     }
 
     private func configurePreviewCard() {
-        previewCard.backgroundColor = .systemBackground
+        previewCard.backgroundColor = ShareTheme.surface
         previewCard.layer.cornerRadius = 22
-        previewCard.layer.shadowColor = UIColor.black.cgColor
-        previewCard.layer.shadowOpacity = 0.07
+        previewCard.layer.shadowColor = ShareTheme.shadow.cgColor
+        previewCard.layer.shadowOpacity = isLightAppearance ? 0.08 : 0.22
         previewCard.layer.shadowRadius = 18
         previewCard.layer.shadowOffset = CGSize(width: 0, height: 8)
 
@@ -349,7 +445,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         mediaWrap.heightAnchor.constraint(equalToConstant: 72).isActive = true
         mediaWrap.layer.cornerRadius = 18
         mediaWrap.layer.masksToBounds = true
-        mediaWrap.backgroundColor = UIColor.systemIndigo.withAlphaComponent(0.12)
+        mediaWrap.backgroundColor = ShareTheme.accentText.withAlphaComponent(isLightAppearance ? 0.10 : 0.16)
 
         previewImageView.translatesAutoresizingMaskIntoConstraints = false
         previewImageView.contentMode = .scaleAspectFill
@@ -357,7 +453,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         previewImageView.isHidden = true
 
         previewIconView.translatesAutoresizingMaskIntoConstraints = false
-        previewIconView.tintColor = .systemIndigo
+        previewIconView.tintColor = ShareTheme.accentText
         previewIconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 24, weight: .semibold)
 
         mediaWrap.addSubview(previewImageView)
@@ -375,28 +471,28 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         ])
 
         statusBadge.font = .preferredFont(forTextStyle: .caption1).bold()
-        statusBadge.textColor = .white
-        statusBadge.backgroundColor = .systemIndigo
+        statusBadge.textColor = .black
+        statusBadge.backgroundColor = ShareTheme.accent
         statusBadge.layer.cornerRadius = 999
         statusBadge.layer.masksToBounds = true
         statusBadge.textAlignment = .center
-        statusBadge.text = "Auto-filling"
+        statusBadge.text = "Fast save"
         statusBadge.heightAnchor.constraint(equalToConstant: 24).isActive = true
         statusBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 104).isActive = true
 
         detectedTitleLabel.font = .preferredFont(forTextStyle: .caption1).bold()
-        detectedTitleLabel.textColor = .secondaryLabel
+        detectedTitleLabel.textColor = ShareTheme.muted
         detectedTitleLabel.numberOfLines = 2
-        detectedTitleLabel.text = "Preparing your save…"
+        detectedTitleLabel.text = "Preparing your save..."
 
         previewMetaLabel.font = .preferredFont(forTextStyle: .caption1)
-        previewMetaLabel.textColor = .systemIndigo
+        previewMetaLabel.textColor = ShareTheme.accentText
         previewMetaLabel.text = "Share Extension • Link"
 
         previewSubtitleLabel.font = .preferredFont(forTextStyle: .footnote)
-        previewSubtitleLabel.textColor = .secondaryLabel
+        previewSubtitleLabel.textColor = ShareTheme.muted
         previewSubtitleLabel.numberOfLines = 2
-        previewSubtitleLabel.text = "Pulling the title, a clean preview, the best folder, and useful tags."
+        previewSubtitleLabel.text = "Save now. Title, preview, Keeper, and tags can improve if they arrive."
 
         spinner.startAnimating()
 
@@ -414,17 +510,18 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         configureTextField(titleField, placeholder: "Add a clear title")
         titleField.font = .preferredFont(forTextStyle: .body).bold()
         titleField.clearButtonMode = .always
+        titleField.addTarget(self, action: #selector(titleFieldChanged), for: .editingChanged)
 
         configureNotesToggle()
         let notesActionsRow = UIStackView(arrangedSubviews: [notesToggleButton, UIView(), notesClearButton])
         notesActionsRow.axis = .horizontal
         notesActionsRow.alignment = .center
         notesTextView.font = .preferredFont(forTextStyle: .body)
-        notesTextView.textColor = .label
-        notesTextView.backgroundColor = UIColor.secondarySystemBackground
+        notesTextView.textColor = ShareTheme.text
+        notesTextView.backgroundColor = ShareTheme.surfaceRaised
         notesTextView.layer.cornerRadius = 16
         notesTextView.layer.borderWidth = 1
-        notesTextView.layer.borderColor = UIColor.separator.withAlphaComponent(0.45).cgColor
+        notesTextView.layer.borderColor = ShareTheme.stroke.cgColor
         notesTextView.textContainerInset = UIEdgeInsets(top: 12, left: 10, bottom: 12, right: 10)
         notesTextView.heightAnchor.constraint(equalToConstant: 94).isActive = true
 
@@ -435,10 +532,10 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     }
 
     private func configureFolderSummaryCard() {
-        folderSummaryCard.backgroundColor = .secondarySystemBackground
+        folderSummaryCard.backgroundColor = ShareTheme.surfaceRaised
         folderSummaryCard.layer.cornerRadius = 20
         folderSummaryCard.layer.borderWidth = 1
-        folderSummaryCard.layer.borderColor = UIColor.separator.withAlphaComponent(0.24).cgColor
+        folderSummaryCard.layer.borderColor = ShareTheme.stroke.cgColor
 
         let iconHolder = UIView()
         iconHolder.translatesAutoresizingMaskIntoConstraints = false
@@ -451,7 +548,6 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         folderSummaryIconWrap.layer.masksToBounds = true
 
         folderSummaryIconView.translatesAutoresizingMaskIntoConstraints = false
-        folderSummaryIconView.tintColor = .white
         folderSummaryIconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
         folderSummaryIconWrap.addSubview(folderSummaryIconView)
 
@@ -465,10 +561,11 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         ])
 
         folderSummaryTitleLabel.font = .preferredFont(forTextStyle: .title3).bold()
+        folderSummaryTitleLabel.textColor = ShareTheme.text
         folderSummaryTitleLabel.numberOfLines = 2
 
         folderSummaryHintLabel.font = .preferredFont(forTextStyle: .footnote)
-        folderSummaryHintLabel.textColor = .secondaryLabel
+        folderSummaryHintLabel.textColor = ShareTheme.muted
         folderSummaryHintLabel.numberOfLines = 2
 
         let textStack = UIStackView(arrangedSubviews: [folderSummaryTitleLabel, folderSummaryHintLabel])
@@ -518,11 +615,16 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     private func configureTextField(_ textField: UITextField, placeholder: String) {
         textField.borderStyle = .none
-        textField.backgroundColor = .secondarySystemBackground
+        textField.backgroundColor = ShareTheme.surfaceRaised
         textField.layer.cornerRadius = 14
         textField.layer.borderWidth = 1
-        textField.layer.borderColor = UIColor.separator.withAlphaComponent(0.26).cgColor
-        textField.placeholder = placeholder
+        textField.layer.borderColor = ShareTheme.stroke.cgColor
+        textField.textColor = ShareTheme.text
+        textField.tintColor = ShareTheme.accentText
+        textField.attributedPlaceholder = NSAttributedString(
+            string: placeholder,
+            attributes: [.foregroundColor: ShareTheme.muted.withAlphaComponent(0.72)]
+        )
         textField.clearButtonMode = .whileEditing
         textField.heightAnchor.constraint(equalToConstant: 46).isActive = true
         textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 1))
@@ -533,14 +635,14 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private func configureNotesToggle() {
         var config = UIButton.Configuration.plain()
         config.contentInsets = .zero
-        config.baseForegroundColor = .secondaryLabel
+        config.baseForegroundColor = ShareTheme.muted
         notesToggleButton.configuration = config
         notesToggleButton.contentHorizontalAlignment = .leading
         notesToggleButton.addTarget(self, action: #selector(toggleNotes), for: .touchUpInside)
 
         var clearConfig = UIButton.Configuration.plain()
         clearConfig.image = UIImage(systemName: "xmark.circle.fill")
-        clearConfig.baseForegroundColor = .secondaryLabel
+        clearConfig.baseForegroundColor = ShareTheme.muted
         clearConfig.contentInsets = .zero
         notesClearButton.configuration = clearConfig
         notesClearButton.contentHorizontalAlignment = .trailing
@@ -553,15 +655,15 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         stack.spacing = 10
         stack.isLayoutMarginsRelativeArrangement = true
         stack.layoutMargins = UIEdgeInsets(top: 15, left: 15, bottom: 15, right: 15)
-        stack.backgroundColor = .systemBackground
+        stack.backgroundColor = ShareTheme.surface
         stack.layer.cornerRadius = 22
-        stack.layer.shadowColor = UIColor.black.cgColor
-        stack.layer.shadowOpacity = emphasized ? 0.08 : 0.05
+        stack.layer.shadowColor = ShareTheme.shadow.cgColor
+        stack.layer.shadowOpacity = isLightAppearance ? (emphasized ? 0.08 : 0.05) : (emphasized ? 0.22 : 0.16)
         stack.layer.shadowRadius = emphasized ? 18 : 12
         stack.layer.shadowOffset = CGSize(width: 0, height: emphasized ? 8 : 5)
         if emphasized {
             stack.layer.borderWidth = 1
-            stack.layer.borderColor = UIColor.systemIndigo.withAlphaComponent(0.1).cgColor
+            stack.layer.borderColor = ShareTheme.stroke.cgColor
         }
         return stack
     }
@@ -569,6 +671,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private func makeSectionLabel(_ text: String) -> UILabel {
         let label = UILabel()
         label.font = .preferredFont(forTextStyle: .headline).bold()
+        label.textColor = ShareTheme.text
         label.text = text
         return label
     }
@@ -576,7 +679,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private func makeSubsectionLabel(_ text: String) -> UILabel {
         let label = UILabel()
         label.font = .preferredFont(forTextStyle: .caption1)
-        label.textColor = .secondaryLabel
+        label.textColor = ShareTheme.muted
         label.text = text
         return label
     }
@@ -584,7 +687,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private func makeHintLabel(_ text: String) -> UILabel {
         let label = UILabel()
         label.font = .preferredFont(forTextStyle: .footnote)
-        label.textColor = .secondaryLabel
+        label.textColor = ShareTheme.muted
         label.numberOfLines = 0
         label.text = text
         return label
@@ -595,27 +698,60 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             let share = try await ShareItemExtractor.extract(from: extensionContext)
             await MainActor.run {
                 pendingShare = share
-                setLoadingOverlay(
-                    visible: true,
-                    title: "SAVI is getting this ready",
-                    body: "Pulling the title, preview image, best folder, and useful tags. Or save now and let SAVI polish it later."
-                )
                 applyShare(share, animated: false)
-                statusBadge.text = "Auto-filling"
-                previewSubtitleLabel.text = "Pulling the title, a clean preview, the best folder, and useful tags."
+                spinner.stopAnimating()
+                statusBadge.text = "Ready to save"
+                previewSubtitleLabel.text = "This is ready now. SAVI can improve the title, preview, Keeper, and tags later."
+                setLoadingOverlay(visible: false, title: nil, body: nil)
                 updateSaveButton(isReady: true, titleOverride: "Save now")
             }
 
             let enriched = await ShareItemExtractor.enrich(share)
+            guard !Task.isCancelled else { return }
             await MainActor.run {
+                guard !didFinishSaving else { return }
                 pendingShare = enriched
                 applyShare(enriched, animated: true)
                 spinner.stopAnimating()
                 let needsReview = needsManualReview(enriched)
                 statusBadge.text = needsReview ? "Check title" : "Ready"
                 previewSubtitleLabel.text = needsReview
-                    ? "We pulled what we could. Fix the title here if needed, add a quick note, then save."
-                    : "Looks good. Save now or tweak anything right here."
+                    ? "Metadata arrived. Fix the title if needed, then save."
+                    : "Metadata arrived. Save now or tweak anything here."
+                setNotesExpanded(needsReview, animated: true)
+                setLoadingOverlay(visible: false, title: nil, body: nil)
+                updateSaveButton(isReady: true)
+            }
+
+            var intelligenceInput = enriched
+            intelligenceInput.folderId = nil
+            let intelligenceResult = await ShareItemExtractor.improveWithAppleIntelligence(intelligenceInput)
+            guard !Task.isCancelled else { return }
+            var refined = enriched
+            refined.title = intelligenceResult.title
+            refined.tags = intelligenceResult.tags
+            if let folderId = intelligenceResult.folderId?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !folderId.isEmpty {
+                refined.folderId = folderId
+                refined.folderSource = intelligenceResult.folderSource ?? "apple-intelligence"
+                refined.folderConfidence = intelligenceResult.folderConfidence
+                refined.folderReason = intelligenceResult.folderReason
+            }
+            await MainActor.run {
+                guard !didFinishSaving else { return }
+                pendingShare = refined
+                let hasIntelligenceFolder = refined.folderSource == "apple-intelligence" &&
+                    refined.folderId?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                let usedAppleIntelligence = hasIntelligenceFolder ||
+                    refined.title != enriched.title ||
+                    (refined.tags ?? []) != (enriched.tags ?? [])
+                applyShare(refined, animated: true, trustFolderSuggestion: hasIntelligenceFolder)
+                spinner.stopAnimating()
+                let needsReview = needsManualReview(refined)
+                statusBadge.text = needsReview ? "Check title" : "Ready"
+                previewSubtitleLabel.text = needsReview
+                    ? "Use the title field if this needs cleanup, then save."
+                    : (usedAppleIntelligence ? "Smart title, tags, and Keeper are ready. Tweak anything here." : "Details are ready. Save now or tweak anything here.")
                 setNotesExpanded(needsReview, animated: true)
                 setLoadingOverlay(visible: false, title: nil, body: nil)
                 updateSaveButton(isReady: true)
@@ -623,7 +759,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         } catch {
             await MainActor.run {
                 detectedTitleLabel.text = "Couldn’t read this share"
-                previewSubtitleLabel.text = "We couldn't pull metadata here. Add a title, optional note, and save it anyway."
+                previewSubtitleLabel.text = "Add a title if needed. Saving still works without metadata."
                 previewMetaLabel.text = "Share Extension"
                 previewIconView.image = UIImage(systemName: "exclamationmark.triangle.fill")
                 spinner.stopAnimating()
@@ -636,16 +772,28 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         }
     }
 
-    private func applyShare(_ share: PendingShare, animated: Bool) {
+    private func applyShare(_ share: PendingShare, animated: Bool, trustFolderSuggestion: Bool = false) {
         let summary = share.itemDescription ?? share.text ?? previewText(for: share)
         detectedTitleLabel.text = share.title
         previewMetaLabel.text = "\(share.sourceApp) • \(share.type.capitalized)"
         previewSubtitleLabel.text = summary
-        titleField.text = share.title
+        if !didEditTitleManually {
+            titleField.text = share.title
+        }
         notesTextView.text = summary
         updateNotesClearButton()
 
-        selectedFolderId = share.folderId ?? selectedFolderId
+        if folderSelectionSource != .manual {
+            if let folderId = share.folderId?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !folderId.isEmpty {
+                selectedFolderId = folderId
+                let fallbackSource: ShareFolderSelectionSource = trustFolderSuggestion ? .intelligence : (animated ? .metadata : .rules)
+                folderSelectionSource = ShareFolderSelectionSource.fromPendingValue(share.folderSource, fallback: fallbackSource)
+            } else {
+                selectedFolderId = ShareFolderSelection.autoId
+                folderSelectionSource = .auto
+            }
+        }
         selectedTags = defaultSelectedTags(for: share)
         suggestedTags = Array(
             suggestionTags(for: share)
@@ -715,20 +863,27 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private func rebuildFolderButtons() {
         clearArrangedSubviews(of: folderGridStack)
 
-        availableFolders = ShareItemExtractor.folderPresets()
+        availableFolders = ShareFolderSelection.presetsForDisplay()
         let presets = availableFolders
-        let selectedPreset = presets.first(where: { $0.id == selectedFolderId }) ?? FolderPreset(id: "f-random", name: "Random AF", symbolName: "shuffle", colorHex: "#9AA5B1")
+        let selectedPreset = presets.first(where: { $0.id == selectedFolderId }) ?? ShareFolderSelection.autoPreset
         let theme = folderTheme(for: selectedPreset)
 
         folderSummaryCard.backgroundColor = theme.color.withAlphaComponent(0.10)
-        folderSummaryCard.layer.borderColor = theme.color.withAlphaComponent(0.22).cgColor
+        folderSummaryCard.layer.borderColor = theme.color.withAlphaComponent(0.40).cgColor
         folderSummaryIconWrap.backgroundColor = theme.color
         folderSummaryIconView.image = UIImage(systemName: selectedPreset.symbolName)
+        folderSummaryIconView.tintColor = theme.color.saviUsesLightForeground ? .white : .black
         folderSummaryTitleLabel.text = selectedPreset.name
-        if pendingShare?.folderId == selectedFolderId {
-            folderSummaryHintLabel.text = "Auto-picked and ready."
+        if folderSelectionSource == .intelligence {
+            folderSummaryHintLabel.text = "Apple Intelligence suggested this Keeper."
+        } else if folderSelectionSource == .metadata {
+            folderSummaryHintLabel.text = "Metadata suggested this Keeper."
+        } else if folderSelectionSource == .rules {
+            folderSummaryHintLabel.text = "SAVI suggested this Keeper."
+        } else if ShareFolderSelection.isAuto(selectedFolderId) {
+            folderSummaryHintLabel.text = "SAVI will decide when the app imports it."
         } else {
-            folderSummaryHintLabel.text = "Changed for this save."
+            folderSummaryHintLabel.text = "You picked this Keeper."
         }
 
         for index in stride(from: 0, to: presets.count, by: 2) {
@@ -763,8 +918,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         config.imagePadding = 8
         config.imagePlacement = .leading
         config.cornerStyle = .large
-        config.baseBackgroundColor = isSelected ? theme.color.withAlphaComponent(0.18) : .white
-        config.baseForegroundColor = isSelected ? theme.color : .label
+        config.baseBackgroundColor = isSelected ? theme.color.withAlphaComponent(0.22) : ShareTheme.surfaceRaised
+        config.baseForegroundColor = isSelected ? selectedFolderTextColor(for: theme.color) : ShareTheme.text
         config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
         config.titleAlignment = .leading
         config.subtitle = nil
@@ -778,7 +933,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         button.contentHorizontalAlignment = .leading
         button.layer.cornerRadius = 18
         button.layer.borderWidth = 1
-        button.layer.borderColor = (isSelected ? theme.color.withAlphaComponent(0.28) : UIColor.separator.withAlphaComponent(0.22)).cgColor
+        button.layer.borderColor = (isSelected ? theme.color.withAlphaComponent(0.46) : ShareTheme.stroke).cgColor
         button.heightAnchor.constraint(equalToConstant: 54).isActive = true
         button.tag = availableFolders.firstIndex(where: { $0.id == preset.id }) ?? 0
         button.addTarget(self, action: #selector(folderTapped(_:)), for: .touchUpInside)
@@ -922,6 +1077,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         loadingSaveNowButton.isHidden = !visible
 
         if visible {
+            view.bringSubviewToFront(loadingOverlay)
             loadingOverlay.isHidden = false
             loadingOverlay.alpha = 1
             loadingProgressFill.layer.removeAllAnimations()
@@ -962,7 +1118,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private func makeInlineHint(_ text: String) -> UILabel {
         let label = UILabel()
         label.font = .preferredFont(forTextStyle: .footnote)
-        label.textColor = .secondaryLabel
+        label.textColor = ShareTheme.muted
         label.text = text
         return label
     }
@@ -976,8 +1132,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
             config.imagePadding = 6
         }
         config.cornerStyle = .capsule
-        config.baseBackgroundColor = selected ? UIColor.systemIndigo.withAlphaComponent(0.12) : UIColor.secondarySystemBackground
-        config.baseForegroundColor = selected ? .systemIndigo : .label
+        config.baseBackgroundColor = selected ? ShareTheme.accentText.withAlphaComponent(isLightAppearance ? 0.10 : 0.16) : ShareTheme.surfaceRaised
+        config.baseForegroundColor = selected ? ShareTheme.accentText : ShareTheme.text
         config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
 
         let button = UIButton(configuration: config)
@@ -1043,11 +1199,33 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         }
     }
 
+    private func selectedFolderTextColor(for color: UIColor) -> UIColor {
+        if !isLightAppearance {
+            return color
+        }
+        return color.saviIsVeryLight ? ShareTheme.text : color
+    }
+
+    private func refreshResolvedLayerColors() {
+        view.backgroundColor = ShareTheme.background
+        topBar.backgroundColor = ShareTheme.background.withAlphaComponent(0.86)
+        loadingOverlay.backgroundColor = ShareTheme.background.withAlphaComponent(0.94)
+        loadingCard.backgroundColor = ShareTheme.surface
+        loadingCard.layer.shadowColor = ShareTheme.shadow.cgColor
+        loadingCard.layer.shadowOpacity = isLightAppearance ? 0.09 : 0.24
+        previewCard.backgroundColor = ShareTheme.surface
+        previewCard.layer.shadowColor = ShareTheme.shadow.cgColor
+        previewCard.layer.shadowOpacity = isLightAppearance ? 0.08 : 0.22
+        notesTextView.textColor = ShareTheme.text
+        notesTextView.backgroundColor = ShareTheme.surfaceRaised
+        notesTextView.layer.borderColor = ShareTheme.stroke.cgColor
+    }
+
     private func updateSaveButton(isReady: Bool, titleOverride: String? = nil) {
         var config = saveButton.configuration ?? UIButton.Configuration.filled()
-        config.title = titleOverride ?? (isReady ? "Save" : "Auto-filling…")
-        config.baseBackgroundColor = isReady ? .systemIndigo : UIColor.systemIndigo.withAlphaComponent(0.45)
-        config.baseForegroundColor = .white
+        config.title = titleOverride ?? (isReady ? "Save now" : "Preparing")
+        config.baseBackgroundColor = isReady ? ShareTheme.accent : ShareTheme.surfaceRaised
+        config.baseForegroundColor = isReady ? .black : ShareTheme.muted
         saveButton.configuration = config
         saveButton.isEnabled = isReady
         loadingSaveNowButton.isEnabled = isReady
@@ -1069,7 +1247,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         config.title = expanded ? "Hide note" : "Add a note"
         config.image = UIImage(systemName: expanded ? "chevron.up" : "plus.circle")
         config.imagePadding = 6
-        config.baseForegroundColor = .secondaryLabel
+        config.baseForegroundColor = ShareTheme.muted
         config.contentInsets = .zero
         notesToggleButton.configuration = config
 
@@ -1156,7 +1334,12 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     @objc private func folderTapped(_ sender: UIButton) {
         guard availableFolders.indices.contains(sender.tag) else { return }
         selectedFolderId = availableFolders[sender.tag].id
+        folderSelectionSource = ShareFolderSelection.isAuto(selectedFolderId) ? .auto : .manual
         rebuildFolderButtons()
+    }
+
+    @objc private func titleFieldChanged() {
+        didEditTitleManually = true
     }
 
     @objc private func cancelTapped() {
@@ -1165,6 +1348,9 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
     @objc private func saveTapped() {
         guard var pendingShare else { return }
+        didFinishSaving = true
+        enrichmentTask?.cancel()
+        setLoadingOverlay(visible: false, title: nil, body: nil)
 
         let trimmedTitle = (titleField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = notesTextView.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1175,14 +1361,22 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
 
         pendingShare.title = trimmedTitle.nilIfEmpty ?? pendingShare.title
         pendingShare.itemDescription = notesExpanded ? trimmedNotes.nilIfEmpty : pendingShare.itemDescription
-        pendingShare.folderId = selectedFolderId
+        pendingShare.folderId = ShareFolderSelection.isAuto(selectedFolderId) ? nil : selectedFolderId
+        pendingShare.folderSource = folderSelectionSource.pendingValue
+        if folderSelectionSource == .manual {
+            pendingShare.folderConfidence = nil
+            pendingShare.folderReason = "manual"
+        }
         pendingShare.tags = dedupeTags(selectedTags + manualTags)
 
         do {
-            try PendingShareStore.shared.save(pendingShare)
+            let startedAt = Date()
+            let fileURL = try PendingShareStore.shared.save(pendingShare)
+            NSLog("[SAVIShareExtension] saved pending share %@ in %.3fs at %@", pendingShare.id, Date().timeIntervalSince(startedAt), fileURL.path)
             updateSaveButton(isReady: false, titleOverride: "Saved")
             extensionContext?.completeRequest(returningItems: nil)
         } catch {
+            NSLog("[SAVIShareExtension] failed to save pending share: %@", error.localizedDescription)
             previewSubtitleLabel.text = error.localizedDescription
             updateSaveButton(isReady: true)
         }
@@ -1219,5 +1413,23 @@ private extension UIColor {
         let alpha = hasAlpha ? CGFloat(value & 0xFF) / 255 : 1
 
         self.init(red: red, green: green, blue: blue, alpha: alpha)
+    }
+
+    var saviIsVeryLight: Bool {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return false }
+        return 0.2126 * red + 0.7152 * green + 0.0722 * blue > 0.70
+    }
+
+    var saviUsesLightForeground: Bool {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return true }
+        return 0.2126 * red + 0.7152 * green + 0.0722 * blue < 0.52
     }
 }

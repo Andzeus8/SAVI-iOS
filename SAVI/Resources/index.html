@@ -43,7 +43,7 @@
     --paper-nav: rgba(10, 6, 20, 0.94);
     --paper-fade: rgba(10, 6, 20, 0.92);
     --paper-clear: rgba(10, 6, 20, 0);
-    --navigator-height: 88px;
+    --navigator-height: 74px;
     --navigator-offset: calc(var(--navigator-height) + env(safe-area-inset-bottom));
   }
   :root[data-theme="light"] {
@@ -3260,6 +3260,56 @@ var sourceProfileForValue = function sourceProfileForValue() {
 var sourceProfileForItem = function sourceProfileForItem(item) {
   return sourceProfileForValue((item === null || item === void 0 ? void 0 : item.url) || (item === null || item === void 0 ? void 0 : item.source) || "", (item === null || item === void 0 ? void 0 : item.source) || "");
 };
+var normalizedSearchText = function normalizedSearchText() {
+  var value = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "";
+  return "".concat(value || "").toLowerCase().trim();
+};
+var escapeRegExp = function escapeRegExp() {
+  var value = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "";
+  return "".concat(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+var searchFieldMatches = function searchFieldMatches() {
+  var value = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "";
+  var query = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
+  var q = normalizedSearchText(query);
+  var haystack = normalizedSearchText(value);
+  if (!q || !haystack) return false;
+  if (q.length <= 2) return new RegExp("(^|[^a-z0-9])".concat(escapeRegExp(q), "([^a-z0-9]|$)"), "i").test(haystack);
+  return haystack.includes(q);
+};
+var searchScoreForItem = function searchScoreForItem(item) {
+  var query = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
+  var q = normalizedSearchText(query);
+  if (!q) return 0;
+  var title = normalizedSearchText(item === null || item === void 0 ? void 0 : item.title);
+  var description = normalizedSearchText(item === null || item === void 0 ? void 0 : item.description);
+  var tags = ((item === null || item === void 0 ? void 0 : item.tags) || []).map(normalizedSearchText);
+  var source = normalizedSearchText(item === null || item === void 0 ? void 0 : item.source);
+  var sourceLabel = normalizedSearchText(sourceProfileForItem(item).label);
+  var assetName = normalizedSearchText(item === null || item === void 0 ? void 0 : item.assetName);
+  var assetMime = normalizedSearchText(item === null || item === void 0 ? void 0 : item.assetMime);
+  var score = 0;
+  if (title === q) score += 220;
+  if (title.startsWith(q)) score += 170;
+  if (searchFieldMatches(title, q)) score += 125;
+  if (tags.some(function (tag) {
+    return tag === q;
+  })) score += 110;
+  if (tags.some(function (tag) {
+    return searchFieldMatches(tag, q);
+  })) score += 82;
+  if (searchFieldMatches(sourceLabel, q) || searchFieldMatches(source, q)) score += 64;
+  if (searchFieldMatches(assetName, q) || searchFieldMatches(assetMime, q)) score += 52;
+  if (searchFieldMatches(description, q)) score += 38;
+  q.split(/\s+/).filter(Boolean).forEach(function (token) {
+    if (title.includes(token)) score += 18;
+    if (tags.some(function (tag) {
+      return tag.includes(token);
+    })) score += 14;
+    if (description.includes(token)) score += 8;
+  });
+  return score;
+};
 var sourceVisualForKey = function sourceVisualForKey() {
   var key = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "web";
   return {
@@ -4621,21 +4671,29 @@ function App() {
     if (activeFolder !== "f-all") list = list.filter(function (i) {
       return i.folderId === activeFolder;
     });
-    if (activeType !== "all") list = list.filter(function (i) {
-      return (i.type || "link") === activeType;
-    });
+    if (activeType !== "all") {
+      list = list.filter(function (i) {
+        var itemType = i.type || "link";
+        return activeType === "link" ? ["article", "link"].includes(itemType) : itemType === activeType;
+      });
+    }
     if (activeSource !== "all") list = list.filter(function (i) {
       return sourceProfileForItem(i).key === activeSource;
     });
     if (search.trim()) {
       var q = search.toLowerCase();
       list = list.filter(function (i) {
-        return (i.title || "").toLowerCase().includes(q) || (i.description || "").toLowerCase().includes(q) || (i.tags || []).some(function (t) {
-          return t.toLowerCase().includes(q);
-        }) || (i.source || "").toLowerCase().includes(q) || sourceProfileForItem(i).label.toLowerCase().includes(q) || (i.assetName || "").toLowerCase().includes(q) || (i.assetMime || "").toLowerCase().includes(q);
+        return searchFieldMatches(i.title, q) || searchFieldMatches(i.description, q) || (i.tags || []).some(function (t) {
+          return searchFieldMatches(t, q);
+        }) || searchFieldMatches(i.source, q) || searchFieldMatches(sourceProfileForItem(i).label, q) || searchFieldMatches(i.assetName, q) || searchFieldMatches(i.assetMime, q);
       });
     }
-    return list.sort(function (a, b) {
+    return _toConsumableArray(list).sort(function (a, b) {
+      var q = search.trim();
+      if (q) {
+        var scoreDelta = searchScoreForItem(b, q) - searchScoreForItem(a, q);
+        if (scoreDelta) return scoreDelta;
+      }
       return b.savedAt - a.savedAt;
     });
   }, [items, activeFolder, activeSource, activeType, browseMode, search]);
@@ -5124,6 +5182,7 @@ function App() {
     onShareItem: handleShareItem
   }), route === "folders" && /*#__PURE__*/React.createElement(FoldersScreen, {
     folders: folders,
+    items: items,
     folderCounts: folderCounts,
     onOpen: function onOpen(id) {
       return openFilteredList({
@@ -6378,7 +6437,7 @@ function WelcomeWizard(_ref51) {
   }, step === slides.length - 1 ? "Let's Go!" : step === 0 ? "Get Started" : "Next")))));
 }
 function HomeScreen(_ref52) {
-  var _folders$find4, _sourceOptions$find;
+  var _folders$find4, _sourceOptions$find, _typeCounts$all, _typeCounts$video, _typeCounts$image, _typeCounts$file, _typeCounts$place, _typeCounts$link, _typeCounts$article;
   var folders = _ref52.folders,
     items = _ref52.items,
     _ref52$searchMode = _ref52.searchMode,
@@ -6417,11 +6476,15 @@ function HomeScreen(_ref52) {
   })) === null || _sourceOptions$find === void 0 ? void 0 : _sourceOptions$find.label) || (activeSource === "all" ? "All Apps" : titleize(activeSource));
   var heroEyebrow = searchMode ? "Search" : "My SAVIs";
   var heroTitle = searchMode ? "Search" : "My SAVIs";
-  var heroDescription = searchMode ? "Search works across every folder, tag, app, and file detail in your library." : "Search fast, jump into your top folders, and keep the latest saves right under your thumb.";
+  var heroDescription = searchMode ? "Search works across every keeper, tag, app, and file detail in your library." : "Search fast, jump into your top keepers, and keep the latest saves right under your thumb.";
   var heroCount = items.length;
   var scrollContainerRef = useRef(null);
   var searchInputRef = useRef(null);
   var resultSectionRef = useRef(null);
+  var _useState51 = useState(false),
+    _useState52 = _slicedToArray(_useState51, 2),
+    showRefineSheet = _useState52[0],
+    setShowRefineSheet = _useState52[1];
   var allFolders = folders.filter(function (folder) {
     return !folder.system;
   }).map(function (folder) {
@@ -6443,10 +6506,10 @@ function HomeScreen(_ref52) {
   });
   var topFolders = allFolders.slice(0, 4);
   var showDashboard = !searchMode;
+  var effectiveViewMode = searchMode ? "list" : viewMode;
   var anySearchFilterActive = activeFolder !== "f-all" || activeType !== "all" || activeSource !== "all";
   var hasLiveQuery = searchMode && Boolean(search.trim());
-  var showSearchDiscovery = searchMode && !hasLiveQuery && !anySearchFilterActive;
-  var resultTitle = searchMode ? search.trim() ? "Results for \u201C".concat(search.trim(), "\u201D") : activeFolder !== "f-all" ? activeFolderName : activeType !== "all" ? displayTypeLabel(activeType) : activeSource !== "all" ? activeSourceLabel : "Everything" : "Recent SAVIs";
+  var resultTitle = searchMode ? search.trim() ? "Results for \u201C".concat(search.trim(), "\u201D") : activeFolder !== "f-all" ? activeFolderName : activeType !== "all" ? displayTypeLabel(activeType) : activeSource !== "all" ? activeSourceLabel : "Recently saved" : "Recent SAVIs";
   var jumpToResults = function jumpToResults() {
     window.setTimeout(function () {
       var _resultSectionRef$cur;
@@ -6474,131 +6537,120 @@ function HomeScreen(_ref52) {
     setSearch(nextSearch);
     jumpToResults();
   };
-  var quickFindTiles = [{
+  var kindFilters = [{
+    key: "all",
+    label: "All",
+    count: (_typeCounts$all = typeCounts.all) !== null && _typeCounts$all !== void 0 ? _typeCounts$all : 0,
+    visual: typeVisualForKey("all")
+  }, {
+    key: "video",
     label: "Videos",
-    meta: "YouTube, TikTok, clips",
-    icon: /*#__PURE__*/React.createElement(IconPlayCircle, {
-      size: 16,
-      stroke: 2.05
-    }),
-    tone: "#F5DDD7",
-    color: "#A54B39",
-    action: function action() {
-      return applySearchShortcut({
-        nextBrowseMode: "types",
-        nextType: "video"
-      });
-    }
+    count: (_typeCounts$video = typeCounts.video) !== null && _typeCounts$video !== void 0 ? _typeCounts$video : 0,
+    visual: typeVisualForKey("video")
   }, {
+    key: "image",
     label: "Images",
-    meta: "photos, screenshots",
-    icon: /*#__PURE__*/React.createElement(IconImage, {
-      size: 16,
-      stroke: 2.05
-    }),
-    tone: "#DDEDEC",
-    color: "#2C7370",
-    action: function action() {
-      return applySearchShortcut({
-        nextBrowseMode: "types",
-        nextType: "image"
-      });
-    }
+    count: (_typeCounts$image = typeCounts.image) !== null && _typeCounts$image !== void 0 ? _typeCounts$image : 0,
+    visual: typeVisualForKey("image")
   }, {
+    key: "file",
     label: "Docs",
-    meta: "PDFs, DOCX, notes",
-    icon: /*#__PURE__*/React.createElement(IconFile, {
-      size: 16,
-      stroke: 2.05
-    }),
-    tone: "#E1E6F2",
-    color: "#465F88",
+    count: (_typeCounts$file = typeCounts.file) !== null && _typeCounts$file !== void 0 ? _typeCounts$file : 0,
+    visual: typeVisualForKey("file")
+  }, {
+    key: "place",
+    label: "Places",
+    count: (_typeCounts$place = typeCounts.place) !== null && _typeCounts$place !== void 0 ? _typeCounts$place : 0,
+    visual: typeVisualForKey("place")
+  }, {
+    key: "link",
+    label: "Links",
+    count: ((_typeCounts$link = typeCounts.link) !== null && _typeCounts$link !== void 0 ? _typeCounts$link : 0) + ((_typeCounts$article = typeCounts.article) !== null && _typeCounts$article !== void 0 ? _typeCounts$article : 0),
+    visual: typeVisualForKey("link")
+  }];
+  var contextualTags = useMemo(function () {
+    var counts = new Map();
+    items.forEach(function (item) {
+      (item.tags || []).forEach(function (tag) {
+        var _counts$get;
+        var label = sanitizeText(tag);
+        if (!label) return;
+        var key = label.toLowerCase();
+        counts.set(key, {
+          label: label,
+          count: (((_counts$get = counts.get(key)) === null || _counts$get === void 0 ? void 0 : _counts$get.count) || 0) + 1
+        });
+      });
+    });
+    return _toConsumableArray(counts.values()).sort(function (a, b) {
+      return b.count - a.count || a.label.localeCompare(b.label);
+    }).slice(0, 12);
+  }, [items]);
+  var smartShortcuts = [{
+    key: "pdf",
+    label: "PDFs",
+    hint: "file names and docs",
     action: function action() {
       return applySearchShortcut({
-        nextBrowseMode: "types",
-        nextType: "file"
+        nextSearch: "pdf"
       });
     }
   }, {
+    key: "screenshots",
+    label: "Screenshots",
+    hint: "image saves",
+    action: function action() {
+      return applySearchShortcut({
+        nextSearch: "screenshot"
+      });
+    }
+  }, {
+    key: "youtube",
+    label: "YouTube",
+    hint: "source",
+    action: function action() {
+      return applySearchShortcut({
+        nextBrowseMode: "sources",
+        nextSource: "youtube"
+      });
+    }
+  }, {
+    key: "places",
     label: "Places",
-    meta: "maps and pins",
-    icon: /*#__PURE__*/React.createElement(IconPin, {
-      size: 16,
-      stroke: 2.05
-    }),
-    tone: "#E3F1E6",
-    color: "#2E8B57",
+    hint: "maps and pins",
     action: function action() {
       return applySearchShortcut({
         nextBrowseMode: "types",
         nextType: "place"
       });
     }
-  }, {
-    label: "Device videos",
-    meta: "camera roll and uploads",
-    icon: /*#__PURE__*/React.createElement(IconPlayCircle, {
-      size: 16,
-      stroke: 2.05
-    }),
-    tone: "#EFE2FA",
-    color: "#7C43A8",
-    action: function action() {
-      return applySearchShortcut({
-        nextBrowseMode: "sources",
-        nextSource: "device",
-        nextType: "video"
-      });
-    }
-  }, {
-    label: "Device images",
-    meta: "photos and screenshots",
-    icon: /*#__PURE__*/React.createElement(IconImage, {
-      size: 16,
-      stroke: 2.05
-    }),
-    tone: "#E8F2DF",
-    color: "#567A2B",
-    action: function action() {
-      return applySearchShortcut({
-        nextBrowseMode: "sources",
-        nextSource: "device",
-        nextType: "image"
-      });
-    }
   }];
-  var quickSourceChips = ["device", "youtube", "tiktok", "instagram", "reddit", "x", "maps"].map(function (key) {
-    return {
-      key: key,
-      label: sourceProfileForValue(key, key).label,
-      visual: sourceVisualForKey(key)
-    };
-  });
-  var quickTagChips = [{
-    label: "Screenshots",
-    search: "screenshot"
-  }, {
-    label: "PDFs",
-    search: "pdf"
-  }, {
-    label: "DOCX",
-    search: "docx"
-  }, {
-    label: "Recipes",
-    search: "recipe"
-  }, {
-    label: "Travel",
-    search: "travel"
-  }, {
-    label: "AI",
-    search: "ai"
-  }, {
-    label: "Funny",
-    search: "meme"
-  }, {
-    label: "Private",
-    search: "private"
-  }];
+  var clearAllSearchFilters = function clearAllSearchFilters() {
+    setActiveFolder("f-all");
+    setActiveType("all");
+    setActiveSource("all");
+    setBrowseMode("all");
+    setSearch("");
+    jumpToResults();
+  };
+  var searchMatchLabelForItem = function searchMatchLabelForItem(item) {
+    if (!searchMode) return "";
+    var query = normalizedSearchText(search);
+    if (query) {
+      if (searchFieldMatches(item.title, query)) return "matched title";
+      var tag = (item.tags || []).find(function (t) {
+        return searchFieldMatches(t, query);
+      });
+      if (tag) return "tag: ".concat(tag);
+      if (searchFieldMatches(sourceProfileForItem(item).label, query) || searchFieldMatches(item.source, query)) return "source: ".concat(sourceProfileForItem(item).label);
+      if (searchFieldMatches(item.assetName, query) || searchFieldMatches(item.assetMime, query)) return "matched file";
+      if (searchFieldMatches(item.description, query)) return "matched notes";
+    }
+    if (activeType !== "all") return "kind: ".concat(displayTypeLabel(activeType));
+    if (activeSource !== "all") return "source: ".concat(activeSourceLabel);
+    if (activeFolder !== "f-all") return "keeper: ".concat(activeFolderName);
+    return "";
+  };
   useEffect(function () {
     if (!searchMode) return;
     var timer = window.setTimeout(function () {
@@ -6649,7 +6701,13 @@ function HomeScreen(_ref52) {
       }
     }, count);
   };
-  var activeSearchChips = [activeFolder !== "f-all" ? {
+  var activeSearchChips = [hasLiveQuery ? {
+    key: "query",
+    label: "Search: ".concat(search.trim()),
+    onClear: function onClear() {
+      return setSearch("");
+    }
+  } : null, activeFolder !== "f-all" ? {
     key: "folder-".concat(activeFolder),
     label: activeFolderName,
     onClear: function onClear() {
@@ -6668,7 +6726,7 @@ function HomeScreen(_ref52) {
       return setActiveSource("all");
     }
   } : null].filter(Boolean);
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     ref: scrollContainerRef,
     className: "scroll",
     style: {
@@ -6758,7 +6816,7 @@ function HomeScreen(_ref52) {
     onKeyDown: function onKeyDown(e) {
       if (e.key === "Enter") jumpToResults();
     },
-    placeholder: "Search titles, tags, apps, and notes...",
+    placeholder: "Search anything you saved...",
     style: {
       width: "100%",
       borderRadius: 16,
@@ -6791,26 +6849,129 @@ function HomeScreen(_ref52) {
     style: {
       fontSize: 14
     }
-  }, "Search all your SAVIs"))), showSearchDiscovery && /*#__PURE__*/React.createElement("div", {
+  }, "Search all your SAVIs"))), searchMode && /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "0 20px 18px",
+      padding: "0 20px 14px",
       display: "grid",
-      gap: 16
+      gap: 10
     }
-  }, activeSearchChips.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "mono",
-    style: {
-      fontSize: 10,
-      textTransform: "uppercase",
-      letterSpacing: "0.14em",
-      color: T.inkMute,
-      marginBottom: 10
-    }
-  }, "Active filters"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      flexWrap: "wrap",
+      gap: 8,
+      overflowX: "auto",
+      paddingBottom: 2,
+      scrollbarWidth: "none"
+    }
+  }, kindFilters.map(function (kind) {
+    var active = activeType === kind.key || kind.key === "all" && activeType === "all";
+    return /*#__PURE__*/React.createElement("button", {
+      key: kind.key,
+      onClick: function onClick() {
+        return applySearchShortcut({
+          nextBrowseMode: kind.key === "all" ? activeFolder !== "f-all" ? "folders" : activeSource !== "all" ? "sources" : "all" : "types",
+          nextType: kind.key,
+          nextFolder: activeFolder,
+          nextSource: activeSource,
+          nextSearch: search
+        });
+      },
+      style: {
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        minHeight: 38,
+        padding: "8px 11px 8px 9px",
+        borderRadius: 999,
+        background: active ? T.ink : T.card,
+        color: active ? T.paper : T.inkSoft,
+        border: "1px solid ".concat(active ? T.ink : T.lineSoft),
+        boxShadow: active ? "0 16px 26px -22px rgba(216,255,60,0.5)" : "0 14px 24px -24px rgba(22,26,35,0.38)"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 22,
+        height: 22,
+        borderRadius: 9,
+        background: active ? BRAND.chartreuse : kind.visual.bg,
+        color: active ? BRAND.ink : kind.visual.fg,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }
+    }, kind.visual.icon(12)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700
+      }
+    }, kind.label), filterCount(kind.count, active));
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setShowRefineSheet(true);
+    },
+    style: {
+      flexShrink: 0,
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      minHeight: 38,
+      padding: "8px 12px",
+      borderRadius: 999,
+      background: activeSearchChips.length > 0 ? "rgba(216,255,60,0.14)" : T.paperDim,
+      color: T.ink,
+      border: "1px solid ".concat(activeSearchChips.length > 0 ? "rgba(216,255,60,0.34)" : T.lineSoft),
+      fontSize: 12,
+      fontWeight: 700
+    }
+  }, /*#__PURE__*/React.createElement(IconList, {
+    size: 13
+  }), "Refine", activeSearchChips.length > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "mono",
+    style: {
+      fontSize: 9,
+      color: BRAND.chartreuse
+    }
+  }, activeSearchChips.length))), !hasLiveQuery && !anySearchFilterActive && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
       gap: 8
+    }
+  }, smartShortcuts.map(function (shortcut) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: shortcut.key,
+      onClick: shortcut.action,
+      style: {
+        minHeight: 56,
+        textAlign: "left",
+        padding: "9px 10px",
+        borderRadius: 16,
+        background: T.card,
+        border: "1px solid ".concat(T.lineSoft),
+        boxShadow: "0 16px 26px -25px rgba(22,26,35,0.4)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "clamp1",
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: T.ink
+      }
+    }, shortcut.label), /*#__PURE__*/React.createElement("div", {
+      className: "clamp1",
+      style: {
+        fontSize: 9.5,
+        color: T.inkMute,
+        marginTop: 3
+      }
+    }, shortcut.hint));
+  })), activeSearchChips.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap"
     }
   }, activeSearchChips.map(function (chip) {
     return /*#__PURE__*/React.createElement("button", {
@@ -6819,194 +6980,29 @@ function HomeScreen(_ref52) {
       style: {
         display: "flex",
         alignItems: "center",
-        gap: 8,
-        padding: "9px 12px",
+        gap: 7,
+        padding: "7px 10px",
         borderRadius: 999,
-        background: T.ink,
-        color: T.paper,
-        border: "1px solid ".concat(T.ink),
-        fontSize: 12,
+        background: T.paperDim,
+        color: T.inkSoft,
+        border: "1px solid ".concat(T.lineSoft),
+        fontSize: 11.5,
         fontWeight: 600
       }
     }, /*#__PURE__*/React.createElement("span", null, chip.label), /*#__PURE__*/React.createElement(IconX, {
-      size: 11
+      size: 10
     }));
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "serif",
-    style: {
-      fontSize: 24,
-      color: T.ink,
-      marginBottom: 10
-    }
-  }, "Quick find"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 10
-    }
-  }, quickFindTiles.map(function (tile) {
-    return /*#__PURE__*/React.createElement("button", {
-      key: tile.label,
-      onClick: tile.action,
-      style: {
-        textAlign: "left",
-        padding: 14,
-        borderRadius: 18,
-        background: T.card,
-        border: "1px solid ".concat(T.lineSoft),
-        boxShadow: "0 18px 30px -28px rgba(22,26,35,0.42)"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 32,
-        height: 32,
-        borderRadius: 12,
-        background: tile.tone,
-        color: tile.color,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 10
-      }
-    }, tile.icon), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        fontWeight: 700,
-        color: T.ink,
-        marginBottom: 4
-      }
-    }, tile.label), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11.5,
-        lineHeight: 1.35,
-        color: T.inkSoft
-      }
-    }, tile.meta));
-  }))), allFolders.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("button", {
     className: "mono",
+    onClick: clearAllSearchFilters,
     style: {
-      fontSize: 10,
+      fontSize: 9.5,
       textTransform: "uppercase",
-      letterSpacing: "0.14em",
+      letterSpacing: "0.1em",
       color: T.inkMute,
-      marginBottom: 10
+      padding: "7px 4px"
     }
-  }, "Folders"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 8
-    }
-  }, allFolders.map(function (folder) {
-    var _folder$count;
-    return /*#__PURE__*/React.createElement("button", {
-      key: folder.id,
-      onClick: function onClick() {
-        return applySearchShortcut({
-          nextBrowseMode: "folders",
-          nextFolder: folder.id
-        });
-      },
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "9px 12px",
-        borderRadius: 999,
-        background: T.card,
-        border: "1px solid ".concat(T.lineSoft),
-        color: T.inkSoft,
-        fontSize: 12,
-        fontWeight: 600,
-        boxShadow: "0 16px 28px -24px rgba(22,26,35,0.35)"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 9,
-        height: 9,
-        borderRadius: 999,
-        background: folder.color
-      }
-    }), /*#__PURE__*/React.createElement("span", null, folder.name), filterCount((_folder$count = folder.count) !== null && _folder$count !== void 0 ? _folder$count : 0, false));
-  }))), quickSourceChips.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "mono",
-    style: {
-      fontSize: 10,
-      textTransform: "uppercase",
-      letterSpacing: "0.14em",
-      color: T.inkMute,
-      marginBottom: 10
-    }
-  }, "Source apps"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 8
-    }
-  }, quickSourceChips.map(function (chip) {
-    return /*#__PURE__*/React.createElement("button", {
-      key: chip.key,
-      onClick: function onClick() {
-        return applySearchShortcut({
-          nextBrowseMode: "sources",
-          nextSource: chip.key
-        });
-      },
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "9px 12px 9px 9px",
-        borderRadius: 999,
-        background: T.card,
-        border: "1px solid ".concat(T.lineSoft),
-        color: T.inkSoft,
-        boxShadow: "0 16px 28px -24px rgba(22,26,35,0.35)"
-      }
-    }, /*#__PURE__*/React.createElement(BrandBadge, {
-      visual: chip.visual,
-      size: 22
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        fontWeight: 600
-      }
-    }, chip.label));
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "mono",
-    style: {
-      fontSize: 10,
-      textTransform: "uppercase",
-      letterSpacing: "0.14em",
-      color: T.inkMute,
-      marginBottom: 10
-    }
-  }, "Common tags"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 8
-    }
-  }, quickTagChips.map(function (chip) {
-    return /*#__PURE__*/React.createElement("button", {
-      key: chip.label,
-      onClick: function onClick() {
-        return applySearchShortcut({
-          nextSearch: chip.search
-        });
-      },
-      style: {
-        padding: "9px 12px",
-        borderRadius: 999,
-        background: T.card,
-        border: "1px solid ".concat(T.lineSoft),
-        color: T.inkSoft,
-        fontSize: 12,
-        fontWeight: 600,
-        boxShadow: "0 16px 28px -24px rgba(22,26,35,0.35)"
-      }
-    }, chip.label);
-  })))), searchMode && hasLiveQuery && /*#__PURE__*/React.createElement("div", {
+  }, "Clear"))), searchMode && hasLiveQuery && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "0 20px 12px"
     }
@@ -7038,7 +7034,7 @@ function HomeScreen(_ref52) {
       fontSize: 24,
       color: T.ink
     }
-  }, "Top SAVI folders"), /*#__PURE__*/React.createElement("button", {
+  }, "Top keepers"), /*#__PURE__*/React.createElement("button", {
     className: "mono",
     onClick: function onClick() {
       setBrowseMode("folders");
@@ -7143,7 +7139,7 @@ function HomeScreen(_ref52) {
     activeFolderName: activeFolderName,
     activeSourceLabel: activeSourceLabel,
     activeType: activeType
-  })) : viewMode === "grid" ? /*#__PURE__*/React.createElement("div", {
+  })) : effectiveViewMode === "grid" ? /*#__PURE__*/React.createElement("div", {
     ref: resultSectionRef,
     key: "grid-".concat(browseMode, "-").concat(activeFolder, "-").concat(activeType, "-").concat(activeSource),
     className: "anim-fade",
@@ -7232,6 +7228,7 @@ function HomeScreen(_ref52) {
     return /*#__PURE__*/React.createElement(ItemListRow, {
       key: item.id,
       item: item,
+      matchReason: searchMatchLabelForItem(item),
       onClick: function onClick() {
         return onSelect(item);
       },
@@ -7240,7 +7237,288 @@ function HomeScreen(_ref52) {
       },
       delay: idx * 18
     });
-  }))));
+  })))), showRefineSheet && /*#__PURE__*/React.createElement("div", {
+    className: "anim-fade",
+    style: {
+      position: "absolute",
+      inset: 0,
+      zIndex: 55,
+      display: "flex",
+      alignItems: "flex-end",
+      background: "rgba(5,3,10,0.52)",
+      backdropFilter: "blur(8px)"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    "aria-label": "Close refine filters",
+    onClick: function onClick() {
+      return setShowRefineSheet(false);
+    },
+    style: {
+      position: "absolute",
+      inset: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "anim-sheet scroll",
+    style: {
+      position: "relative",
+      zIndex: 1,
+      width: "100%",
+      maxHeight: "82%",
+      overflowY: "auto",
+      borderRadius: "28px 28px 0 0",
+      background: T.paper,
+      border: "1px solid ".concat(T.lineSoft),
+      boxShadow: "0 -26px 60px -30px rgba(0,0,0,0.75)",
+      padding: "18px 20px calc(var(--navigator-offset) + 18px)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 42,
+      height: 4,
+      borderRadius: 999,
+      background: T.line,
+      margin: "0 auto 16px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: 14,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "serif",
+    style: {
+      fontSize: 27,
+      color: T.ink,
+      lineHeight: 1
+    }
+  }, "Refine search"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: T.inkSoft,
+      marginTop: 5
+    }
+  }, items.length, " ", items.length === 1 ? "result" : "results", " right now")), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setShowRefineSheet(false);
+    },
+    "aria-label": "Close refine filters",
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 14,
+      background: T.card,
+      color: T.inkSoft,
+      border: "1px solid ".concat(T.lineSoft),
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement(IconX, {
+    size: 14
+  }))), activeSearchChips.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16,
+      padding: 12,
+      borderRadius: 18,
+      background: T.card,
+      border: "1px solid ".concat(T.lineSoft)
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mono",
+    style: {
+      fontSize: 9.5,
+      textTransform: "uppercase",
+      letterSpacing: "0.12em",
+      color: T.inkMute,
+      marginBottom: 9
+    }
+  }, "Active"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 8
+    }
+  }, activeSearchChips.map(function (chip) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: chip.key,
+      onClick: chip.onClear,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        padding: "8px 10px",
+        borderRadius: 999,
+        background: T.paperDim,
+        color: T.inkSoft,
+        border: "1px solid ".concat(T.lineSoft),
+        fontSize: 12,
+        fontWeight: 600
+      }
+    }, chip.label, /*#__PURE__*/React.createElement(IconX, {
+      size: 10
+    }));
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: clearAllSearchFilters,
+    style: {
+      padding: "8px 10px",
+      borderRadius: 999,
+      background: "rgba(216,255,60,0.12)",
+      color: BRAND.chartreuse,
+      border: "1px solid rgba(216,255,60,0.24)",
+      fontSize: 12,
+      fontWeight: 700
+    }
+  }, "Clear all"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "mono",
+    style: {
+      fontSize: 10,
+      textTransform: "uppercase",
+      letterSpacing: "0.14em",
+      color: T.inkMute,
+      marginBottom: 10
+    }
+  }, "Keepers"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 8
+    }
+  }, allFolders.map(function (folder) {
+    var _folder$count;
+    var active = activeFolder === folder.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: folder.id,
+      onClick: function onClick() {
+        applySearchShortcut({
+          nextBrowseMode: "folders",
+          nextFolder: folder.id,
+          nextType: activeType,
+          nextSource: activeSource,
+          nextSearch: search
+        });
+        setShowRefineSheet(false);
+      },
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "9px 12px",
+        borderRadius: 999,
+        background: active ? T.ink : T.card,
+        color: active ? T.paper : T.inkSoft,
+        border: "1px solid ".concat(active ? T.ink : T.lineSoft),
+        fontSize: 12,
+        fontWeight: 600
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 9,
+        height: 9,
+        borderRadius: 999,
+        background: folder.color
+      }
+    }), folder.name, filterCount((_folder$count = folder.count) !== null && _folder$count !== void 0 ? _folder$count : 0, active));
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "mono",
+    style: {
+      fontSize: 10,
+      textTransform: "uppercase",
+      letterSpacing: "0.14em",
+      color: T.inkMute,
+      marginBottom: 10
+    }
+  }, "Source"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 8
+    }
+  }, sourceOptions.slice(0, 12).map(function (source) {
+    var _source$count;
+    var active = activeSource === source.key;
+    return /*#__PURE__*/React.createElement("button", {
+      key: source.key,
+      onClick: function onClick() {
+        applySearchShortcut({
+          nextBrowseMode: "sources",
+          nextSource: source.key,
+          nextFolder: activeFolder,
+          nextType: activeType,
+          nextSearch: search
+        });
+        setShowRefineSheet(false);
+      },
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 11px 8px 8px",
+        borderRadius: 999,
+        background: active ? T.ink : T.card,
+        color: active ? T.paper : T.inkSoft,
+        border: "1px solid ".concat(active ? T.ink : T.lineSoft),
+        fontSize: 12,
+        fontWeight: 600
+      }
+    }, /*#__PURE__*/React.createElement(BrandBadge, {
+      visual: sourceVisualForKey(source.key),
+      size: 22,
+      active: active
+    }), source.label, filterCount((_source$count = source.count) !== null && _source$count !== void 0 ? _source$count : 0, active));
+  }))), contextualTags.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "mono",
+    style: {
+      fontSize: 10,
+      textTransform: "uppercase",
+      letterSpacing: "0.14em",
+      color: T.inkMute,
+      marginBottom: 10
+    }
+  }, "Useful tags here"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 8
+    }
+  }, contextualTags.map(function (tag) {
+    var active = normalizedSearchText(search) === normalizedSearchText(tag.label);
+    return /*#__PURE__*/React.createElement("button", {
+      key: tag.label,
+      onClick: function onClick() {
+        applySearchShortcut({
+          nextSearch: tag.label,
+          nextBrowseMode: browseMode,
+          nextFolder: activeFolder,
+          nextType: activeType,
+          nextSource: activeSource
+        });
+        setShowRefineSheet(false);
+      },
+      style: {
+        padding: "9px 12px",
+        borderRadius: 999,
+        background: active ? "rgba(216,255,60,0.16)" : T.card,
+        color: active ? BRAND.chartreuse : T.inkSoft,
+        border: "1px solid ".concat(active ? "rgba(216,255,60,0.32)" : T.lineSoft),
+        fontSize: 12,
+        fontWeight: 600
+      }
+    }, tag.label, " ", /*#__PURE__*/React.createElement("span", {
+      className: "mono",
+      style: {
+        fontSize: 9,
+        opacity: 0.62
+      }
+    }, tag.count));
+  })))))));
 }
 function EmptyState(_ref54) {
   var search = _ref54.search,
@@ -7255,7 +7533,7 @@ function EmptyState(_ref54) {
     _ref54$activeType = _ref54.activeType,
     activeType = _ref54$activeType === void 0 ? "all" : _ref54$activeType;
   var title = search ? "No matches yet" : searchMode ? "Search your library" : browseMode === "all" ? "Nothing saved yet" : browseMode === "folders" ? "No saves in ".concat(activeFolderName) : browseMode === "types" ? "No ".concat(displayTypeLabel(activeType).toLowerCase(), " saves yet") : "No saves from ".concat(activeSourceLabel);
-  var description = search ? "Nothing matched \"".concat(search, "\" across folders, tags, apps, or notes.") : searchMode ? "Try a title, folder, app, or tag to find something quickly." : browseMode === "all" ? "Start saving links, files, or places and they will show up here in whichever view you prefer." : browseMode === "folders" ? "Save something new or switch folders to browse another part of your library." : browseMode === "types" ? "Try another content type or save something in this format." : "Try another app filter or save content from that app first.";
+  var description = search ? "Nothing matched \"".concat(search, "\" across keepers, tags, apps, or notes.") : searchMode ? "Try a title, keeper, app, or tag to find something quickly." : browseMode === "all" ? "Start saving links, files, or places and they will show up here in whichever view you prefer." : browseMode === "folders" ? "Save something new or switch keepers to browse another part of your library." : browseMode === "types" ? "Try another content type or save something in this format." : "Try another app filter or save content from that app first.";
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -7513,7 +7791,9 @@ function ItemListRow(_ref56) {
   var item = _ref56.item,
     onClick = _ref56.onClick,
     onShare = _ref56.onShare,
-    delay = _ref56.delay;
+    delay = _ref56.delay,
+    _ref56$matchReason = _ref56.matchReason,
+    matchReason = _ref56$matchReason === void 0 ? "" : _ref56$matchReason;
   var sourceProfile = sourceProfileForItem(item);
   var sourceVisual = sourceVisualForProfile(sourceProfile);
   var polishedLinkPreview = ["article", "link", "file", "place"].includes(item.type);
@@ -7660,7 +7940,18 @@ function ItemListRow(_ref56) {
       gap: 6,
       flexWrap: "wrap"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, matchReason && /*#__PURE__*/React.createElement("span", {
+    className: "mono",
+    style: {
+      fontSize: 9.5,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      padding: "5px 7px",
+      borderRadius: 999,
+      background: "rgba(216,255,60,0.12)",
+      color: BRAND.chartreuse
+    }
+  }, matchReason), /*#__PURE__*/React.createElement("span", {
     className: "mono",
     style: {
       fontSize: 9.5,
@@ -7707,10 +7998,15 @@ function ItemListRow(_ref56) {
 }
 function FoldersScreen(_ref57) {
   var folders = _ref57.folders,
+    items = _ref57.items,
     folderCounts = _ref57.folderCounts,
     onOpen = _ref57.onOpen,
     onNew = _ref57.onNew,
     onEdit = _ref57.onEdit;
+  var _useState53 = useState(false),
+    _useState54 = _slicedToArray(_useState53, 2),
+    showEmptyKeepers = _useState54[0],
+    setShowEmptyKeepers = _useState54[1];
   var displayFolders = _toConsumableArray(folders).sort(function (a, b) {
     var _DEFAULT_FOLDER_ORDER3, _DEFAULT_FOLDER_ORDER4;
     var aOrder = (_DEFAULT_FOLDER_ORDER3 = DEFAULT_FOLDER_ORDER_MAP[a.id]) !== null && _DEFAULT_FOLDER_ORDER3 !== void 0 ? _DEFAULT_FOLDER_ORDER3 : 1000;
@@ -7718,6 +8014,58 @@ function FoldersScreen(_ref57) {
     if (aOrder !== bOrder) return aOrder - bOrder;
     return a.name.localeCompare(b.name);
   });
+  var libraryFolder = displayFolders.find(function (folder) {
+    return folder.system;
+  });
+  var keeperFolders = displayFolders.filter(function (folder) {
+    return !folder.system;
+  });
+  var sortedItems = useMemo(function () {
+    return _toConsumableArray(items).sort(function (a, b) {
+      return b.savedAt - a.savedAt;
+    });
+  }, [items]);
+  var latestByFolder = useMemo(function () {
+    var map = {};
+    sortedItems.forEach(function (item) {
+      if (!map[item.folderId]) map[item.folderId] = item;
+    });
+    return map;
+  }, [sortedItems]);
+  var activeKeeperFolders = useMemo(function () {
+    return keeperFolders.filter(function (folder) {
+      var _folderCounts$folder$2;
+      return ((_folderCounts$folder$2 = folderCounts[folder.id]) !== null && _folderCounts$folder$2 !== void 0 ? _folderCounts$folder$2 : 0) > 0;
+    }).sort(function (a, b) {
+      var _latestByFolder$a$id$, _latestByFolder$a$id, _latestByFolder$b$id$, _latestByFolder$b$id, _folderCounts$a$id, _folderCounts$b$id, _DEFAULT_FOLDER_ORDER5, _DEFAULT_FOLDER_ORDER6;
+      var aLatest = (_latestByFolder$a$id$ = (_latestByFolder$a$id = latestByFolder[a.id]) === null || _latestByFolder$a$id === void 0 ? void 0 : _latestByFolder$a$id.savedAt) !== null && _latestByFolder$a$id$ !== void 0 ? _latestByFolder$a$id$ : 0;
+      var bLatest = (_latestByFolder$b$id$ = (_latestByFolder$b$id = latestByFolder[b.id]) === null || _latestByFolder$b$id === void 0 ? void 0 : _latestByFolder$b$id.savedAt) !== null && _latestByFolder$b$id$ !== void 0 ? _latestByFolder$b$id$ : 0;
+      if (aLatest !== bLatest) return bLatest - aLatest;
+      var aCount = (_folderCounts$a$id = folderCounts[a.id]) !== null && _folderCounts$a$id !== void 0 ? _folderCounts$a$id : 0;
+      var bCount = (_folderCounts$b$id = folderCounts[b.id]) !== null && _folderCounts$b$id !== void 0 ? _folderCounts$b$id : 0;
+      if (aCount !== bCount) return bCount - aCount;
+      var aOrder = (_DEFAULT_FOLDER_ORDER5 = DEFAULT_FOLDER_ORDER_MAP[a.id]) !== null && _DEFAULT_FOLDER_ORDER5 !== void 0 ? _DEFAULT_FOLDER_ORDER5 : 1000;
+      var bOrder = (_DEFAULT_FOLDER_ORDER6 = DEFAULT_FOLDER_ORDER_MAP[b.id]) !== null && _DEFAULT_FOLDER_ORDER6 !== void 0 ? _DEFAULT_FOLDER_ORDER6 : 1000;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return a.name.localeCompare(b.name);
+    });
+  }, [keeperFolders, folderCounts, latestByFolder]);
+  var emptyKeeperFolders = useMemo(function () {
+    return keeperFolders.filter(function (folder) {
+      var _folderCounts$folder$3;
+      return ((_folderCounts$folder$3 = folderCounts[folder.id]) !== null && _folderCounts$folder$3 !== void 0 ? _folderCounts$folder$3 : 0) === 0;
+    });
+  }, [keeperFolders, folderCounts]);
+  var activeKeepers = keeperFolders.filter(function (folder) {
+    var _folderCounts$folder$4;
+    return ((_folderCounts$folder$4 = folderCounts[folder.id]) !== null && _folderCounts$folder$4 !== void 0 ? _folderCounts$folder$4 : 0) > 0;
+  }).length;
+  var latestLibraryItem = sortedItems[0];
+  useEffect(function () {
+    if (activeKeeperFolders.length === 0 && emptyKeeperFolders.length > 0) {
+      setShowEmptyKeepers(true);
+    }
+  }, [activeKeeperFolders.length, emptyKeeperFolders.length]);
   return /*#__PURE__*/React.createElement("div", {
     className: "scroll anim-fade",
     style: {
@@ -7742,31 +8090,137 @@ function FoldersScreen(_ref57) {
       color: T.ink,
       marginBottom: 4
     }
-  }, "Folders"), /*#__PURE__*/React.createElement("div", {
+  }, "Keepers"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
       lineHeight: 1.4,
       color: T.inkSoft,
       maxWidth: 250
     }
-  }, "Cleaner homes for your SAVIs.")), /*#__PURE__*/React.createElement("button", {
-    "aria-label": "Create a new folder",
+  }, "Jump into the right lane fast, without turning this tab into a giant wall of cards.")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 20px 14px",
+      display: "grid",
+      gridTemplateColumns: "1.15fr 0.85fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return onOpen((libraryFolder === null || libraryFolder === void 0 ? void 0 : libraryFolder.id) || "f-all");
+    },
+    style: {
+      minHeight: 126,
+      textAlign: "left",
+      padding: 16,
+      borderRadius: 24,
+      background: "linear-gradient(160deg, rgba(167,139,250,0.16) 0%, rgba(139,92,246,0.1) 32%, var(--card) 100%)",
+      border: "1px solid ".concat(T.lineSoft),
+      boxShadow: "0 20px 34px -28px rgba(22,26,35,0.5)",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 14,
+      background: "rgba(167,139,250,0.16)",
+      color: T.ink,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement(SaviMark, {
+    size: 26
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "mono",
+    style: {
+      fontSize: 9.5,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      padding: "7px 9px",
+      borderRadius: 999,
+      background: T.paperDim,
+      color: T.inkMute
+    }
+  }, items.length, " saved")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "serif",
+    style: {
+      fontSize: 24,
+      lineHeight: 1,
+      color: T.ink,
+      marginBottom: 5
+    }
+  }, "All saves"), /*#__PURE__*/React.createElement("div", {
+    className: "clamp2",
+    style: {
+      fontSize: 12.5,
+      lineHeight: 1.45,
+      color: T.inkSoft
+    }
+  }, latestLibraryItem ? latestLibraryItem.title : "Everything you have saved lives here."), /*#__PURE__*/React.createElement("div", {
+    className: "mono",
+    style: {
+      fontSize: 9.5,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      color: T.inkMute,
+      marginTop: 10
+    }
+  }, latestLibraryItem ? "updated ".concat(relativeTime(latestLibraryItem.savedAt)) : "open the full library"))), /*#__PURE__*/React.createElement("button", {
+    "aria-label": "Create a new keeper",
     onClick: onNew,
     style: {
-      width: 42,
-      height: 42,
-      flexShrink: 0,
-      borderRadius: 999,
+      minHeight: 126,
+      textAlign: "left",
+      padding: 16,
+      borderRadius: 24,
+      background: T.card,
+      border: "1px dashed ".concat(T.line),
+      boxShadow: "0 18px 30px -28px rgba(22,26,35,0.4)",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 14,
       background: T.ink,
       color: T.paper,
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
-      boxShadow: "0 18px 32px -22px rgba(22,26,35,0.72)"
+      justifyContent: "center"
     }
   }, /*#__PURE__*/React.createElement(IconFolderPlus, {
     size: 15
-  })))), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "serif",
+    style: {
+      fontSize: 22,
+      lineHeight: 1,
+      color: T.ink,
+      marginBottom: 5
+    }
+  }, "New keeper"), /*#__PURE__*/React.createElement("div", {
+    className: "clamp2",
+    style: {
+      fontSize: 12.5,
+      lineHeight: 1.45,
+      color: T.inkSoft
+    }
+  }, "Make a fresh home for whatever you keep saving next.")))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "0 20px 10px",
       display: "flex",
@@ -7780,7 +8234,7 @@ function FoldersScreen(_ref57) {
       fontSize: 22,
       color: T.ink
     }
-  }, "All folders"), /*#__PURE__*/React.createElement("div", {
+  }, "Browse keepers"), /*#__PURE__*/React.createElement("div", {
     className: "mono",
     style: {
       fontSize: 10,
@@ -7788,18 +8242,19 @@ function FoldersScreen(_ref57) {
       letterSpacing: "0.1em",
       color: T.inkMute
     }
-  }, displayFolders.filter(function (folder) {
-    return !folder.system;
-  }).length, " spaces")), /*#__PURE__*/React.createElement("div", {
+  }, "recent first \xB7 ", activeKeepers, " active")), /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "0 20px 26px",
+      padding: "0 20px ".concat(emptyKeeperFolders.length > 0 ? "8px" : "calc(18px + env(safe-area-inset-bottom))"),
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
-      gap: 14
+      gap: 12
     }
-  }, displayFolders.map(function (f, idx) {
-    var _folderCounts$f$id, _folderCounts$f$id2;
-    var coverImage = f.image || folderCover(f.id || f.name || "folder");
+  }, activeKeeperFolders.map(function (f, idx) {
+    var _folderCounts$f$id;
+    var count = (_folderCounts$f$id = folderCounts[f.id]) !== null && _folderCounts$f$id !== void 0 ? _folderCounts$f$id : 0;
+    var coverImage = count > 0 ? f.image || folderCover(f.id || f.name || "folder") : "";
+    var latestItem = latestByFolder[f.id];
+    var latestLabel = latestItem ? relativeTime(latestItem.savedAt) : "empty";
     return /*#__PURE__*/React.createElement("div", {
       key: f.id,
       className: "anim-slide",
@@ -7816,7 +8271,7 @@ function FoldersScreen(_ref57) {
         textAlign: "left",
         padding: 12,
         borderRadius: 22,
-        aspectRatio: "1 / 0.96",
+        aspectRatio: "1 / 0.88",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
@@ -7847,7 +8302,7 @@ function FoldersScreen(_ref57) {
         gap: 8,
         alignItems: "flex-start"
       }
-    }, !f.system && /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       className: "mono",
       style: {
         display: "inline-flex",
@@ -7871,23 +8326,7 @@ function FoldersScreen(_ref57) {
         background: f.color,
         boxShadow: "0 0 0 3px rgba(255,255,255,0.14)"
       }
-    }), (_folderCounts$f$id = folderCounts[f.id]) !== null && _folderCounts$f$id !== void 0 ? _folderCounts$f$id : 0), f.system && /*#__PURE__*/React.createElement("div", {
-      className: "mono",
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "7px 9px",
-        borderRadius: 999,
-        background: "rgba(255,255,255,0.12)",
-        color: "rgba(255,255,255,0.88)",
-        letterSpacing: "0.08em",
-        fontSize: 9,
-        textTransform: "uppercase"
-      }
-    }, /*#__PURE__*/React.createElement(IconSparkles, {
-      size: 11
-    }), "Library")), /*#__PURE__*/React.createElement("div", {
+    }), count === 0 ? "empty" : "".concat(count, " ").concat(count === 1 ? "save" : "saves"))), /*#__PURE__*/React.createElement("div", {
       style: {
         position: "relative",
         zIndex: 1,
@@ -7905,13 +8344,24 @@ function FoldersScreen(_ref57) {
         textShadow: coverImage ? "0 12px 24px rgba(0,0,0,0.44)" : "none"
       }
     }, f.name), /*#__PURE__*/React.createElement("div", {
+      className: "clamp2",
       style: {
         fontSize: 11.5,
-        fontWeight: 600,
-        color: coverImage ? "rgba(255,255,255,0.88)" : f.system ? "rgba(245,241,234,0.84)" : T.inkSoft,
-        textShadow: coverImage ? "0 8px 20px rgba(0,0,0,0.34)" : "none"
+        lineHeight: 1.4,
+        color: coverImage ? "rgba(255,255,255,0.88)" : T.inkSoft,
+        textShadow: coverImage ? "0 8px 20px rgba(0,0,0,0.34)" : "none",
+        minHeight: 32
       }
-    }, (_folderCounts$f$id2 = folderCounts[f.id]) !== null && _folderCounts$f$id2 !== void 0 ? _folderCounts$f$id2 : 0, " ", folderCounts[f.id] === 1 ? "item" : "items"))), !f.system && /*#__PURE__*/React.createElement("button", {
+    }, latestItem ? latestItem.title : "Nothing saved here yet."), /*#__PURE__*/React.createElement("div", {
+      className: "mono",
+      style: {
+        fontSize: 9.5,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: coverImage ? "rgba(255,255,255,0.74)" : T.inkMute,
+        marginTop: 9
+      }
+    }, latestItem ? "updated ".concat(latestLabel) : "ready for your next save"))), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         return onEdit(f.id);
       },
@@ -7935,7 +8385,176 @@ function FoldersScreen(_ref57) {
     }, /*#__PURE__*/React.createElement(IconEdit, {
       size: 13
     })));
-  })));
+  })), emptyKeeperFolders.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 20px 12px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setShowEmptyKeepers(function (value) {
+        return !value;
+      });
+    },
+    style: {
+      width: "100%",
+      padding: "14px 16px",
+      borderRadius: 18,
+      background: T.card,
+      border: "1px solid ".concat(T.lineSoft),
+      boxShadow: "0 18px 28px -28px rgba(22,26,35,0.38)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      textAlign: "left"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "serif",
+    style: {
+      fontSize: 20,
+      color: T.ink,
+      marginBottom: 3
+    }
+  }, "Empty keepers"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: T.inkSoft
+    }
+  }, showEmptyKeepers ? "Hide the quiet ones for now." : "Open the keepers that are ready to be filled next.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mono",
+    style: {
+      fontSize: 10,
+      textTransform: "uppercase",
+      letterSpacing: "0.1em",
+      color: T.inkMute
+    }
+  }, emptyKeeperFolders.length, " waiting"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: 999,
+      background: T.paperDim,
+      color: T.ink,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      transform: showEmptyKeepers ? "rotate(-90deg)" : "rotate(90deg)",
+      transition: "transform 140ms ease"
+    }
+  }, /*#__PURE__*/React.createElement(IconChevronLeft, {
+    size: 14
+  })))))), showEmptyKeepers && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 20px calc(18px + env(safe-area-inset-bottom))",
+      display: "grid",
+      gap: 10
+    }
+  }, emptyKeeperFolders.map(function (f, idx) {
+    return /*#__PURE__*/React.createElement("div", {
+      key: f.id,
+      className: "anim-slide",
+      style: {
+        animationDelay: "".concat((activeKeeperFolders.length + idx) * 30, "ms"),
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return onOpen(f.id);
+      },
+      style: {
+        width: "100%",
+        minHeight: 84,
+        textAlign: "left",
+        padding: "14px 48px 14px 14px",
+        borderRadius: 18,
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        background: "linear-gradient(160deg, ".concat(f.color, "18 0%, ").concat(T.card, " 100%)"),
+        border: "1px solid ".concat(T.lineSoft),
+        boxShadow: "0 18px 28px -28px rgba(22,26,35,0.4)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 42,
+        height: 42,
+        borderRadius: 14,
+        background: f.image ? "center / cover no-repeat url(".concat(f.image, ")") : "rgba(255,255,255,0.08)",
+        border: "1px solid ".concat(T.lineSoft),
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        overflow: "hidden",
+        position: "relative"
+      }
+    }, f.image && /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        inset: 0,
+        background: "linear-gradient(180deg, rgba(10,6,20,0.16) 0%, rgba(10,6,20,0.38) 100%)"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "serif",
+      style: {
+        position: "relative",
+        zIndex: 1,
+        fontSize: 18,
+        color: "#fff"
+      }
+    }, (f.name || "K").charAt(0).toUpperCase())), /*#__PURE__*/React.createElement("div", {
+      style: {
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 18,
+        fontWeight: 700,
+        lineHeight: 1.1,
+        color: T.ink,
+        marginBottom: 4
+      }
+    }, f.name), /*#__PURE__*/React.createElement("div", {
+      className: "clamp1",
+      style: {
+        fontSize: 12.5,
+        color: T.inkSoft
+      }
+    }, "Ready for your next save."))), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return onEdit(f.id);
+      },
+      "aria-label": "Edit ".concat(f.name),
+      style: {
+        position: "absolute",
+        top: "50%",
+        right: 12,
+        transform: "translateY(-50%)",
+        width: 32,
+        height: 32,
+        borderRadius: 999,
+        background: "rgba(255,255,255,0.9)",
+        color: T.ink,
+        border: "1px solid ".concat(T.lineSoft),
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: "0 10px 18px -18px rgba(22,26,35,0.65)"
+      }
+    }, /*#__PURE__*/React.createElement(IconEdit, {
+      size: 13
+    })));
+  }))));
 }
 function ProfileScreen(_ref58) {
   var itemCount = _ref58.itemCount,
@@ -7948,42 +8567,42 @@ function ProfileScreen(_ref58) {
     themeMode = _ref58$themeMode === void 0 ? "auto" : _ref58$themeMode,
     setThemeMode = _ref58.setThemeMode;
   var fileInputRef = useRef(null);
-  var _useState51 = useState(""),
-    _useState52 = _slicedToArray(_useState51, 2),
-    backupMessage = _useState52[0],
-    setBackupMessage = _useState52[1];
-  var _useState53 = useState("muted"),
-    _useState54 = _slicedToArray(_useState53, 2),
-    backupTone = _useState54[0],
-    setBackupTone = _useState54[1];
-  var _useState55 = useState(false),
+  var _useState55 = useState(""),
     _useState56 = _slicedToArray(_useState55, 2),
-    isImporting = _useState56[0],
-    setIsImporting = _useState56[1];
-  var _useState57 = useState(false),
+    backupMessage = _useState56[0],
+    setBackupMessage = _useState56[1];
+  var _useState57 = useState("muted"),
     _useState58 = _slicedToArray(_useState57, 2),
-    isExporting = _useState58[0],
-    setIsExporting = _useState58[1];
+    backupTone = _useState58[0],
+    setBackupTone = _useState58[1];
   var _useState59 = useState(false),
     _useState60 = _slicedToArray(_useState59, 2),
-    showDeleteModal = _useState60[0],
-    setShowDeleteModal = _useState60[1];
-  var _useState61 = useState(1),
+    isImporting = _useState60[0],
+    setIsImporting = _useState60[1];
+  var _useState61 = useState(false),
     _useState62 = _slicedToArray(_useState61, 2),
-    deleteStep = _useState62[0],
-    setDeleteStep = _useState62[1];
+    isExporting = _useState62[0],
+    setIsExporting = _useState62[1];
   var _useState63 = useState(false),
     _useState64 = _slicedToArray(_useState63, 2),
-    isDeletingEverything = _useState64[0],
-    setIsDeletingEverything = _useState64[1];
-  var _useState65 = useState(false),
+    showDeleteModal = _useState64[0],
+    setShowDeleteModal = _useState64[1];
+  var _useState65 = useState(1),
     _useState66 = _slicedToArray(_useState65, 2),
-    showClearDemoModal = _useState66[0],
-    setShowClearDemoModal = _useState66[1];
+    deleteStep = _useState66[0],
+    setDeleteStep = _useState66[1];
   var _useState67 = useState(false),
     _useState68 = _slicedToArray(_useState67, 2),
-    isClearingDemo = _useState68[0],
-    setIsClearingDemo = _useState68[1];
+    isDeletingEverything = _useState68[0],
+    setIsDeletingEverything = _useState68[1];
+  var _useState69 = useState(false),
+    _useState70 = _slicedToArray(_useState69, 2),
+    showClearDemoModal = _useState70[0],
+    setShowClearDemoModal = _useState70[1];
+  var _useState71 = useState(false),
+    _useState72 = _slicedToArray(_useState71, 2),
+    isClearingDemo = _useState72[0],
+    setIsClearingDemo = _useState72[1];
   var showBackupMessage = function showBackupMessage(message) {
     var tone = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "muted";
     setBackupMessage(message);
@@ -8743,11 +9362,14 @@ function TabBar(_ref63) {
       onClick: onClick,
       disabled: disabled,
       style: {
+        minWidth: 56,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         gap: 2,
-        padding: "4px 0",
+        padding: "6px 8px",
+        borderRadius: 14,
+        background: active ? T.paperDim : "transparent",
         color: active ? T.ink : disabled ? T.lineSoft : T.inkMute
       }
     }, /*#__PURE__*/React.createElement(IconComp, {
@@ -8772,8 +9394,8 @@ function TabBar(_ref63) {
     style: {
       display: "flex",
       alignItems: "center",
-      justifyContent: "space-around",
-      padding: "8px 24px calc(24px + env(safe-area-inset-bottom))",
+      justifyContent: "space-between",
+      padding: "8px 18px calc(12px + env(safe-area-inset-bottom))",
       borderTop: "1px solid ".concat(T.lineSoft),
       background: "var(--paper-nav)",
       backdropFilter: "blur(12px)"
@@ -8796,15 +9418,15 @@ function TabBar(_ref63) {
     "aria-label": "Add a new save",
     onClick: onSavePress,
     style: {
-      width: 52,
-      height: 52,
+      width: 50,
+      height: 50,
       borderRadius: 18,
       background: T.ink,
       color: T.paper,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      boxShadow: "0 8px 20px -6px rgba(28,26,23,0.35)"
+      boxShadow: "0 8px 20px -8px rgba(28,26,23,0.35)"
     }
   }, /*#__PURE__*/React.createElement(IconPlus, {
     size: 20,
@@ -8814,8 +9436,8 @@ function TabBar(_ref63) {
     onClick: function onClick() {
       return setRoute("folders");
     },
-    IconComp: IconGrid,
-    label: "Folders"
+    IconComp: IconBookmark,
+    label: "Keepers"
   }), /*#__PURE__*/React.createElement(TabButton, {
     active: route === "profile",
     onClick: function onClick() {
@@ -8826,14 +9448,14 @@ function TabBar(_ref63) {
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
-      bottom: "calc(6px + env(safe-area-inset-bottom))",
+      bottom: "calc(4px + env(safe-area-inset-bottom))",
       left: "50%",
       transform: "translateX(-50%)",
-      width: 120,
-      height: 5,
+      width: 108,
+      height: 4,
       borderRadius: 999,
       background: T.ink,
-      opacity: 0.85
+      opacity: 0.82
     }
   }));
 }
@@ -8847,88 +9469,88 @@ function SaveSheet(_ref65) {
     folders = _ref65.folders,
     onClose = _ref65.onClose,
     onSave = _ref65.onSave;
-  var _useState69 = useState(1),
-    _useState70 = _slicedToArray(_useState69, 2),
-    step = _useState70[0],
-    setStep = _useState70[1];
-  var _useState71 = useState("link"),
-    _useState72 = _slicedToArray(_useState71, 2),
-    inputMode = _useState72[0],
-    setInputMode = _useState72[1];
-  var _useState73 = useState(initialUrl || ""),
+  var _useState73 = useState(1),
     _useState74 = _slicedToArray(_useState73, 2),
-    url = _useState74[0],
-    setUrl = _useState74[1];
-  var _useState75 = useState(""),
+    step = _useState74[0],
+    setStep = _useState74[1];
+  var _useState75 = useState("link"),
     _useState76 = _slicedToArray(_useState75, 2),
-    textBody = _useState76[0],
-    setTextBody = _useState76[1];
-  var _useState77 = useState(""),
+    inputMode = _useState76[0],
+    setInputMode = _useState76[1];
+  var _useState77 = useState(initialUrl || ""),
     _useState78 = _slicedToArray(_useState77, 2),
-    source = _useState78[0],
-    setSource = _useState78[1];
+    url = _useState78[0],
+    setUrl = _useState78[1];
   var _useState79 = useState(""),
     _useState80 = _slicedToArray(_useState79, 2),
-    title = _useState80[0],
-    setTitle = _useState80[1];
+    textBody = _useState80[0],
+    setTextBody = _useState80[1];
   var _useState81 = useState(""),
     _useState82 = _slicedToArray(_useState81, 2),
-    description = _useState82[0],
-    setDescription = _useState82[1];
-  var _useState83 = useState(((_folders$find5 = folders.find(function (f) {
+    source = _useState82[0],
+    setSource = _useState82[1];
+  var _useState83 = useState(""),
+    _useState84 = _slicedToArray(_useState83, 2),
+    title = _useState84[0],
+    setTitle = _useState84[1];
+  var _useState85 = useState(""),
+    _useState86 = _slicedToArray(_useState85, 2),
+    description = _useState86[0],
+    setDescription = _useState86[1];
+  var _useState87 = useState(((_folders$find5 = folders.find(function (f) {
       return f.id === "f-random";
     })) === null || _folders$find5 === void 0 ? void 0 : _folders$find5.id) || ((_folders$find6 = folders.find(function (f) {
       return f.id === "f-must-see";
     })) === null || _folders$find6 === void 0 ? void 0 : _folders$find6.id) || ((_folders$find7 = folders.find(function (f) {
       return !f.system;
     })) === null || _folders$find7 === void 0 ? void 0 : _folders$find7.id) || "f-random"),
-    _useState84 = _slicedToArray(_useState83, 2),
-    folderId = _useState84[0],
-    setFolderId = _useState84[1];
-  var _useState85 = useState(""),
-    _useState86 = _slicedToArray(_useState85, 2),
-    tags = _useState86[0],
-    setTags = _useState86[1];
-  var _useState87 = useState("article"),
     _useState88 = _slicedToArray(_useState87, 2),
-    type = _useState88[0],
-    setType = _useState88[1];
+    folderId = _useState88[0],
+    setFolderId = _useState88[1];
   var _useState89 = useState(""),
     _useState90 = _slicedToArray(_useState89, 2),
-    thumbnail = _useState90[0],
-    setThumbnail = _useState90[1];
-  var _useState91 = useState(false),
+    tags = _useState90[0],
+    setTags = _useState90[1];
+  var _useState91 = useState("article"),
     _useState92 = _slicedToArray(_useState91, 2),
-    isAnalyzing = _useState92[0],
-    setIsAnalyzing = _useState92[1];
-  var _useState93 = useState(false),
+    type = _useState92[0],
+    setType = _useState92[1];
+  var _useState93 = useState(""),
     _useState94 = _slicedToArray(_useState93, 2),
-    isSaving = _useState94[0],
-    setIsSaving = _useState94[1];
-  var _useState95 = useState(""),
+    thumbnail = _useState94[0],
+    setThumbnail = _useState94[1];
+  var _useState95 = useState(false),
     _useState96 = _slicedToArray(_useState95, 2),
-    analysisNote = _useState96[0],
-    setAnalysisNote = _useState96[1];
-  var _useState97 = useState(""),
+    isAnalyzing = _useState96[0],
+    setIsAnalyzing = _useState96[1];
+  var _useState97 = useState(false),
     _useState98 = _slicedToArray(_useState97, 2),
-    clipboardNote = _useState98[0],
-    setClipboardNote = _useState98[1];
-  var _useState99 = useState(0),
+    isSaving = _useState98[0],
+    setIsSaving = _useState98[1];
+  var _useState99 = useState(""),
     _useState100 = _slicedToArray(_useState99, 2),
-    keyboardInset = _useState100[0],
-    setKeyboardInset = _useState100[1];
-  var _useState101 = useState(false),
+    analysisNote = _useState100[0],
+    setAnalysisNote = _useState100[1];
+  var _useState101 = useState(""),
     _useState102 = _slicedToArray(_useState101, 2),
-    showAdvanced = _useState102[0],
-    setShowAdvanced = _useState102[1];
-  var _useState103 = useState(null),
+    clipboardNote = _useState102[0],
+    setClipboardNote = _useState102[1];
+  var _useState103 = useState(0),
     _useState104 = _slicedToArray(_useState103, 2),
-    selectedFile = _useState104[0],
-    setSelectedFile = _useState104[1];
+    keyboardInset = _useState104[0],
+    setKeyboardInset = _useState104[1];
   var _useState105 = useState(false),
     _useState106 = _slicedToArray(_useState105, 2),
-    dragActive = _useState106[0],
-    setDragActive = _useState106[1];
+    showAdvanced = _useState106[0],
+    setShowAdvanced = _useState106[1];
+  var _useState107 = useState(null),
+    _useState108 = _slicedToArray(_useState107, 2),
+    selectedFile = _useState108[0],
+    setSelectedFile = _useState108[1];
+  var _useState109 = useState(false),
+    _useState110 = _slicedToArray(_useState109, 2),
+    dragActive = _useState110[0],
+    setDragActive = _useState110[1];
   var sheetRef = useRef(null);
   var scrollRef = useRef(null);
   var advancedRef = useRef(null);
@@ -10373,34 +10995,34 @@ function FolderSheet(_ref73) {
   var folder = _ref73.folder,
     onClose = _ref73.onClose,
     onSave = _ref73.onSave;
-  var _useState107 = useState((folder === null || folder === void 0 ? void 0 : folder.name) || ""),
-    _useState108 = _slicedToArray(_useState107, 2),
-    name = _useState108[0],
-    setName = _useState108[1];
-  var _useState109 = useState((folder === null || folder === void 0 ? void 0 : folder.color) || FOLDER_COLORS[0]),
-    _useState110 = _slicedToArray(_useState109, 2),
-    color = _useState110[0],
-    setColor = _useState110[1];
-  var _useState111 = useState((folder === null || folder === void 0 ? void 0 : folder.image) || ""),
+  var _useState111 = useState((folder === null || folder === void 0 ? void 0 : folder.name) || ""),
     _useState112 = _slicedToArray(_useState111, 2),
-    image = _useState112[0],
-    setImage = _useState112[1];
-  var _useState113 = useState(""),
+    name = _useState112[0],
+    setName = _useState112[1];
+  var _useState113 = useState((folder === null || folder === void 0 ? void 0 : folder.color) || FOLDER_COLORS[0]),
     _useState114 = _slicedToArray(_useState113, 2),
-    imageUrl = _useState114[0],
-    setImageUrl = _useState114[1];
-  var _useState115 = useState(""),
+    color = _useState114[0],
+    setColor = _useState114[1];
+  var _useState115 = useState((folder === null || folder === void 0 ? void 0 : folder.image) || ""),
     _useState116 = _slicedToArray(_useState115, 2),
-    imageNote = _useState116[0],
-    setImageNote = _useState116[1];
-  var _useState117 = useState(false),
+    image = _useState116[0],
+    setImage = _useState116[1];
+  var _useState117 = useState(""),
     _useState118 = _slicedToArray(_useState117, 2),
-    isReadingImage = _useState118[0],
-    setIsReadingImage = _useState118[1];
-  var _useState119 = useState(0),
+    imageUrl = _useState118[0],
+    setImageUrl = _useState118[1];
+  var _useState119 = useState(""),
     _useState120 = _slicedToArray(_useState119, 2),
-    keyboardInset = _useState120[0],
-    setKeyboardInset = _useState120[1];
+    imageNote = _useState120[0],
+    setImageNote = _useState120[1];
+  var _useState121 = useState(false),
+    _useState122 = _slicedToArray(_useState121, 2),
+    isReadingImage = _useState122[0],
+    setIsReadingImage = _useState122[1];
+  var _useState123 = useState(0),
+    _useState124 = _slicedToArray(_useState123, 2),
+    keyboardInset = _useState124[0],
+    setKeyboardInset = _useState124[1];
   var imageInputRef = useRef(null);
   var sheetRef = useRef(null);
   var scrollRef = useRef(null);
@@ -10883,17 +11505,17 @@ function FolderSheet(_ref73) {
 function ImageLightbox(_ref76) {
   var image = _ref76.image,
     onClose = _ref76.onClose;
-  var _useState121 = useState(1),
-    _useState122 = _slicedToArray(_useState121, 2),
-    scale = _useState122[0],
-    setScale = _useState122[1];
-  var _useState123 = useState({
+  var _useState125 = useState(1),
+    _useState126 = _slicedToArray(_useState125, 2),
+    scale = _useState126[0],
+    setScale = _useState126[1];
+  var _useState127 = useState({
       x: 0,
       y: 0
     }),
-    _useState124 = _slicedToArray(_useState123, 2),
-    offset = _useState124[0],
-    setOffset = _useState124[1];
+    _useState128 = _slicedToArray(_useState127, 2),
+    offset = _useState128[0],
+    setOffset = _useState128[1];
   var gestureRef = useRef({
     mode: "",
     startScale: 1,
@@ -11124,18 +11746,18 @@ function ItemSheet(_ref77) {
   });
   var sourceProfile = sourceProfileForItem(item);
   var sourceVisual = sourceVisualForProfile(sourceProfile);
-  var _useState125 = useState(false),
-    _useState126 = _slicedToArray(_useState125, 2),
-    isOpeningAsset = _useState126[0],
-    setIsOpeningAsset = _useState126[1];
-  var _useState127 = useState(0),
-    _useState128 = _slicedToArray(_useState127, 2),
-    dragY = _useState128[0],
-    setDragY = _useState128[1];
   var _useState129 = useState(false),
     _useState130 = _slicedToArray(_useState129, 2),
-    isDragging = _useState130[0],
-    setIsDragging = _useState130[1];
+    isOpeningAsset = _useState130[0],
+    setIsOpeningAsset = _useState130[1];
+  var _useState131 = useState(0),
+    _useState132 = _slicedToArray(_useState131, 2),
+    dragY = _useState132[0],
+    setDragY = _useState132[1];
+  var _useState133 = useState(false),
+    _useState134 = _slicedToArray(_useState133, 2),
+    isDragging = _useState134[0],
+    setIsDragging = _useState134[1];
   var hasLocalAsset = Boolean(item.assetId);
   var sheetScrollRef = useRef(null);
   var dragStartYRef = useRef(0);
@@ -11735,46 +12357,46 @@ function ItemEditorSheet(_ref79) {
     folders = _ref79.folders,
     onClose = _ref79.onClose,
     onSave = _ref79.onSave;
-  var _useState131 = useState(item.title || ""),
-    _useState132 = _slicedToArray(_useState131, 2),
-    title = _useState132[0],
-    setTitle = _useState132[1];
-  var _useState133 = useState(item.description || ""),
-    _useState134 = _slicedToArray(_useState133, 2),
-    description = _useState134[0],
-    setDescription = _useState134[1];
-  var _useState135 = useState(item.folderId || ((_folders$find1 = folders.find(function (f) {
+  var _useState135 = useState(item.title || ""),
+    _useState136 = _slicedToArray(_useState135, 2),
+    title = _useState136[0],
+    setTitle = _useState136[1];
+  var _useState137 = useState(item.description || ""),
+    _useState138 = _slicedToArray(_useState137, 2),
+    description = _useState138[0],
+    setDescription = _useState138[1];
+  var _useState139 = useState(item.folderId || ((_folders$find1 = folders.find(function (f) {
       return f.id === "f-random";
     })) === null || _folders$find1 === void 0 ? void 0 : _folders$find1.id) || ((_folders$find10 = folders.find(function (f) {
       return !f.system;
     })) === null || _folders$find10 === void 0 ? void 0 : _folders$find10.id) || "f-random"),
-    _useState136 = _slicedToArray(_useState135, 2),
-    folderId = _useState136[0],
-    setFolderId = _useState136[1];
-  var _useState137 = useState((item.tags || []).join(", ")),
-    _useState138 = _slicedToArray(_useState137, 2),
-    tags = _useState138[0],
-    setTags = _useState138[1];
-  var _useState139 = useState(item.type || "link"),
     _useState140 = _slicedToArray(_useState139, 2),
-    type = _useState140[0],
-    setType = _useState140[1];
-  var _useState141 = useState(item.source || ""),
+    folderId = _useState140[0],
+    setFolderId = _useState140[1];
+  var _useState141 = useState((item.tags || []).join(", ")),
     _useState142 = _slicedToArray(_useState141, 2),
-    source = _useState142[0],
-    setSource = _useState142[1];
-  var _useState143 = useState(item.url || ""),
+    tags = _useState142[0],
+    setTags = _useState142[1];
+  var _useState143 = useState(item.type || "link"),
     _useState144 = _slicedToArray(_useState143, 2),
-    url = _useState144[0],
-    setUrl = _useState144[1];
-  var _useState145 = useState(0),
+    type = _useState144[0],
+    setType = _useState144[1];
+  var _useState145 = useState(item.source || ""),
     _useState146 = _slicedToArray(_useState145, 2),
-    keyboardInset = _useState146[0],
-    setKeyboardInset = _useState146[1];
-  var _useState147 = useState(false),
+    source = _useState146[0],
+    setSource = _useState146[1];
+  var _useState147 = useState(item.url || ""),
     _useState148 = _slicedToArray(_useState147, 2),
-    isSaving = _useState148[0],
-    setIsSaving = _useState148[1];
+    url = _useState148[0],
+    setUrl = _useState148[1];
+  var _useState149 = useState(0),
+    _useState150 = _slicedToArray(_useState149, 2),
+    keyboardInset = _useState150[0],
+    setKeyboardInset = _useState150[1];
+  var _useState151 = useState(false),
+    _useState152 = _slicedToArray(_useState151, 2),
+    isSaving = _useState152[0],
+    setIsSaving = _useState152[1];
   var scrollRef = useRef(null);
   var hasLocalAsset = Boolean(item.assetId);
   var hasDraft = title.trim() !== (item.title || "").trim() || description.trim() !== (item.description || "").trim() || folderId !== (item.folderId || "") || type !== (item.type || "link") || source.trim() !== (item.source || "").trim() || url.trim() !== (item.url || "").trim() || tags.trim() !== (item.tags || []).join(", ");
