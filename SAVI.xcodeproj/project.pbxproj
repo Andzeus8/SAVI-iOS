@@ -10,7 +10,6 @@
 		0A73FB184D18F78B889FB2BB /* Views/Profile/ProfileAndFriends.swift in Sources */ = {isa = PBXBuildFile; fileRef = D166879B440A6F89A637ABAA /* Views/Profile/ProfileAndFriends.swift */; };
 		17450B03B5250677DE7C0400 /* AppGroupSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */; };
 		1EBFE9922D71262ABD190A52 /* Views/Components/AppComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EAF1025489363942E32DA03 /* Views/Components/AppComponents.swift */; };
-		21369F7A43FA24862791478A /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = E31AD178E16028A5BC865A87 /* index.html */; };
 		2C2C1C0A4325CB28983D7BF1 /* Views/Folders/FolderComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2826535DAA243707DBEDB4 /* Views/Folders/FolderComponents.swift */; };
 		2E1362452A98F02BB35F1D8B /* Views/Items/ItemViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D338123ABAC95D43929E065 /* Views/Items/ItemViews.swift */; };
 		501CDA10B3D3B6325275890E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5E40DFD2F8E0A52A92271618 /* PrivacyInfo.xcprivacy */; };
@@ -87,7 +86,6 @@
 		D166879B440A6F89A637ABAA /* Views/Profile/ProfileAndFriends.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Profile/ProfileAndFriends.swift; sourceTree = "<group>"; };
 		DE6624FFF9F559ACAF7E9441 /* Core/SaviCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/SaviCore.swift; sourceTree = "<group>"; };
 		E5F13A7C8B394D2F9234A111 /* Core/SaviArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/SaviArchive.swift; sourceTree = "<group>"; };
-		E31AD178E16028A5BC865A87 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
 		E6C6C7F73B112A00ABB33153 /* Services/LegacyAndUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LegacyAndUtilities.swift; sourceTree = "<group>"; };
 		E816792053DE2717A057744F /* SAVI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SAVI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FB2826535DAA243707DBEDB4 /* Views/Folders/FolderComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Folders/FolderComponents.swift; sourceTree = "<group>"; };
@@ -172,7 +170,6 @@
 		CA2DA976D1169AE0BBF0B8BE /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				E31AD178E16028A5BC865A87 /* index.html */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -281,7 +278,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				B1E3D6A7B0FF22BD01EB91E2 /* Assets.xcassets in Resources */,
-				21369F7A43FA24862791478A /* index.html in Resources */,
 				BA473D208670028D4C739F0C /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -356,7 +352,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = SAVI/SAVI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = ZBY2F3W785;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SAVI/Info.plist;
@@ -383,7 +379,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "SAVI/SAVI-PersonalDebug.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = ZBY2F3W785;
 				ENABLE_TESTABILITY = YES;
@@ -417,7 +413,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = SAVIShareExtension/SAVIShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = ZBY2F3W785;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SAVIShareExtension/Info.plist;
@@ -465,7 +461,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "SAVIShareExtension/SAVIShareExtension-PersonalDebug.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = ZBY2F3W785;
 				ENABLE_TESTABILITY = YES;

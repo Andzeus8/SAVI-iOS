@@ -9,8 +9,30 @@ SAVI uses these stock-safe images only for removable sample-library thumbnails. 
 - Hotel booking sample: [Bed in Hotel Room](https://www.pexels.com/photo/bed-in-hotel-room-8089081/)
 - License terms: [Pexels License](https://www.pexels.com/license/)
 
+## V16 Meme And Rabbit-Hole Sources
+
+These links are used as removable sample-library examples. They are selected to be recognizable, stable, and App Store-safe, with third-party thumbnails loaded as normal link metadata rather than bundled as SAVI-owned assets.
+
+- Numa Numa: [Wikipedia](https://en.wikipedia.org/wiki/Numa_Numa_(video))
+- Charlie Bit My Finger: [Know Your Meme](https://knowyourmeme.com/memes/charlie-bit-my-finger)
+- Rickroll: [YouTube](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
+- Dramatic Chipmunk: [Know Your Meme](https://knowyourmeme.com/memes/dramatic-chipmunk)
+- Badger Badger Badger: [Know Your Meme](https://knowyourmeme.com/memes/badger-badger-badger)
+- Keyboard Cat: [Know Your Meme](https://knowyourmeme.com/memes/keyboard-cat)
+- Double Rainbow: [Know Your Meme](https://knowyourmeme.com/memes/double-rainbow)
+- Evolution of Dance: [Wikipedia](https://en.wikipedia.org/wiki/Evolution_of_Dance)
+- Leave Britney Alone: [Wikipedia](https://en.wikipedia.org/wiki/Leave_Britney_Alone!)
+- Pentagon audit: [Defense.gov](https://www.defense.gov/News/News-Stories/Article/Article/3967135/dods-2024-audit-shows-progress-toward-2028-goals/)
+- Pyramid alignment: [Smithsonian Magazine](https://www.smithsonianmag.com/smart-news/fall-equinox-secret-pyramids-near-perfect-alignment-180968223/)
+- UFO/UAP records: [National Archives](https://www.archives.gov/news/topics/ufos)
+- The Big Dig: [Wikipedia](https://en.wikipedia.org/wiki/Big_Dig)
+- Voynich manuscript: [Wikipedia](https://en.wikipedia.org/wiki/Voynich_manuscript)
+- Number stations: [Wikipedia](https://en.wikipedia.org/wiki/Numbers_station)
+- Nazca Lines: [UNESCO](https://whc.unesco.org/en/list/700/)
+
 ## Safety Notes
 
 - Real stock photos are used only for food, door/access, and hotel room samples.
 - Driver license, insurance card, passport, birth certificate, medical, receipt, and other sensitive/admin examples are generated fake sample art with invented data and visible `SAMPLE` marking.
 - Health examples are saved as research/questions-for-doctor material, not medical advice.
+- Rabbit-hole examples are framed as curiosity and fact-checking, not as factual claims.

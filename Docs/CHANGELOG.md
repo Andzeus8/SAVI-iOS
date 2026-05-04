@@ -4,6 +4,19 @@ This log is the human-readable companion to git history. Git commits remain the
 source of truth; daily entries summarize product intent, affected screens, build
 targets, and QA evidence.
 
+## 2026-05-05
+
+- Recurated the launch sample library to keep the first six utility saves, then
+  add more memorable memes, rabbit holes, science, recipes, and AI examples.
+- Expanded `Memes & Laughs` and `Rabbit Holes` so Home, Explore, and Search feel
+  more entertaining during first-run sample browsing.
+- Simplified generated sample video thumbnails so Explore cards no longer show
+  duplicate baked-in title text under the card overlay.
+- Shortened the Home search launcher hint so it fits cleanly on iPhone SE.
+- Started final TestFlight prep and removed the unused legacy web prototype
+  `index.html` from the Release app resource bundle.
+- See [2026-05-05](ChangeLog/2026-05-05.md).
+
 ## 2026-05-04
 
 - Locked the two-channel naming rule: `SAVI` is Release/TestFlight with Social

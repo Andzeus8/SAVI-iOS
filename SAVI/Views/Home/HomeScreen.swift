@@ -1130,7 +1130,7 @@ private struct HomeSearchLauncher: View {
                             .font(SaviType.ui(.title3, weight: .bold))
                             .foregroundStyle(SaviTheme.metadataText)
 
-                        Text("Search titles, folders, tags, PDFs...")
+                        Text("Search titles, tags, PDFs...")
                             .font(SaviType.ui(.subheadline, weight: .semibold))
                             .foregroundStyle(SaviTheme.metadataText)
                             .lineLimit(1)
