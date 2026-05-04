@@ -14,9 +14,9 @@ This repository is the active SAVI app. Use it for current SAVI work.
 - Share extension save flow
 - App Group pending-share import
 - Metadata fetching and stale retry behavior
-- Folder/Keeper classification and learning
+- Folder classification and learning
 - Search, Explore, Home, Profile, Settings, previews, backup/import
-- Face ID/private Keeper behavior
+- Face ID/private Folder behavior
 - Apple Intelligence and local fallback logic
 - App icon and iOS assets
 

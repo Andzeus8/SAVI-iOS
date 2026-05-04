@@ -15,7 +15,7 @@ All current product work should happen here unless a request explicitly says to 
 ## Current Architecture
 
 - `SAVI/ContentView.swift`
-  Native SwiftUI app, storage, navigation, search, Explore, Keepers, backup/import, previews, Face ID keeper locks, metadata enrichment, Apple Intelligence/fallback refinement, and migration host.
+  Native SwiftUI app, storage, navigation, search, Explore, Folders, backup/import, previews, Face ID folder locks, metadata enrichment, Apple Intelligence/fallback refinement, and migration host.
 - `SAVIShareExtension/`
   Native share extension UI and fast-save import pipeline.
 - `Shared/AppGroupSupport.swift`
@@ -27,7 +27,7 @@ All current product work should happen here unless a request explicitly says to 
 
 Do not sync or rebuild from `/Users/guest1/Documents/SAVI /index.html` during normal iOS work. The old web app is a legacy prototype now. The Xcode build no longer runs the web sync script automatically.
 
-If a task involves SAVI app UI, metadata, search, Keepers, sharing, folder decisions, Apple Intelligence, Face ID, Explore, thumbnails, previews, profile/settings, backup/import, or simulator testing, edit the native iOS files in this repo.
+If a task involves SAVI app UI, metadata, search, Folders, sharing, folder decisions, Apple Intelligence, Face ID, Explore, thumbnails, previews, profile/settings, backup/import, or simulator testing, edit the native iOS files in this repo.
 
 ## Build And Run
 

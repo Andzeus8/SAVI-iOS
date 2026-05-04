@@ -1,0 +1,114 @@
+--- SAVI/Views/Items/ItemViews.swift	2026-05-03 16:25:54
++++ Docs/Design/DarkModePolishArchive/2026-05-03-before-dark-legibility-pass/ItemViews.swift	2026-05-03 16:20:39
+@@ -204,7 +204,7 @@
+                     .clipShape(RoundedRectangle(cornerRadius: EditorialTimelineItemLayout.thumbnailCorner, style: .continuous))
+                     .overlay(
+                         RoundedRectangle(cornerRadius: EditorialTimelineItemLayout.thumbnailCorner, style: .continuous)
+-                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.58), lineWidth: 1)
++                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.48), lineWidth: 1)
+                     )
+                     .saviThumbnailTypeBadge(for: item)
+
+@@ -263,7 +263,6 @@
+ }
+
+ struct SaviFluidTimelineGroup: View {
+-    @Environment(\.colorScheme) private var colorScheme
+     let title: String
+     let items: [SaviItem]
+     var context: ItemRowContext = .home
+@@ -271,8 +270,8 @@
+     var body: some View {
+         ZStack(alignment: .topLeading) {
+             Rectangle()
+-                .fill(SaviTheme.cardStroke.opacity(colorScheme == .dark ? 0.74 : 0.62))
+-                .frame(width: colorScheme == .dark ? 1.35 : 1)
++                .fill(SaviTheme.cardStroke.opacity(0.62))
++                .frame(width: 1)
+                 .padding(.leading, SaviFluidTimelineMetrics.lineX)
+                 .padding(.top, 32)
+                 .padding(.bottom, 16)
+@@ -304,7 +303,7 @@
+                     .clipShape(RoundedRectangle(cornerRadius: SearchResultRowMetrics.thumbnailCorner, style: .continuous))
+                     .overlay(
+                         RoundedRectangle(cornerRadius: SearchResultRowMetrics.thumbnailCorner, style: .continuous)
+-                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.58), lineWidth: 1)
++                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.48), lineWidth: 1)
+                     )
+                     .saviThumbnailTypeBadge(for: item)
+
+@@ -356,7 +355,6 @@
+ }
+
+ private struct SaviFluidTimelineGroupLabel: View {
+-    @Environment(\.colorScheme) private var colorScheme
+     let title: String
+
+     var body: some View {
+@@ -372,7 +370,7 @@
+
+             Text(title)
+                 .font(SaviType.ui(.subheadline, weight: .bold))
+-                .foregroundStyle(colorScheme == .dark ? SaviTheme.textMuted : SaviTheme.metadataText)
++                .foregroundStyle(SaviTheme.metadataText)
+                 .lineLimit(1)
+
+             Spacer(minLength: 0)
+@@ -409,7 +407,7 @@
+                     .clipShape(RoundedRectangle(cornerRadius: SaviFluidTimelineMetrics.thumbnailCorner, style: .continuous))
+                     .overlay(
+                         RoundedRectangle(cornerRadius: SaviFluidTimelineMetrics.thumbnailCorner, style: .continuous)
+-                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.58), lineWidth: 1)
++                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.48), lineWidth: 1)
+                     )
+                     .saviThumbnailTypeBadge(for: item)
+
+@@ -442,17 +440,16 @@
+ }
+
+ private struct SaviFluidTimelineRailMark: View {
+-    @Environment(\.colorScheme) private var colorScheme
+     let savedAt: Double
+     let dotColor: Color
+
+     var body: some View {
+         TimelineView(.periodic(from: Date(), by: 60)) { context in
+             ZStack(alignment: .leading) {
+-                Text(timeRailLabel(now: context.date))
++                Text(SaviText.compactRelativeSavedTime(savedAt, now: context.date))
+                     .font(SaviType.ui(.caption2, weight: .bold))
+-                    .foregroundStyle(colorScheme == .dark ? SaviTheme.textMuted.opacity(0.94) : SaviTheme.metadataText.opacity(0.82))
+-                    .lineLimit(colorScheme == .dark ? 1 : 2)
++                    .foregroundStyle(SaviTheme.metadataText.opacity(0.82))
++                    .lineLimit(2)
+                     .multilineTextAlignment(.trailing)
+                     .minimumScaleFactor(0.72)
+                     .frame(width: SaviFluidTimelineMetrics.timeWidth, alignment: .trailing)
+@@ -460,24 +457,18 @@
+
+                 Circle()
+                     .fill(dotColor)
+-                    .frame(width: colorScheme == .dark ? 13 : 12, height: colorScheme == .dark ? 13 : 12)
++                    .frame(width: 12, height: 12)
+                     .overlay(
+                         Circle()
+-                            .stroke(colorScheme == .dark ? SaviTheme.surface : SaviTheme.background, lineWidth: colorScheme == .dark ? 2.5 : 2)
++                            .stroke(SaviTheme.background, lineWidth: 2)
+                     )
+-                    .shadow(color: dotColor.opacity(colorScheme == .dark ? 0.34 : 0.22), radius: colorScheme == .dark ? 5 : 4, x: 0, y: 1)
++                    .shadow(color: dotColor.opacity(0.22), radius: 4, x: 0, y: 1)
+                     .position(x: SaviFluidTimelineMetrics.lineX, y: SaviFluidTimelineMetrics.thumbnailSize / 2)
+             }
+             .frame(width: SaviFluidTimelineMetrics.railWidth, height: SaviFluidTimelineMetrics.thumbnailSize)
+             .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: context.date))")
+         }
+     }
+-
+-    private func timeRailLabel(now: Date) -> String {
+-        let label = SaviText.compactRelativeSavedTime(savedAt, now: now)
+-        guard colorScheme == .dark else { return label }
+-        return label == "Yesterday" ? "1d" : label
+-    }
+ }
+
+ private enum SaviFluidTimelineMetrics {

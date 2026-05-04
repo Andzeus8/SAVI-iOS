@@ -1,0 +1,311 @@
+diff --git a/SAVI/Views/Items/ItemViews.swift b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/SAVI/Views/Items/ItemViews.swift
+index 656edff..ede4bc6 100644
+--- a/SAVI/Views/Items/ItemViews.swift
++++ b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/SAVI/Views/Items/ItemViews.swift
+@@ -98,6 +98,10 @@ private struct HomeFolderTile: View {
+         folder.locked && !store.isProtectedKeeperUnlocked(folder)
+     }
+
++    private var displayName: String {
++        SaviFolderNameFormatter.balanced(folder.name)
++    }
++
+     var body: some View {
+         let style = SaviFolderVisualStyle.make(for: folder, colorScheme: colorScheme)
+         Button {
+@@ -105,13 +109,13 @@ private struct HomeFolderTile: View {
+         } label: {
+             VStack(alignment: .leading, spacing: 6) {
+                 HStack(alignment: .top, spacing: 6) {
+-                    FolderIconBadge(
+-                        symbolName: folder.symbolName,
+-                        color: style.baseHex,
+-                        imageDataURL: folder.usesImageBackground ? nil : folder.image,
+-                        size: SaviHomeFolderStripMetrics.iconSize,
+-                        cornerRadius: SaviHomeFolderStripMetrics.iconCornerRadius,
+-                        font: SaviHomeFolderStripMetrics.iconFont,
++                        FolderIconBadge(
++                            symbolName: folder.symbolName,
++                            color: style.baseHex,
++                            imageDataURL: folder.usesImageBackground ? nil : folder.image,
++                            size: SaviHomeFolderStripMetrics.iconSize,
++                            cornerRadius: SaviHomeFolderStripMetrics.iconCornerRadius,
++                            font: SaviHomeFolderStripMetrics.iconFont,
+                         background: style.iconBackground,
+                         foreground: style.iconForeground,
+                         publicBadgeStyle: SaviReleaseGate.socialFeaturesEnabled && folder.isPublic ? style : nil
+@@ -131,11 +135,15 @@ private struct HomeFolderTile: View {
+
+                 Spacer(minLength: 0)
+
+-                SaviFolderTitleText(
+-                    name: folder.name,
+-                    style: style,
+-                    size: SaviHomeFolderStripMetrics.titleSize
+-                )
++                Text(displayName)
++                    .font(SaviType.display(size: 17, weight: .black))
++                    .foregroundStyle(style.text)
++                    .shadow(color: style.titleShadow, radius: style.titleShadowRadius, x: 0, y: 1)
++                    .lineLimit(2)
++                    .lineSpacing(1)
++                    .minimumScaleFactor(0.78)
++                    .multilineTextAlignment(.leading)
++                    .fixedSize(horizontal: false, vertical: true)
+             }
+             .padding(11)
+             .frame(width: width, height: SaviHomeFolderStripMetrics.tileHeight, alignment: .leading)
+@@ -160,11 +168,10 @@ private struct HomeFolderTile: View {
+
+ private enum SaviHomeFolderStripMetrics {
+     static let spacing: CGFloat = 10
+-    static let tileHeight: CGFloat = SaviFolderTileMetrics.tileHeight
+-    static let titleSize: CGFloat = SaviFolderTileMetrics.titleSize
+-    static let iconSize: CGFloat = SaviFolderTileMetrics.iconSize
+-    static let iconCornerRadius: CGFloat = SaviFolderTileMetrics.iconCornerRadius
+-    static var iconFont: Font { SaviFolderTileMetrics.iconFont }
++    static let tileHeight: CGFloat = 104
++    static let iconSize: CGFloat = 30
++    static let iconCornerRadius: CGFloat = 10
++    static var iconFont: Font { SaviType.ui(.caption, weight: .black) }
+ }
+
+ struct ItemRow: View {
+diff --git a/SAVI/Views/Home/HomeScreen.swift b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/SAVI/Views/Home/HomeScreen.swift
+index 0f59280..2922a28 100644
+--- a/SAVI/Views/Home/HomeScreen.swift
++++ b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/SAVI/Views/Home/HomeScreen.swift
+@@ -909,6 +909,10 @@ private struct HomeFolderGridTile: View {
+         folder.locked && !store.isProtectedKeeperUnlocked(folder)
+     }
+
++    private var displayName: String {
++        SaviFolderNameFormatter.balanced(folder.name)
++    }
++
+     var body: some View {
+         let style = SaviFolderVisualStyle.make(for: folder, colorScheme: colorScheme)
+         Button {
+@@ -916,17 +920,17 @@ private struct HomeFolderGridTile: View {
+         } label: {
+             VStack(alignment: .leading, spacing: 6) {
+                 HStack(alignment: .top, spacing: 6) {
+-                        FolderIconBadge(
+-                            symbolName: folder.symbolName,
+-                            color: style.baseHex,
+-                            imageDataURL: folder.usesImageBackground ? nil : folder.image,
+-                            size: SaviFolderTileMetrics.iconSize,
+-                            cornerRadius: SaviFolderTileMetrics.iconCornerRadius,
+-                            font: SaviFolderTileMetrics.iconFont,
+-                            background: style.iconBackground,
+-                            foreground: style.iconForeground,
+-                            publicBadgeStyle: SaviReleaseGate.socialFeaturesEnabled && folder.isPublic ? style : nil
+-                        )
++                    FolderIconBadge(
++                        symbolName: folder.symbolName,
++                        color: style.baseHex,
++                        imageDataURL: folder.usesImageBackground ? nil : folder.image,
++                        size: 30,
++                        cornerRadius: 10,
++                        font: SaviType.ui(.caption, weight: .black),
++                        background: style.iconBackground,
++                        foreground: style.iconForeground,
++                        publicBadgeStyle: SaviReleaseGate.socialFeaturesEnabled && folder.isPublic ? style : nil
++                    )
+
+                     Spacer(minLength: 0)
+
+@@ -942,10 +946,18 @@ private struct HomeFolderGridTile: View {
+
+                 Spacer(minLength: 0)
+
+-                SaviFolderTitleText(name: folder.name, style: style)
++                Text(displayName)
++                    .font(SaviType.display(size: 17, weight: .black))
++                    .foregroundStyle(style.text)
++                    .shadow(color: style.titleShadow, radius: style.titleShadowRadius, x: 0, y: 1)
++                    .lineLimit(2)
++                    .lineSpacing(1)
++                    .minimumScaleFactor(0.78)
++                    .multilineTextAlignment(.leading)
++                    .fixedSize(horizontal: false, vertical: true)
+             }
+             .padding(11)
+-            .frame(maxWidth: .infinity, minHeight: SaviFolderTileMetrics.tileHeight, maxHeight: SaviFolderTileMetrics.tileHeight, alignment: .leading)
++            .frame(maxWidth: .infinity, minHeight: 104, maxHeight: 104, alignment: .leading)
+             .background(FolderTileBackground(folder: folder, style: style))
+             .clipShape(RoundedRectangle(cornerRadius: SaviRadius.folder, style: .continuous))
+             .overlay(
+diff --git a/SAVI/Views/Folders/FolderComponents.swift b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/SAVI/Views/Folders/FolderComponents.swift
+index a9654b8..abfd0e8 100644
+--- a/SAVI/Views/Folders/FolderComponents.swift
++++ b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/SAVI/Views/Folders/FolderComponents.swift
+@@ -362,6 +362,10 @@ struct FolderGridTile: View {
+         folder.locked && !store.isProtectedKeeperUnlocked(folder)
+     }
+
++    private var displayName: String {
++        SaviFolderNameFormatter.balanced(folder.name)
++    }
++
+     var body: some View {
+         let style = SaviFolderVisualStyle.make(for: folder, colorScheme: colorScheme)
+         ZStack(alignment: .topTrailing) {
+@@ -389,7 +393,15 @@ struct FolderGridTile: View {
+                     Spacer(minLength: 0)
+
+                     VStack(alignment: .leading, spacing: 4) {
+-                        SaviFolderTitleText(name: folder.name, style: style)
++                        Text(displayName)
++                            .font(SaviType.display(size: SaviFolderTileMetrics.titleSize, weight: .black))
++                            .foregroundStyle(style.text)
++                            .shadow(color: style.titleShadow, radius: style.titleShadowRadius, x: 0, y: 1)
++                            .lineLimit(2)
++                            .lineSpacing(1)
++                            .minimumScaleFactor(0.78)
++                            .multilineTextAlignment(.leading)
++                            .fixedSize(horizontal: false, vertical: true)
+
+                         if isLocked {
+                             FolderCountLabel(
+@@ -420,11 +432,11 @@ struct FolderGridTile: View {
+             if isReordering {
+                 Image(systemName: "line.3.horizontal")
+                     .font(.caption.weight(.black))
+-                    .frame(width: 22, height: 22)
++                    .frame(width: 24, height: 24)
+                     .background(SaviTheme.chartreuse)
+                     .foregroundStyle(.black)
+                     .clipShape(Circle())
+-                    .padding(7)
++                    .padding(6)
+                     .accessibilityHidden(true)
+             } else if !folder.system {
+                 Button {
+@@ -432,13 +444,13 @@ struct FolderGridTile: View {
+                 } label: {
+                     Image(systemName: "ellipsis")
+                         .font(.caption2.weight(.black))
+-                        .frame(width: 22, height: 22)
+-                        .background(style.countBackground.opacity(0.76))
++                        .frame(width: 24, height: 24)
++                        .background(style.countBackground.opacity(0.88))
+                         .foregroundStyle(style.countForeground)
+                         .clipShape(Circle())
+                 }
+                 .buttonStyle(SaviPressScaleButtonStyle())
+-                .padding(7)
++                .padding(6)
+                 .accessibilityLabel("Edit \(folder.name)")
+             }
+         }
+diff --git a/SAVI/Views/Components/AppComponents.swift b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/SAVI/Views/Components/AppComponents.swift
+index d7609f7..e46d123 100644
+--- a/SAVI/Views/Components/AppComponents.swift
++++ b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/SAVI/Views/Components/AppComponents.swift
+@@ -1362,44 +1362,15 @@ enum SaviFolderTileMetrics {
+     static let gridSpacing: CGFloat = 10
+     static let tileHeight: CGFloat = 104
+     static let padding: CGFloat = 11
+-    static let titleSize: CGFloat = 16
+-    static let titleBlockHeight: CGFloat = 39
+-    static let iconSize: CGFloat = 28
+-    static let iconCornerRadius: CGFloat = 9
+-    static var iconFont: Font { SaviType.ui(.caption2, weight: .black) }
++    static let titleSize: CGFloat = 17
++    static let iconSize: CGFloat = 30
++    static let iconCornerRadius: CGFloat = 10
++    static var iconFont: Font { SaviType.ui(.caption, weight: .black) }
+ }
+
+ enum SaviFolderNameFormatter {
+     static func balanced(_ name: String) -> String {
+         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+-        switch trimmed {
+-        case "AI & Work", "Health":
+-            return trimmed
+-        case "Watch / Read Later":
+-            return "Watch /\nRead Later"
+-        case "Memes & Laughs":
+-            return "Memes &\nLaughs"
+-        case "Places & Trips":
+-            return "Places &\nTrips"
+-        case "Recipes & Food":
+-            return "Recipes &\nFood"
+-        case "Notes & Clips":
+-            return "Notes &\nClips"
+-        case "Private Vault":
+-            return "Private\nVault"
+-        case "Research & PDFs":
+-            return "Research &\nPDFs"
+-        case "Design Inspo":
+-            return "Design\nInspo"
+-        case "Science Finds":
+-            return "Science\nFinds"
+-        case "Rabbit Holes":
+-            return "Rabbit\nHoles"
+-        case "Everything Else":
+-            return "Everything\nElse"
+-        default:
+-            break
+-        }
+         if trimmed.contains(" / ") {
+             return trimmed.replacingOccurrences(of: " / ", with: " /\n")
+         }
+@@ -1428,26 +1399,6 @@ enum SaviFolderNameFormatter {
+     }
+ }
+
+-struct SaviFolderTitleText: View {
+-    let name: String
+-    let style: SaviFolderVisualStyle
+-    var size: CGFloat = SaviFolderTileMetrics.titleSize
+-
+-    var body: some View {
+-        Text(SaviFolderNameFormatter.balanced(name))
+-            .font(SaviType.display(size: size, weight: .heavy))
+-            .foregroundStyle(style.text)
+-            .shadow(color: style.titleShadow, radius: style.titleShadowRadius, x: 0, y: 1)
+-            .lineLimit(2)
+-            .lineSpacing(1.4)
+-            .minimumScaleFactor(0.86)
+-            .allowsTightening(true)
+-            .multilineTextAlignment(.leading)
+-            .frame(maxWidth: .infinity, minHeight: SaviFolderTileMetrics.titleBlockHeight, alignment: .bottomLeading)
+-            .accessibilityLabel(name)
+-    }
+-}
+-
+ struct FolderCountLabel: View {
+     let text: String
+     let style: SaviFolderVisualStyle
+diff --git a/Docs/ChangeLog/2026-05-04.md b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/Docs/ChangeLog/2026-05-04.md
+index 9784a55..2a9bb03 100644
+--- a/Docs/ChangeLog/2026-05-04.md
++++ b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/Docs/ChangeLog/2026-05-04.md
+@@ -47,13 +47,3 @@
+   copy, and share-extension fallback folder presets to use the new folder names.
+ - Updated TestFlight readiness docs to explain that Social stays hidden while a
+   removable sample library is included for beta onboarding.
+-
+-## Folder Readability Polish
+-
+-- Created rollback archive:
+-  `Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/`
+-- Kept the current colorful folder cards, but made folder names easier to scan
+-  with a shared title component, calmer title weight, stricter two-line breaks,
+-  fixed title-block alignment, and slightly smaller icon badges.
+-- Applied the same folder title treatment to Home folder tiles and the full
+-  Folders grid so one-line and two-line names feel intentionally aligned.
+diff --git a/Docs/CHANGELOG.md b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/Docs/CHANGELOG.md
+index db86658..3f40434 100644
+--- a/Docs/CHANGELOG.md
++++ b/Docs/Design/FolderReadabilityArchive/2026-05-04-before-folder-readability/Docs/CHANGELOG.md
+@@ -10,7 +10,6 @@ targets, and QA evidence.
+   off, and `SAVI Test` is Debug/internal development with Social on.
+ - Added the TestFlight launch sample library: clearer default folder names,
+   65 removable sample saves, and visible `Clear sample saves` controls.
+-- Polished folder tile readability while preserving the colorful card palette.
+ - Removed the need for a third `SAVI Pilot` channel for now.
+ - Refreshed both simulator installs from the current source tree.
+ - See [2026-05-04](ChangeLog/2026-05-04.md).

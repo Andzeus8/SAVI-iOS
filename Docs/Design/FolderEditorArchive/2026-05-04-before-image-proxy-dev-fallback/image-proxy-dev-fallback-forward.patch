@@ -1,0 +1,139 @@
+--- a/Tools/ImageSearchProxy/server.js
++++ b/Tools/ImageSearchProxy/server.js
+@@ -9,6 +9,7 @@
+ const rateWindowMs = 60 * 1000;
+ const rateLimit = Number(process.env.RATE_LIMIT_PER_MINUTE || 80);
+ const requestsByIp = new Map();
++const demoProviderEnabled = process.env.SAVI_IMAGE_PROXY_DEMO_FALLBACK !== "0";
+
+ function json(res, status, payload) {
+   const body = JSON.stringify(payload);
+@@ -50,12 +51,41 @@
+   };
+ }
+
+-async function handleSearch(req, res, url) {
+-  if (!pexelsApiKey) {
+-    json(res, 503, { error: "PEXELS_API_KEY is not configured." });
+-    return;
+-  }
++function demoPalette(query) {
++  const palettes = [
++    ["#2A1745", "#7A35E8", "#D8FF3C"],
++    ["#133B4A", "#68C6E8", "#FFD15C"],
++    ["#3A1830", "#DE5B98", "#FFB978"],
++    ["#133825", "#70D59B", "#D6F83A"],
++    ["#3F210F", "#F47A3B", "#FFD15C"],
++    ["#183A3A", "#5ADDCB", "#FFF9FF"],
++  ];
++  let hash = 0;
++  for (const char of query) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
++  return palettes[hash % palettes.length];
++}
+
++function demoResult(query, index) {
++  const seed = encodeURIComponent(`savi-${query || "folder"}-${index}`);
++  const photoURL = `https://picsum.photos/seed/${seed}/720/720`;
++  return {
++    id: `demo-${index}-${Buffer.from(query || "folder").toString("base64url").slice(0, 16)}`,
++    provider: "SAVI Demo",
++    thumbURL: photoURL,
++    previewURL: photoURL,
++    downloadURL: photoURL,
++    photographerName: "Generated locally",
++    photographerURL: null,
++    sourceURL: "https://picsum.photos/",
++    averageColor: demoPalette(`${query}-${index}`)[1],
++  };
++}
++
++function demoSearchResults(query, perPage) {
++  return Array.from({ length: Math.min(perPage, 12) }, (_, index) => demoResult(query, index));
++}
++
++async function handleSearch(req, res, url) {
+   const query = (url.searchParams.get("q") || "").trim();
+   if (!query) {
+     json(res, 400, { error: "Missing q." });
+@@ -64,6 +94,23 @@
+
+   const page = Math.max(1, Number(url.searchParams.get("page") || 1) || 1);
+   const perPage = clampPerPage(url.searchParams.get("per_page"));
++
++  if (!pexelsApiKey) {
++    if (!demoProviderEnabled) {
++      json(res, 503, { error: "PEXELS_API_KEY is not configured." });
++      return;
++    }
++    json(res, 200, {
++      provider: "SAVI Demo",
++      demo: true,
++      warning: "PEXELS_API_KEY is not configured. Returning generated local demo images for development QA.",
++      page,
++      perPage,
++      results: demoSearchResults(query, perPage),
++    });
++    return;
++  }
++
+   const pexelsURL = new URL("https://api.pexels.com/v1/search");
+   pexelsURL.searchParams.set("query", query);
+   pexelsURL.searchParams.set("page", String(page));
+@@ -116,8 +163,10 @@
+   const body = await readJSON(req);
+   const downloadURL = String(body.downloadURL || "");
+   const parsed = new URL(downloadURL);
+-  if (!["images.pexels.com", "www.pexels.com"].includes(parsed.hostname)) {
+-    json(res, 400, { error: "Only Pexels image URLs are allowed." });
++  const allowedHosts = ["images.pexels.com", "www.pexels.com"];
++  if (demoProviderEnabled) allowedHosts.push("picsum.photos");
++  if (!allowedHosts.includes(parsed.hostname)) {
++    json(res, 400, { error: demoProviderEnabled ? "Only Pexels or SAVI Demo image URLs are allowed." : "Only Pexels image URLs are allowed." });
+     return;
+   }
+
+@@ -179,4 +228,7 @@
+
+ server.listen(port, () => {
+   console.log(`SAVI image search proxy listening on http://127.0.0.1:${port}`);
++  if (!pexelsApiKey && demoProviderEnabled) {
++    console.log("PEXELS_API_KEY is not set. Using generated SAVI Demo images for local QA.");
++  }
+ });
+--- a/Tools/ImageSearchProxy/README.md
++++ b/Tools/ImageSearchProxy/README.md
+@@ -9,6 +9,11 @@
+ PORT=8787 node server.js
+ ```
+
++For local simulator QA without a Pexels key, run the same command without
++`PEXELS_API_KEY`. The proxy returns generated `SAVI Demo` cover images so the
++folder/image picker flow can still be tested end to end. Set
++`SAVI_IMAGE_PROXY_DEMO_FALLBACK=0` to disable that fallback and require Pexels.
++
+ Then launch the app with:
+
+ ```bash
+--- a/Docs/ChangeLog/2026-05-04.md
++++ b/Docs/ChangeLog/2026-05-04.md
+@@ -129,3 +129,20 @@
+ - Changed unconfigured web image search from a tappable error path into a
+   disabled/clear setup state. `Find image` still requires
+   `SAVI_IMAGE_SEARCH_BASE_URL` and the Pexels proxy to be configured.
++
++## Image Search Proxy Dev Fallback
++
++- Created rollback archive:
++  `Docs/Design/FolderEditorArchive/2026-05-04-before-image-proxy-dev-fallback/`.
++- Made the local image-search proxy usable for simulator folder-cover QA even
++  when `PEXELS_API_KEY` is not configured.
++- Added a `SAVI Demo` fallback provider that returns deterministic development
++  image results and lets `/image-download` convert selected demo images into
++  normal JPEG data URLs for the app.
++- Kept production behavior explicit: set `SAVI_IMAGE_PROXY_DEMO_FALLBACK=0` to
++  disable demo images and require a real Pexels API key.
++- Updated proxy setup docs to explain local simulator usage with
++  `SAVI_IMAGE_SEARCH_BASE_URL=http://127.0.0.1:8787`.
++- Verified `/health`, `/image-search`, and `/image-download`; launched
++  `SAVI Test` with the local proxy URL so the Folder editor can enable
++  `Find image` during simulator QA.

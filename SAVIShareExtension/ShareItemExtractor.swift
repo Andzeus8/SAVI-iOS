@@ -218,7 +218,9 @@ enum ShareItemExtractor {
             fileName: resolved.fileName,
             mimeType: resolved.mimeType,
             tags: resolved.tags ?? [],
-            source: resolved.sourceApp
+            source: resolved.sourceApp,
+            context: "Share Extension Metadata",
+            decisionSource: .metadata
         )
         resolved.folderId = classification.folderId
         resolved.folderSource = "metadata"
@@ -258,6 +260,8 @@ private struct RemoteMetadata {
 private struct ShareIntelligenceDraft: Codable {
     var title: String?
     var folderId: String?
+    var confidence: Int?
+    var reason: String?
     var tags: [String]?
 }
 
@@ -332,23 +336,33 @@ struct FolderPreset {
     let name: String
     let symbolName: String
     let colorHex: String?
+    let isPublic: Bool
+
+    init(id: String, name: String, symbolName: String, colorHex: String?, isPublic: Bool = false) {
+        self.id = id
+        self.name = name
+        self.symbolName = symbolName
+        self.colorHex = colorHex
+        self.isPublic = isPublic
+    }
 }
 
 extension ShareItemExtractor {
     static let defaultFolderPresets: [FolderPreset] = [
-        .init(id: "f-private-vault", name: "Private Vault", symbolName: "lock.fill", colorHex: "#6C63FF"),
-        .init(id: "f-paste-bin", name: "Paste Bin", symbolName: "clipboard.fill", colorHex: "#C4B5FD"),
-        .init(id: "f-growth", name: "AI Hacks", symbolName: "bolt.fill", colorHex: "#FF8A3D"),
-        .init(id: "f-wtf-favorites", name: "Science Stuff", symbolName: "atom", colorHex: "#5875FF"),
-        .init(id: "f-tinfoil", name: "Tinfoil Hat Club", symbolName: "eye.fill", colorHex: "#6D4AFF"),
-        .init(id: "f-lmao", name: "LULZ", symbolName: "theatermasks.fill", colorHex: "#FF4D6D"),
-        .init(id: "f-health", name: "Health Hacks", symbolName: "heart.fill", colorHex: "#1CBF75"),
-        .init(id: "f-recipes", name: "Recipes & Food", symbolName: "fork.knife", colorHex: "#FF6B57"),
-        .init(id: "f-travel", name: "Places", symbolName: "mappin.and.ellipse", colorHex: "#18B7A0"),
-        .init(id: "f-design", name: "Design Inspo", symbolName: "paintpalette.fill", colorHex: "#FF4DC4"),
-        .init(id: "f-research", name: "Research", symbolName: "magnifyingglass", colorHex: "#7B61FF"),
-        .init(id: "f-must-see", name: "Watch / Read Later", symbolName: "bookmark.fill", colorHex: "#F7C948"),
-        .init(id: "f-random", name: "Random AF", symbolName: "shuffle", colorHex: "#9AA5B1"),
+        .init(id: "f-life-admin", name: "Life Admin", symbolName: "key.fill", colorHex: "#FFD15C"),
+        .init(id: "f-must-see", name: "Watch / Read Later", symbolName: "bookmark.fill", colorHex: "#7A35E8"),
+        .init(id: "f-growth", name: "AI & Work", symbolName: "bolt.fill", colorHex: "#F47A3B"),
+        .init(id: "f-lmao", name: "Memes & Laughs", symbolName: "theatermasks.fill", colorHex: "#D6F83A"),
+        .init(id: "f-travel", name: "Places & Trips", symbolName: "mappin.and.ellipse", colorHex: "#68C6E8"),
+        .init(id: "f-recipes", name: "Recipes & Food", symbolName: "fork.knife", colorHex: "#FFB978"),
+        .init(id: "f-paste-bin", name: "Notes & Clips", symbolName: "clipboard.fill", colorHex: "#9286A8"),
+        .init(id: "f-private-vault", name: "Private Vault", symbolName: "lock.fill", colorHex: "#171026"),
+        .init(id: "f-research", name: "Research & PDFs", symbolName: "magnifyingglass", colorHex: "#5ADDCB"),
+        .init(id: "f-design", name: "Design Inspo", symbolName: "paintpalette.fill", colorHex: "#DE5B98"),
+        .init(id: "f-health", name: "Health", symbolName: "heart.fill", colorHex: "#70D59B"),
+        .init(id: "f-wtf-favorites", name: "Science Finds", symbolName: "atom", colorHex: "#73CDED"),
+        .init(id: "f-tinfoil", name: "Rabbit Holes", symbolName: "eye.fill", colorHex: "#7B3FE4"),
+        .init(id: "f-random", name: "Everything Else", symbolName: "shuffle", colorHex: "#FFE16A"),
     ]
 
     static func folderPresets() -> [FolderPreset] {
@@ -371,7 +385,8 @@ extension ShareItemExtractor {
                     id: shared.id,
                     name: shared.name,
                     symbolName: shared.symbolName ?? fallback?.symbolName ?? inferredSymbolName(for: shared.name, id: shared.id),
-                    colorHex: shared.color ?? fallback?.colorHex
+                    colorHex: shared.color ?? fallback?.colorHex,
+                    isPublic: shared.isPublic
                 )
             }
 
@@ -386,6 +401,7 @@ private extension ShareItemExtractor {
         let model = SystemLanguageModel(useCase: .contentTagging)
         guard case .available = model.availability else {
             NSLog("[SAVIShareExtension] Apple Intelligence unavailable in share extension: %@", String(describing: model.availability))
+            recordIntelligenceSkip(for: share, outcome: .unavailable, message: "Apple Intelligence unavailable: \(String(describing: model.availability))")
             return share
         }
 
@@ -408,6 +424,7 @@ private extension ShareItemExtractor {
 
         guard let draft else {
             NSLog("[SAVIShareExtension] Apple Intelligence share draft timed out in %.3fs", Date().timeIntervalSince(startedAt))
+            recordIntelligenceSkip(for: share, outcome: .timedOut, message: "Apple Intelligence timed out after 1.6 seconds.")
             return share
         }
         NSLog("[SAVIShareExtension] Apple Intelligence share draft returned in %.3fs", Date().timeIntervalSince(startedAt))
@@ -420,9 +437,12 @@ private extension ShareItemExtractor {
             model: model,
             instructions: """
             You improve SAVI share-sheet drafts. Return only compact JSON. Do not include markdown.
-            JSON shape: {"title":"clear short title","folderId":"one-folder-id","tags":["tag-one","tag-two"]}.
+            JSON shape: {"title":"clear short title","folderId":"one-folder-id","confidence":82,"reason":"short reason","tags":["tag-one","tag-two"]}.
             Keep titles specific, human-readable, and under 70 characters.
+            Choose exactly one folderId from the allowed folders.
+            Confidence is 0-100. Use 80+ only when the folder is clearly correct.
             Tags must be lowercase search tags without #.
+            Everything Else is only for low-confidence leftovers. It is not a personality bucket.
             """
         )
 
@@ -529,9 +549,11 @@ private extension ShareItemExtractor {
 
     static func shouldReplaceTitle(current: String, with candidate: String?) -> Bool {
         guard let candidate, !candidate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        guard titleQualityScore(candidate) > 0 else { return false }
         let currentLower = current.lowercased()
         let candidateLower = candidate.lowercased()
         return current.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || isGenericFetchedTitle(currentLower)
             || currentLower.hasPrefix("http")
             || currentLower == "shared item"
             || currentLower == "youtube video"
@@ -566,7 +588,8 @@ private extension ShareItemExtractor {
             resolved.title = title
         }
 
-        let validFolderIds = Set(folderPresets().map(\.id))
+        let presets = folderPresets()
+        let validFolderIds = Set(presets.map(\.id))
         if let folderId = draft.folderId?.trimmingCharacters(in: .whitespacesAndNewlines),
            validFolderIds.contains(folderId) {
             let input = SAVIFolderClassificationInput(
@@ -581,14 +604,49 @@ private extension ShareItemExtractor {
             )
             let localResult = SAVIFolderClassifier.classify(
                 input,
-                availableFolders: folderPresets().map { SAVIFolderOption(id: $0.id, name: $0.name) },
+                availableFolders: presets.map { SAVIFolderOption(id: $0.id, name: $0.name) },
                 learningSignals: PendingShareStore.shared.loadFolderLearning()
             )
-            if SAVIFolderClassifier.shouldAcceptIntelligenceFolder(folderId, localResult: localResult, input: input) {
+            let acceptance = SAVIFolderClassifier.intelligenceAcceptance(
+                folderId,
+                localResult: localResult,
+                input: input,
+                aiConfidence: draft.confidence,
+                aiReason: draft.reason
+            )
+            if acceptance.accepted {
                 resolved.folderId = folderId
                 resolved.folderSource = "apple-intelligence"
-                resolved.folderConfidence = nil
-                resolved.folderReason = "apple-intelligence"
+                resolved.folderConfidence = draft.confidence
+                resolved.folderReason = draft.reason?.nilIfBlank ?? "apple-intelligence"
+                recordFolderDecision(
+                    input: input,
+                    result: .init(
+                        folderId: folderId,
+                        confidence: draft.confidence ?? localResult.confidence,
+                        reason: draft.reason?.nilIfBlank ?? "apple-intelligence"
+                    ),
+                    options: presets.map { SAVIFolderOption(id: $0.id, name: $0.name) },
+                    context: "Share Extension",
+                    source: .appleIntelligence,
+                    outcome: .accepted,
+                    aiFolderId: folderId,
+                    aiConfidence: draft.confidence,
+                    aiReason: draft.reason
+                )
+            } else {
+                recordFolderDecision(
+                    input: input,
+                    result: localResult,
+                    options: presets.map { SAVIFolderOption(id: $0.id, name: $0.name) },
+                    context: "Share Extension",
+                    source: .appleIntelligence,
+                    outcome: .vetoed,
+                    aiFolderId: folderId,
+                    aiConfidence: draft.confidence,
+                    aiReason: draft.reason,
+                    vetoReason: acceptance.vetoReason ?? "Local rules kept the folder."
+                )
             }
         }
 
@@ -631,11 +689,29 @@ private extension ShareItemExtractor {
         let folderChoices = presets
             .map { "\($0.id): \($0.name)" }
             .joined(separator: "\n")
+        let folderGuidance = SAVIFolderClassifier.folderGuidanceLines(for: folderOptions)
+            .joined(separator: "\n")
         let description = String((share.itemDescription ?? share.text ?? "").prefix(1_200))
         let url = String((share.url ?? "").prefix(500))
         let fileName = share.fileName ?? ""
         let mimeType = share.mimeType ?? ""
         let tags = (share.tags ?? []).prefix(8).joined(separator: ", ")
+        let localInput = SAVIFolderClassificationInput(
+            title: share.title,
+            description: share.itemDescription ?? share.text ?? "",
+            url: share.url,
+            type: share.type,
+            source: share.sourceApp,
+            fileName: share.fileName,
+            mimeType: share.mimeType,
+            tags: share.tags ?? []
+        )
+        let localCandidate = SAVIFolderClassifier.classify(
+            localInput,
+            availableFolders: folderOptions,
+            learningSignals: PendingShareStore.shared.loadFolderLearning()
+        )
+        let localName = presets.first(where: { $0.id == localCandidate.folderId })?.name ?? localCandidate.folderId
         let learningExamples = SAVIFolderClassifier.learningExamples(
             from: PendingShareStore.shared.loadFolderLearning(),
             availableFolders: folderOptions,
@@ -654,6 +730,12 @@ private extension ShareItemExtractor {
 
         Folder choices:
         \(folderChoices)
+
+        Folder guidance:
+        \(folderGuidance)
+
+        Local classifier candidate:
+        \(localCandidate.folderId): \(localName) · confidence \(localCandidate.confidence) · \(localCandidate.reason)
         \(learningBlock)
 
         Draft:
@@ -666,8 +748,11 @@ private extension ShareItemExtractor {
         mime type: \(mimeType)
         existing tags: \(tags)
 
-        Use exactly one folderId from the choices. For private documents, IDs, receipts, medical, insurance, banking, credentials, or tax files, choose f-private-vault.
+        Use exactly one folderId from the choices. Life Admin is for useful non-secret admin/reference saves like door codes, Wi-Fi notes, travel access, templates, contracts, receipts, and account recovery notes.
+        For actual private documents, IDs, receipts, medical, insurance, banking, credentials, passwords, or tax files, choose f-private-vault instead of Life Admin.
         Entertainment, trailers, news, and fandom posts are not private just because their title says secret, leaked, vault, or password.
+        Entertainment videos default to Watch / Read Later unless clearly comedy/meme, then Memes & Laughs.
+        Never choose Science Finds unless the item has real science, space, research, or discovery intent.
         Return only JSON.
         """
     }
@@ -681,8 +766,10 @@ private extension ShareItemExtractor {
         let candidates = [cleaned, extractJSONObject(from: cleaned)].compactMap { $0 }
         for candidate in candidates {
             guard let data = candidate.data(using: .utf8),
-                  let decoded = try? JSONDecoder().decode(ShareIntelligenceDraft.self, from: data)
+                  var decoded = try? JSONDecoder().decode(ShareIntelligenceDraft.self, from: data)
             else { continue }
+            decoded.confidence = decoded.confidence.map { max(0, min($0, 100)) }
+            decoded.reason = decoded.reason?.nilIfBlank.map { String($0.prefix(140)) }
             if cleanedIntelligenceTitle(decoded.title) != nil ||
                 decoded.folderId?.isEmpty == false ||
                 !(decoded.tags ?? []).isEmpty {
@@ -750,7 +837,9 @@ private extension ShareItemExtractor {
         fileName: String? = nil,
         mimeType: String? = nil,
         tags: [String] = [],
-        source: String? = nil
+        source: String? = nil,
+        context: String = "Share Extension",
+        decisionSource: SAVIFolderDecisionSource? = nil
     ) -> SAVIFolderClassification {
         let options = folderPresets().map { SAVIFolderOption(id: $0.id, name: $0.name) }
         let input = SAVIFolderClassificationInput(
@@ -768,7 +857,7 @@ private extension ShareItemExtractor {
             availableFolders: options,
             learningSignals: PendingShareStore.shared.loadFolderLearning()
         )
-        recordFolderDecision(input: input, result: result, options: options, context: "Share Extension")
+        recordFolderDecision(input: input, result: result, options: options, context: context, source: decisionSource)
         return result
     }
 
@@ -776,7 +865,13 @@ private extension ShareItemExtractor {
         input: SAVIFolderClassificationInput,
         result: SAVIFolderClassification,
         options: [SAVIFolderOption],
-        context: String
+        context: String,
+        source: SAVIFolderDecisionSource? = nil,
+        outcome: SAVIIntelligenceDecisionOutcome? = nil,
+        aiFolderId: String? = nil,
+        aiConfidence: Int? = nil,
+        aiReason: String? = nil,
+        vetoReason: String? = nil
     ) {
         let rawTitle = input.title.nilIfBlank ??
             input.fileName?.nilIfBlank ??
@@ -789,6 +884,10 @@ private extension ShareItemExtractor {
         let folderName = options.first(where: { $0.id == result.folderId })?.name ??
             SAVIFolderClassifier.defaultFolderOptions.first(where: { $0.id == result.folderId })?.name ??
             "Unknown folder"
+        let aiFolderName = aiFolderId.flatMap { id in
+            options.first(where: { $0.id == id })?.name ??
+                SAVIFolderClassifier.defaultFolderOptions.first(where: { $0.id == id })?.name
+        }
         let record = SAVIFolderDecisionRecord(
             id: UUID().uuidString,
             title: safeTitle,
@@ -797,9 +896,48 @@ private extension ShareItemExtractor {
             confidence: result.confidence,
             reason: result.reason,
             context: context,
-            createdAt: Date().timeIntervalSince1970
+            createdAt: Date().timeIntervalSince1970,
+            source: source ?? SAVIFolderClassifier.decisionSource(for: result, context: context),
+            outcome: outcome,
+            aiFolderId: aiFolderId,
+            aiFolderName: aiFolderName,
+            aiConfidence: aiConfidence,
+            aiReason: aiReason,
+            vetoReason: vetoReason
         )
         PendingShareStore.shared.saveFolderDecision(record)
+    }
+
+    static func recordIntelligenceSkip(
+        for share: PendingShare,
+        outcome: SAVIIntelligenceDecisionOutcome,
+        message: String
+    ) {
+        let options = folderPresets().map { SAVIFolderOption(id: $0.id, name: $0.name) }
+        let input = SAVIFolderClassificationInput(
+            title: share.title,
+            description: share.itemDescription ?? share.text ?? "",
+            url: share.url,
+            type: share.type,
+            source: share.sourceApp,
+            fileName: share.fileName,
+            mimeType: share.mimeType,
+            tags: share.tags ?? []
+        )
+        let result = SAVIFolderClassifier.classify(
+            input,
+            availableFolders: options,
+            learningSignals: PendingShareStore.shared.loadFolderLearning()
+        )
+        recordFolderDecision(
+            input: input,
+            result: result,
+            options: options,
+            context: "Share Extension",
+            source: .appleIntelligence,
+            outcome: outcome,
+            vetoReason: message
+        )
     }
 
     static func inferredTags(type: String, url: String?, title: String?, description: String?, source: String?) -> [String] {
@@ -1178,7 +1316,7 @@ private extension ShareItemExtractor {
                 imageURL = try await loadRemoteImageDataURL(from: remote)
             }
             return RemoteMetadata(
-                title: title,
+                title: cleanedFetchedTitle(title, for: url),
                 description: nil,
                 imageURL: imageURL,
                 provider: providerName?.capitalized,
@@ -1236,7 +1374,7 @@ private extension ShareItemExtractor {
         let bestTitle = candidates
             .compactMap(\.title)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+            .filter { !$0.isEmpty && titleQualityScore($0) > 0 }
             .max { lhs, rhs in titleQualityScore(lhs) < titleQualityScore(rhs) }
         let bestDescription = candidates
             .compactMap(\.description)
@@ -1302,6 +1440,7 @@ private extension ShareItemExtractor {
             .decodedHTMLString
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !isGenericMetadataDescription(cleaned) else { return nil }
         return cleaned.nilIfEmpty
     }
 
@@ -1339,6 +1478,19 @@ private extension ShareItemExtractor {
         return [
             "youtube",
             "watch",
+            "before you continue to youtube",
+            "before you continue to google",
+            "sign in - google accounts",
+            "sign in to youtube",
+            "verify it’s you",
+            "verify it's you",
+            "just a moment",
+            "just a moment...",
+            "access denied",
+            "403 forbidden",
+            "page not found",
+            "not found",
+            "redirecting...",
             "instagram",
             "login • instagram",
             "tiktok",
@@ -1354,7 +1506,29 @@ private extension ShareItemExtractor {
             "facebook post",
             "threads post",
             "bluesky post"
-        ].contains(normalized)
+        ].contains(normalized) ||
+        normalized.contains("before you continue to") ||
+        normalized.contains("checking if the site connection is secure") ||
+        normalized.contains("please wait for verification") ||
+        normalized.contains("are you a robot") ||
+        normalized.contains("enable cookies") ||
+        normalized.contains("cookies are disabled")
+    }
+
+    static func isGenericMetadataDescription(_ value: String) -> Bool {
+        let normalized = value
+            .lowercased()
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return true }
+        return normalized.contains("sign in to confirm") ||
+            normalized.contains("sign in to continue") ||
+            normalized.contains("before you continue") ||
+            (normalized.contains("cookies") && normalized.contains("continue")) ||
+            normalized.contains("checking if the site connection is secure") ||
+            normalized.contains("please wait for verification") ||
+            normalized.contains("are you a robot") ||
+            normalized == "javascript is not available."
     }
 
     static func noembedTags(from provider: String?, title: String?) -> [String] {
