@@ -4,11 +4,7 @@ import FoundationModels
 #endif
 import LinkPresentation
 import MobileCoreServices
-import UIKit
 import UniformTypeIdentifiers
-#if canImport(Vision)
-import Vision
-#endif
 
 enum ShareItemExtractorError: LocalizedError {
     case missingInputItem
@@ -90,12 +86,10 @@ enum ShareItemExtractor {
             )
             let data = try Data(contentsOf: copiedURL)
             let dataURL = "data:\(UTType.image.identifier);base64,\(data.base64EncodedString())"
-            let title = itemTitle ?? copiedURL.lastPathComponent
-            let tags = inferredTags(type: "image", url: nil, title: title, description: itemText, source: sourceBundleID, fileName: copiedURL.lastPathComponent, mimeType: UTType.image.identifier)
             return PendingShare(
                 id: UUID().uuidString,
                 url: nil,
-                title: title,
+                title: itemTitle ?? copiedURL.lastPathComponent,
                 type: "image",
                 thumbnail: dataURL,
                 timestamp: timestamp,
@@ -105,8 +99,8 @@ enum ShareItemExtractor {
                 filePath: copiedURL.path,
                 mimeType: UTType.image.identifier,
                 itemDescription: itemText,
-                folderId: suggestedFolderId(type: "image", url: nil, title: title, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: UTType.image.identifier, tags: tags, source: sourceBundleID),
-                tags: tags
+                folderId: suggestedFolderId(type: "image", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: UTType.image.identifier, source: sourceBundleID),
+                tags: inferredTags(type: "image", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, source: sourceBundleID)
             )
         }
 
@@ -114,12 +108,10 @@ enum ShareItemExtractor {
             let copiedURL = try await provider.copyFileRepresentation(
                 preferredTypeIdentifier: UTType.pdf.identifier
             )
-            let title = itemTitle ?? copiedURL.lastPathComponent
-            let tags = inferredTags(type: "file", url: nil, title: title, description: itemText, source: sourceBundleID, fileName: copiedURL.lastPathComponent, mimeType: UTType.pdf.identifier)
             return PendingShare(
                 id: UUID().uuidString,
                 url: nil,
-                title: title,
+                title: itemTitle ?? copiedURL.lastPathComponent,
                 type: "pdf",
                 thumbnail: nil,
                 timestamp: timestamp,
@@ -129,22 +121,19 @@ enum ShareItemExtractor {
                 filePath: copiedURL.path,
                 mimeType: UTType.pdf.identifier,
                 itemDescription: itemText,
-                folderId: suggestedFolderId(type: "pdf", url: nil, title: title, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: UTType.pdf.identifier, tags: tags, source: sourceBundleID),
-                tags: tags
+                folderId: suggestedFolderId(type: "pdf", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: UTType.pdf.identifier, source: sourceBundleID),
+                tags: inferredTags(type: "file", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, source: sourceBundleID)
             )
         }
 
         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) || provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
             let preferred = provider.registeredTypeIdentifiers.first ?? UTType.data.identifier
             let copiedURL = try await provider.copyFileRepresentation(preferredTypeIdentifier: preferred)
-            let title = itemTitle ?? copiedURL.lastPathComponent
-            let shareType = localFileShareType(fileName: copiedURL.lastPathComponent, mimeType: preferred)
-            let tags = inferredTags(type: shareType, url: nil, title: title, description: itemText, source: sourceBundleID, fileName: copiedURL.lastPathComponent, mimeType: preferred)
             return PendingShare(
                 id: UUID().uuidString,
                 url: nil,
-                title: title,
-                type: shareType,
+                title: itemTitle ?? copiedURL.lastPathComponent,
+                type: "file",
                 thumbnail: nil,
                 timestamp: timestamp,
                 sourceApp: sourceLabel(from: sourceBundleID, sharedURL: nil),
@@ -153,8 +142,8 @@ enum ShareItemExtractor {
                 filePath: copiedURL.path,
                 mimeType: preferred,
                 itemDescription: itemText,
-                folderId: suggestedFolderId(type: shareType, url: nil, title: title, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: preferred, tags: tags, source: sourceBundleID),
-                tags: tags
+                folderId: suggestedFolderId(type: "file", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: preferred, source: sourceBundleID),
+                tags: inferredTags(type: "file", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, source: sourceBundleID)
             )
         }
 
@@ -172,8 +161,6 @@ enum ShareItemExtractor {
             resolved.url = canonicalizedURLString(from: urlString)
         }
 
-        resolved = await enrichLocalAttachmentIfNeeded(resolved)
-
         guard let urlString = resolved.url,
               let url = URL(string: urlString),
               url.scheme?.hasPrefix("http") == true
@@ -188,13 +175,13 @@ enum ShareItemExtractor {
                 tags: resolved.tags ?? [],
                 source: resolved.sourceApp
             )
-            resolved.folderId = classification.folderId
+            resolved.folderId = resolved.folderId ?? classification.folderId
             if (resolved.folderSource ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 resolved.folderSource = "rules"
                 resolved.folderConfidence = classification.confidence
                 resolved.folderReason = classification.reason
             }
-            resolved.tags = dedupeTags(resolved.tags ?? inferredTags(type: resolved.type, url: resolved.url, title: resolved.title, description: resolved.itemDescription ?? resolved.text, source: resolved.sourceApp, fileName: resolved.fileName, mimeType: resolved.mimeType))
+            resolved.tags = dedupeTags(resolved.tags ?? inferredTags(type: resolved.type, url: resolved.url, title: resolved.title, description: resolved.itemDescription ?? resolved.text, source: resolved.sourceApp))
             return resolved
         }
 
@@ -246,9 +233,7 @@ enum ShareItemExtractor {
                 url: resolved.url,
                 title: resolved.title,
                 description: resolved.itemDescription ?? resolved.text,
-                source: resolved.sourceApp,
-                fileName: resolved.fileName,
-                mimeType: resolved.mimeType
+                source: resolved.sourceApp
             )
         )
         return resolved
@@ -501,186 +486,6 @@ private extension ShareItemExtractor {
         return "Shared item"
     }
 
-    static func enrichLocalAttachmentIfNeeded(_ share: PendingShare) async -> PendingShare {
-        var resolved = share
-        let lowerType = resolved.type.lowercased()
-        let localText = [resolved.title, resolved.itemDescription, resolved.text, resolved.fileName, resolved.mimeType, resolved.sourceApp]
-            .compactMap { $0 }
-            .joined(separator: " ")
-
-        resolved.tags = dedupeTags(
-            (resolved.tags ?? []) +
-            localSignalTags(type: resolved.type, text: localText, fileName: resolved.fileName, mimeType: resolved.mimeType)
-        )
-
-        if lowerType == "image",
-           let recognizedText = await recognizedTextFromImageDataURL(resolved.thumbnail) {
-            let summary = compactRecognizedText(recognizedText)
-            if let title = attachmentTitle(from: summary, fallback: resolved.title),
-               shouldReplaceAttachmentTitle(current: resolved.title, fileName: resolved.fileName, candidate: title) {
-                resolved.title = title
-            }
-            if (resolved.itemDescription ?? resolved.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                resolved.itemDescription = "Screenshot text: \(summary)"
-            }
-            resolved.tags = dedupeTags(
-                (resolved.tags ?? []) +
-                inferredTags(
-                    type: resolved.type,
-                    url: resolved.url,
-                    title: resolved.title,
-                    description: summary,
-                    source: resolved.sourceApp,
-                    fileName: resolved.fileName,
-                    mimeType: resolved.mimeType
-                ) +
-                ["screenshot"]
-            )
-        }
-
-        return resolved
-    }
-
-    static func attachmentTitle(from text: String, fallback: String) -> String? {
-        let lower = text.lowercased()
-        if containsAnyToken(lower, ["warranty", "serial number", "model number"]) {
-            if containsAnyToken(lower, ["air conditioner", "a/c", "ac warranty", "window unit"]) {
-                return "A/C warranty screenshot"
-            }
-            return "Warranty screenshot"
-        }
-        if containsAnyToken(lower, ["booking confirmation", "reservation confirmation", "confirmation number"]) {
-            if containsAnyToken(lower, ["hotel", "stay", "check-in", "check in"]) {
-                return "Hotel booking confirmation"
-            }
-            return "Booking confirmation"
-        }
-        if containsAnyToken(lower, ["door code", "access code", "wi-fi", "wifi"]) {
-            return "Door code + Wi-Fi"
-        }
-        if containsAnyToken(lower, ["receipt", "invoice", "order total"]) {
-            return "Receipt screenshot"
-        }
-        return nil
-    }
-
-    static func shouldReplaceAttachmentTitle(current: String, fileName: String?, candidate: String) -> Bool {
-        let normalized = current.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let fileBase = (fileName ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-        if normalized.isEmpty { return true }
-        if normalized == fileBase { return true }
-        if normalized.range(of: #"^(img|image|screenshot|screen shot|photo|scan)[-_ ]?\d+"#, options: .regularExpression) != nil { return true }
-        if normalized.hasPrefix("tmp") || normalized.hasPrefix("asset") { return true }
-        return candidate.count > current.count + 10 && current.count < 36
-    }
-
-    static func localSignalTags(type: String, text: String, fileName: String?, mimeType: String?) -> [String] {
-        let haystack = [type, text, fileName ?? "", mimeType ?? ""].joined(separator: " ").lowercased()
-        var tags: [String] = []
-
-        if haystack.contains("audio/") ||
-            haystack.range(of: #"\.(m4a|mp3|wav|caf|aac)(\s|$)"#, options: .regularExpression) != nil {
-            tags += ["audio", "voice-note"]
-        }
-        if haystack.contains("image/") || type.caseInsensitiveCompare("image") == .orderedSame {
-            tags.append("image")
-        }
-        if haystack.contains("application/pdf") || haystack.contains(".pdf") {
-            tags += ["pdf", "document"]
-        }
-        if haystack.range(of: #"\.(docx?|pages|rtf|txt)(\s|$)"#, options: .regularExpression) != nil {
-            tags += ["document", "file"]
-        }
-        if haystack.range(of: #"\.(xlsx?|numbers|csv)(\s|$)"#, options: .regularExpression) != nil {
-            tags += ["spreadsheet", "document"]
-        }
-        if haystack.range(of: #"\.(pptx?|key)(\s|$)"#, options: .regularExpression) != nil {
-            tags += ["presentation", "document"]
-        }
-        if containsAnyToken(haystack, ["warranty", "serial number", "model number", "product registration", "appliance", "air conditioner"]) {
-            tags += ["warranty", "appliance", "life-admin"]
-        }
-        if containsAnyToken(haystack, ["receipt", "invoice", "order confirmation"]) {
-            tags += ["receipt", "document"]
-        }
-        if containsAnyToken(haystack, ["booking confirmation", "confirmation number", "hotel booking", "reservation"]) {
-            tags += ["booking", "confirmation", "travel"]
-        }
-        if containsAnyToken(haystack, ["door code", "access code", "wifi", "wi-fi", "guest code"]) {
-            tags += ["door-code", "wifi", "important"]
-        }
-        if containsAnyToken(haystack, ["driver license", "passport", "insurance card", "bank routing", "tax pin"]) {
-            tags += ["private", "document"]
-        }
-        return tags
-    }
-
-    static func compactRecognizedText(_ value: String) -> String {
-        let cleaned = value
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard cleaned.count > 240 else { return cleaned }
-        return "\(cleaned.prefix(240))..."
-    }
-
-    static func containsAnyToken(_ haystack: String, _ needles: [String]) -> Bool {
-        needles.contains { haystack.contains($0.lowercased()) }
-    }
-
-    static func recognizedTextFromImageDataURL(_ thumbnail: String?) async -> String? {
-#if canImport(Vision)
-        guard let thumbnail,
-              thumbnail.hasPrefix("data:"),
-              let comma = thumbnail.firstIndex(of: ",")
-        else { return nil }
-        let encoded = String(thumbnail[thumbnail.index(after: comma)...])
-        guard let data = Data(base64Encoded: encoded), data.count <= 8 * 1024 * 1024 else { return nil }
-
-        return await withTaskGroup(of: String?.self) { group in
-            group.addTask(priority: .utility) {
-                recognizeTextSynchronously(from: data)
-            }
-            group.addTask {
-                try? await Task.sleep(nanoseconds: 900_000_000)
-                return nil
-            }
-
-            while let result = await group.next() {
-                group.cancelAll()
-                return result?.nilIfBlank
-            }
-            return nil
-        }
-#else
-        return nil
-#endif
-    }
-
-#if canImport(Vision)
-    static func recognizeTextSynchronously(from data: Data) -> String? {
-        guard let cgImage = UIImage(data: data)?.cgImage else { return nil }
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .fast
-        request.usesLanguageCorrection = false
-        request.recognitionLanguages = ["en-US"]
-
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        do {
-            try handler.perform([request])
-        } catch {
-            return nil
-        }
-
-        let text = (request.results ?? [])
-            .compactMap { $0.topCandidates(1).first?.string }
-            .joined(separator: "\n")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return text.isEmpty ? nil : text
-    }
-#endif
-
     static func inferredType(for urlString: String) -> String {
         let value = urlString.lowercased()
         if value.contains("maps.google.") || value.contains("google.com/maps") || value.contains("goo.gl/maps") || value.contains("maps.apple.com") {
@@ -702,20 +507,6 @@ private extension ShareItemExtractor {
             return "file"
         }
         return "link"
-    }
-
-    static func localFileShareType(fileName: String, mimeType: String) -> String {
-        let lower = "\(fileName) \(mimeType)".lowercased()
-        if lower.contains("audio/") || lower.range(of: #"\.(m4a|mp3|wav|caf|aac)(\s|$)"#, options: .regularExpression) != nil {
-            return "audio"
-        }
-        if lower.contains("video/") {
-            return "video"
-        }
-        if lower.contains("image/") || lower.range(of: #"\.(png|jpe?g|gif|webp|heic)(\s|$)"#, options: .regularExpression) != nil {
-            return "image"
-        }
-        return "file"
     }
 
     static func sourceLabel(from sourceBundleOrLabel: String?, sharedURL: String?) -> String {
@@ -957,9 +748,8 @@ private extension ShareItemExtractor {
         mime type: \(mimeType)
         existing tags: \(tags)
 
-        Use exactly one folderId from the choices. Life Admin is for useful non-secret admin/reference saves like door codes, Wi-Fi notes, travel access, warranty screenshots, product serial numbers, templates, contracts, receipts, and account recovery notes.
-        If screenshot/OCR text mentions warranty, serial number, model number, appliance, booking confirmation, or door/Wi-Fi code, strongly prefer Life Admin unless it is an actual ID, banking, tax, medical, password, or credential.
-        For actual private documents, IDs, medical records, insurance cards, banking, credentials, passwords, tax files, or sensitive receipts, choose f-private-vault instead of Life Admin.
+        Use exactly one folderId from the choices. Life Admin is for useful non-secret admin/reference saves like door codes, Wi-Fi notes, travel access, templates, contracts, receipts, and account recovery notes.
+        For actual private documents, IDs, receipts, medical, insurance, banking, credentials, passwords, or tax files, choose f-private-vault instead of Life Admin.
         Entertainment, trailers, news, and fandom posts are not private just because their title says secret, leaked, vault, or password.
         Entertainment videos default to Watch / Read Later unless clearly comedy/meme, then Memes & Laughs.
         Never choose Science Finds unless the item has real science, space, research, or discovery intent.
@@ -1150,24 +940,15 @@ private extension ShareItemExtractor {
         )
     }
 
-    static func inferredTags(
-        type: String,
-        url: String?,
-        title: String?,
-        description: String?,
-        source: String?,
-        fileName: String? = nil,
-        mimeType: String? = nil
-    ) -> [String] {
+    static func inferredTags(type: String, url: String?, title: String?, description: String?, source: String?) -> [String] {
         let sourceTag = (source ?? "")
             .lowercased()
             .replacingOccurrences(of: " ", with: "-")
             .replacingOccurrences(of: ".", with: "")
-        let haystack = [url ?? "", title ?? "", description ?? "", source ?? "", fileName ?? "", mimeType ?? ""].joined(separator: " ").lowercased()
+        let haystack = [url ?? "", title ?? "", description ?? "", source ?? ""].joined(separator: " ").lowercased()
         var tags: [String] = []
         tags.append(contentsOf: keywordTags(title: title, description: description, url: url, source: source))
         tags.append(contentsOf: topicalTags(from: haystack))
-        tags.append(contentsOf: localSignalTags(type: type, text: haystack, fileName: fileName, mimeType: mimeType))
         if type != "link" && type != "text" {
             tags.append(type)
         }

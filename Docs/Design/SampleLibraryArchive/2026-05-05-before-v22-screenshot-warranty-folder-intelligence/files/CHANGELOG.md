@@ -6,9 +6,6 @@ targets, and QA evidence.
 
 ## 2026-05-05
 
-- Added a V22 sample-library and Folder Intelligence pass with an A/C warranty
-  screenshot sample, stronger audio/sample file typing, screenshot OCR in the
-  share extension, and Life Admin vs Private Vault guardrails.
 - Recurated the launch sample library to keep the first six utility saves, then
   add more memorable memes, rabbit holes, science, recipes, and AI examples.
 - Expanded `Memes & Laughs` and `Rabbit Holes` so Home, Explore, and Search feel

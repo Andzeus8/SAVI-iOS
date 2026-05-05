@@ -987,10 +987,6 @@ enum SAVIFolderClassifier {
             return .init(folderId: firstAllowed("f-paste-bin", allowedIds: allowedIds), confidence: 82, reason: "paste-guardrail")
         }
 
-        if shouldUseLifeAdminGuardrail(input, normalized: normalized) {
-            return .init(folderId: firstAllowed("f-life-admin", allowedIds: allowedIds), confidence: 88, reason: "life-admin-guardrail")
-        }
-
         var best = scoreSystemProfiles(normalized, allowedIds: allowedIds, roles: [.semantic])
         if let custom = scoreCustomFolders(folders, normalized: normalized),
            custom.confidence >= max(18, best.confidence + 4) {
@@ -1031,7 +1027,7 @@ enum SAVIFolderClassifier {
     }
 
     static func looksSensitive(_ text: String) -> Bool {
-        if regexMatch(#"\b(password|credential|bearer|private key|apikey|api key|seed phrase|recovery phrase|wallet|passcode|ssh|routing number|account number|tax pin)\b"#, in: text) {
+        if regexMatch(#"\b(password|credential|bearer|private key|apikey|api key|seed phrase|recovery phrase|wallet|passcode|ssh)\b"#, in: text) {
             return true
         }
         return regexMatch(#"\b(api|client|auth|access|refresh|jwt|oauth|ssh)\b.{0,40}\b(secret|token)\b|\b(secret|token)\b.{0,40}\b(api|client|auth|access|refresh|jwt|oauth|ssh)\b"#, in: text)
@@ -1042,7 +1038,7 @@ enum SAVIFolderClassifier {
     }
 
     static func looksPrivateDocument(_ text: String) -> Bool {
-        regexMatch(#"\b(passport|driver'?s license|social security|ssn|tax return|w-2|1099|insurance card|bank statement|bank routing|routing number|account number|credit card|debit card|return receipt|medical receipt|tax receipt|lease|medical record|lab result|prescription|id card|membership id|paystub|pay stub)\b"#, in: text)
+        regexMatch(#"\b(passport|driver'?s license|social security|ssn|tax return|w-2|1099|insurance|bank statement|credit card|debit card|receipt|lease|medical record|lab result|prescription|id card|paystub|pay stub)\b"#, in: text)
     }
 
     static func shouldAcceptIntelligenceFolder(
@@ -1337,51 +1333,6 @@ enum SAVIFolderClassifier {
                 fileName: "service-contract-template.docx",
                 mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 tags: ["contract", "template"]
-            )
-        ),
-        .init(
-            id: "life-admin-warranty-screenshot",
-            name: "Warranty screenshot",
-            expectedFolderId: "f-life-admin",
-            minimumConfidence: 60,
-            input: .init(
-                title: "A/C warranty screenshot",
-                description: "Screenshot from Photos with warranty, serial number, model number, receipt note, and support phone.",
-                type: "image",
-                source: "Photos",
-                fileName: "IMG_4821.PNG",
-                mimeType: "image/png",
-                tags: ["screenshot", "warranty", "air-conditioner", "serial-number"]
-            )
-        ),
-        .init(
-            id: "life-admin-hotel-confirmation",
-            name: "Hotel confirmation is admin, not map pin",
-            expectedFolderId: "f-life-admin",
-            minimumConfidence: 48,
-            input: .init(
-                title: "Hotel booking confirmation",
-                description: "Reservation confirmation number, check-in code, checkout time, and guest details.",
-                type: "image",
-                source: "Photos",
-                fileName: "hotel-confirmation-screenshot.png",
-                mimeType: "image/png",
-                tags: ["booking", "confirmation", "travel"]
-            )
-        ),
-        .init(
-            id: "private-driver-license-screenshot",
-            name: "Private ID screenshot",
-            expectedFolderId: "f-private-vault",
-            minimumConfidence: 90,
-            input: .init(
-                title: "Driver's license copy",
-                description: "Photo of my driver license front and back.",
-                type: "image",
-                source: "Photos",
-                fileName: "driver-license-copy.png",
-                mimeType: "image/png",
-                tags: ["id", "document"]
             )
         ),
         .init(
@@ -1784,8 +1735,6 @@ enum SAVIFolderClassifier {
             ("template", 6), ("agreement", 7), ("license copy", 8), ("driver license copy", 8),
             ("insurance card", 8), ("policy", 6), ("certificate copy", 7), ("birth certificate copy", 7),
             ("receipt", 5), ("return receipt", 6), ("warranty", 6), ("serial number", 7),
-            ("warranty screenshot", 9), ("product registration", 8), ("model number", 7),
-            ("appliance", 6), ("air conditioner", 8), ("support phone", 6),
             ("recovery code", 7), ("backup code", 7), ("long code", 6), ("document", 4),
             ("docx", 5), ("important document", 8), ("account recovery", 6)
         ])),
@@ -1796,7 +1745,6 @@ enum SAVIFolderClassifier {
             ("salad", 5), ("tacos", 5), ("pizza", 5), ("chicken", 5), ("steak", 5), ("rice", 4), ("meal prep", 8),
             ("grocery", 6), ("groceries", 6), ("baking", 7), ("bread", 5), ("cocktail", 6), ("coffee", 5),
             ("allrecipes", 9), ("bon appetit", 8), ("smitten kitchen", 8), ("serious eats", 8), ("nytcooking", 8),
-            ("voice note recipe", 8), ("lasagna sauce", 9), ("audio recipe", 8),
             ("marinade", 6), ("roast", 5), ("grill", 5), ("ferment", 6), ("sourdough", 7), ("vegan", 6), ("keto", 6)
         ])),
         .init(id: "f-travel", terms: weighted([
@@ -1817,9 +1765,7 @@ enum SAVIFolderClassifier {
             ("microbiome", 8), ("digestion", 7), ("inflammation", 7), ("immune", 7), ("hormone", 7), ("blood sugar", 8),
             ("therapy", 6), ("protocol", 5), ("recovery", 6), ("mobility", 6), ("cardio", 6), ("strength", 5),
             ("exercise", 7), ("meditation", 7), ("mindfulness", 7), ("anxiety", 7), ("adhd", 8), ("depression", 7),
-            ("clinic", 7), ("blood pressure", 8), ("cholesterol", 7), ("glucose", 7), ("metabolism", 7), ("fasting", 6),
-            ("intermittent fasting", 8), ("autophagy", 9), ("fascia", 7), ("mobility", 7),
-            ("mebendazole", 10), ("cancer remission", 9), ("clinical trial", 8), ("tumor", 8)
+            ("clinic", 7), ("blood pressure", 8), ("cholesterol", 7), ("glucose", 7), ("metabolism", 7), ("fasting", 6)
         ])),
         .init(id: "f-design", terms: weighted([
             ("design", 9), ("figma", 9), ("ui", 7), ("ux", 7), ("typography", 8), ("font", 7), ("layout", 7),
@@ -1858,8 +1804,7 @@ enum SAVIFolderClassifier {
             ("coverup", 8), ("area 51", 9), ("mkultra", 9), ("northwoods", 8), ("rabbit hole", 7),
             ("ancient egypt", 7), ("pyramid", 6), ("sphinx", 6), ("pentagon", 5), ("classified", 6),
             ("declassified", 6), ("secret program", 7), ("shadow government", 9), ("deep state", 8), ("psyop", 8),
-            ("mandela effect", 8), ("simulation theory", 8), ("illuminati", 9), ("freemason", 7),
-            ("perpetual motion", 9), ("free energy", 9), ("infinite energy", 9), ("over unity", 8)
+            ("mandela effect", 8), ("simulation theory", 8), ("illuminati", 9), ("freemason", 7)
         ])),
         .init(id: "f-lmao", terms: weighted([
             ("meme", 9), ("memes", 9), ("funny", 8), ("comedy", 8), ("joke", 7), ("lmao", 8), ("lol", 6),
@@ -1913,11 +1858,7 @@ enum SAVIFolderClassifier {
         let normalized = NormalizedInput(input)
         return normalizedKey(input.type) == "place" ||
             containsAny(normalized.url, ["maps google", "google com maps", "maps apple", "maps apple com"]) ||
-            containsAny(normalized.all, ["map pin", "directions", "google maps", "apple maps"]) ||
-            (
-                containsAny(normalized.all, ["restaurant", "hotel", "museum", "cafe", "coffee shop"]) &&
-                containsAny(normalized.all, ["map", "pin", "directions", "recommendation", "nearby", "place"])
-            )
+            containsAny(normalized.all, ["map pin", "directions", "restaurant", "hotel"])
     }
 
     private static func isWatchable(_ input: SAVIFolderClassificationInput) -> Bool {
@@ -1955,10 +1896,6 @@ enum SAVIFolderClassifier {
         let privateDocument = looksPrivateDocument(input)
         guard sensitive || privateDocument else { return false }
 
-        if looksLikeLifeAdminUtility(normalized), !hasHighRiskPrivateSignal(normalized) {
-            return false
-        }
-
         if isEntertainmentContext(normalized), !hasHighRiskPrivateSignal(normalized) {
             return false
         }
@@ -1980,41 +1917,6 @@ enum SAVIFolderClassifier {
         return true
     }
 
-    private static func shouldUseLifeAdminGuardrail(_ input: SAVIFolderClassificationInput, normalized: NormalizedInput) -> Bool {
-        guard looksLikeLifeAdminUtility(normalized), !hasHighRiskPrivateSignal(normalized) else {
-            return false
-        }
-
-        let isSaveableAdminAsset = containsAny(normalized.type, ["text", "file", "pdf", "image", "link", "article"]) ||
-            containsAny(normalized.source, ["photos", "files", "safari", "clipboard", "savi", "device"]) ||
-            containsAny(normalized.mimeType, ["image", "application pdf", "text plain"]) ||
-            (input.url ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-
-        return isSaveableAdminAsset
-    }
-
-    private static func looksLikeLifeAdminUtility(_ normalized: NormalizedInput) -> Bool {
-        if containsAny(normalized.all, [
-            "driver license", "driver s license", "passport", "social security", "ssn",
-            "tax return", "w 2", "1099", "bank statement", "bank routing", "routing number",
-            "account number", "credit card", "debit card", "medical record", "lab result",
-            "prescription", "insurance card", "membership id", "paystub", "pay stub"
-        ]) {
-            return false
-        }
-
-        return containsAny(normalized.all, [
-            "door code", "access code", "guest code", "wifi", "wi fi", "wi-fi",
-            "booking confirmation", "hotel confirmation", "reservation confirmation",
-            "confirmation number", "itinerary", "checkout", "check in", "check-in",
-            "warranty", "warranty screenshot", "product registration", "serial number",
-            "model number", "appliance", "air conditioner", "a c warranty", "ac warranty",
-            "receipt note", "return receipt", "invoice", "support phone",
-            "contract template", "service agreement", "agreement template",
-            "recovery code", "backup code", "long code"
-        ])
-    }
-
     private static func isEntertainmentContext(_ normalized: NormalizedInput) -> Bool {
         containsAny(normalized.all, [
             "official trailer", "teaser trailer", "movie", "film", "episode", "season", "series", "cinema",
@@ -2026,8 +1928,7 @@ enum SAVIFolderClassifier {
         containsAny(normalized.all, [
             "health", "medical", "doctor", "symptom", "symptoms", "cleanse", "detox", "deworm",
             "supplement", "vitamin", "protocol", "wellness", "fitness", "infection", "disease",
-            "digestion", "gut", "microbiome", "workout", "therapy", "nutrition", "autophagy",
-            "fasting", "fascia", "mobility", "cancer", "tumor", "mebendazole", "clinical trial"
+            "digestion", "gut", "microbiome", "workout", "therapy", "nutrition"
         ])
     }
 
@@ -2068,7 +1969,7 @@ enum SAVIFolderClassifier {
 
     private static let folderGuidanceById: [String: (use: String, avoid: String)] = [
         "f-life-admin": (
-            use: "useful admin/reference items like door codes, Wi-Fi notes, reservation details, warranty screenshots, product serial numbers, templates, contracts, receipts, certificates, non-secret account recovery notes, and practical life documents",
+            use: "useful admin/reference items like door codes, Wi-Fi notes, reservation details, templates, contracts, receipts, certificates, non-secret account recovery notes, and practical life documents",
             avoid: "actual private IDs, banking, medical, tax, credentials, passwords, seed phrases, or sensitive scans that belong in Private Vault"
         ),
         "f-must-see": (

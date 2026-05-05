@@ -1101,76 +1101,6 @@ enum SaviSeeds {
         )
     }
 
-    private static func sampleWarrantyScreenshotThumb() -> String {
-        let size = CGSize(width: 720, height: 720)
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 2
-        format.opaque = true
-
-        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
-            let bounds = CGRect(origin: .zero, size: size)
-            let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
-            let muted = UIColor(red: 0.38, green: 0.31, blue: 0.48, alpha: 1)
-            let lavender = UIColor(hex: "#F6F0FB")
-            let gold = UIColor(hex: "#FFD15C")
-            let green = UIColor(hex: "#70D59B")
-
-            lavender.setFill()
-            context.fill(bounds)
-
-            UIColor(hex: "#2A1745").withAlphaComponent(0.16).setFill()
-            UIBezierPath(roundedRect: CGRect(x: 128, y: 36, width: 464, height: 652), cornerRadius: 58).fill()
-            UIColor.white.setFill()
-            UIBezierPath(roundedRect: CGRect(x: 108, y: 22, width: 464, height: 652), cornerRadius: 58).fill()
-
-            UIColor(hex: "#2A1745").setFill()
-            UIBezierPath(roundedRect: CGRect(x: 274, y: 44, width: 132, height: 18), cornerRadius: 9).fill()
-            UIColor(hex: "#EFE7F5").setFill()
-            UIBezierPath(roundedRect: CGRect(x: 140, y: 82, width: 400, height: 548), cornerRadius: 28).fill()
-
-            UIColor.white.withAlphaComponent(0.98).setFill()
-            UIBezierPath(roundedRect: CGRect(x: 160, y: 108, width: 360, height: 142), cornerRadius: 24).fill()
-            gold.setFill()
-            UIBezierPath(roundedRect: CGRect(x: 184, y: 132, width: 112, height: 28), cornerRadius: 14).fill()
-            drawText("WARRANTY", in: CGRect(x: 198, y: 138, width: 84, height: 18), font: .systemFont(ofSize: 13, weight: .black), color: ink, alignment: .center, lineBreakMode: .byTruncatingTail)
-            drawText("A/C warranty", in: CGRect(x: 184, y: 176, width: 234, height: 34), font: .systemFont(ofSize: 28, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
-            drawText("Model NX-2400 · expires Sep 2028", in: CGRect(x: 184, y: 214, width: 292, height: 22), font: .systemFont(ofSize: 15, weight: .semibold), color: muted, lineBreakMode: .byTruncatingTail)
-            if let icon = UIImage(systemName: "snowflake")?.withTintColor(green, renderingMode: .alwaysOriginal) {
-                icon.draw(in: CGRect(x: 448, y: 142, width: 42, height: 42))
-            }
-
-            UIColor.white.withAlphaComponent(0.96).setFill()
-            UIBezierPath(roundedRect: CGRect(x: 160, y: 274, width: 360, height: 228), cornerRadius: 24).fill()
-            let rows = [
-                ("Serial", "AC9-44P-7721"),
-                ("Receipt", "Lowe's · 06/14/26"),
-                ("Support", "(800) 555-0148"),
-                ("Install", "Kitchen window unit")
-            ]
-            for (index, row) in rows.enumerated() {
-                let y = 302 + CGFloat(index) * 45
-                UIColor(hex: "#D8D1E4").withAlphaComponent(0.52).setFill()
-                UIBezierPath(roundedRect: CGRect(x: 184, y: y + 30, width: 292, height: 1.5), cornerRadius: 0.75).fill()
-                drawText(row.0.uppercased(), in: CGRect(x: 184, y: y, width: 88, height: 24), font: .monospacedSystemFont(ofSize: 12, weight: .bold), color: muted, lineBreakMode: .byTruncatingTail)
-                drawText(row.1, in: CGRect(x: 284, y: y - 1, width: 210, height: 26), font: .systemFont(ofSize: 18, weight: .bold), color: ink, lineBreakMode: .byTruncatingTail)
-            }
-
-            green.withAlphaComponent(0.18).setFill()
-            UIBezierPath(roundedRect: CGRect(x: 160, y: 524, width: 360, height: 68), cornerRadius: 24).fill()
-            drawText("Screenshot saved from Photos", in: CGRect(x: 188, y: 545, width: 268, height: 24), font: .systemFont(ofSize: 17, weight: .bold), color: ink, lineBreakMode: .byTruncatingTail)
-            if let photo = UIImage(systemName: "photo.fill")?.withTintColor(ink, renderingMode: .alwaysOriginal) {
-                photo.draw(in: CGRect(x: 464, y: 544, width: 22, height: 22))
-            }
-
-            drawSampleWatermark(in: context.cgContext, center: CGPoint(x: 360, y: 396), color: ink.withAlphaComponent(0.08), size: 58, rotation: -.pi / 10)
-        }
-
-        guard let data = image.pngData() else {
-            return picsumThumb("savi-ac-warranty-screenshot", width: 720, height: 720)
-        }
-        return "data:image/png;base64,\(data.base64EncodedString())"
-    }
-
     private static func sampleAIPromptThumb() -> String {
         sampleGraphicThumb(
             title: "Next actions",
@@ -1363,7 +1293,7 @@ enum SaviSeeds {
 
     static let items: [SaviItem] = [
         // First-run utility saves, ordered to prove SAVI's practical value immediately.
-        item(id: "sample-food-mom-lasagna-audio", title: "Mom's lasagna sauce voice note", description: "Audio note sample: brown the garlic slowly, simmer the sauce, and add the basil at the end.", source: "Voice Memo", type: .file, folderId: "f-recipes", tags: ["audio", "voice-note", "recipe", "mom", "sauce", "lasagna"], thumbnail: sampleAudioRecipeThumb(), hoursAgo: 1, assetName: "moms-lasagna-sauce.m4a", assetMime: "audio/mp4", assetSize: 824_000),
+        item(id: "sample-food-mom-lasagna-audio", title: "Mom's lasagna sauce voice note", description: "Audio note sample: brown the garlic slowly, simmer the sauce, and add the basil at the end.", source: "Voice Memo", type: .file, folderId: "f-recipes", tags: ["audio", "recipe", "mom", "sauce", "lasagna"], thumbnail: sampleAudioRecipeThumb(), hoursAgo: 1, assetName: "moms-lasagna-sauce.m4a", assetMime: "audio/mp4", assetSize: 824_000),
         item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi", description: "SAMPLE stay note: front door 2486, Wi-Fi Pinehouse Guest, checkout 11 AM.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "airbnb", "door-code", "wifi", "travel"], thumbnail: sampleFullBleedStayThumb(), hoursAgo: 2),
         item(id: "sample-research-mebendazole", title: "Mebendazole and cancer remission?", description: "PubMed case-report save about mebendazole and tumor remission. Kept as a research note for doctor questions, not as medical advice.", url: "https://pubmed.ncbi.nlm.nih.gov/24160353/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "mebendazole", "case-report", "cancer", "questions-for-doctor", "clinical-trial"], thumbnail: sampleMebendazoleResearchThumb(), hoursAgo: 3),
         item(id: "sample-place-ramen", title: "Jennifer's ramen recommendation", description: "Jennifer said to order the spicy miso, sit at the counter, and save the pin before the group chat buries it.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Jennifer", type: .place, folderId: "f-travel", tags: ["maps", "restaurant", "friend-rec", "tokyo", "food"], thumbnail: sampleFoodRecommendationThumb(), hoursAgo: 4),
@@ -1376,7 +1306,6 @@ enum SaviSeeds {
         item(id: "sample-life-insurance-card", title: "Insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 10, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
         item(id: "sample-life-driver-license", title: "Driver's license copy", description: "Watermarked fake ID copy with invented demo data for testing protected document saves.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 11, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
         item(id: "sample-private-membership-id", title: "Membership ID card", description: "Fake membership card with invented member numbers, kept as a private-vault example.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "membership", "id", "card"], thumbnail: sampleMembershipThumb(), hoursAgo: 12, assetName: "sample-membership-id.png", assetMime: "image/png", assetSize: 154_000),
-        item(id: "sample-life-ac-warranty-screenshot", title: "A/C warranty screenshot", description: "SAMPLE iPhone screenshot of an air-conditioner warranty, serial number, support phone, receipt note, and install detail.", source: "Photos", type: .image, folderId: "f-life-admin", tags: ["sample", "screenshot", "warranty", "air-conditioner", "serial-number", "receipt", "life-admin", "appliance"], thumbnail: sampleWarrantyScreenshotThumb(), hoursAgo: 12.5, assetName: "sample-ac-warranty-screenshot.png", assetMime: "image/png", assetSize: 188_000),
         item(id: "sample-private-bank-routing", title: "Bank routing number note", description: "SAMPLE banking note with invented routing/account details. Demonstrates exact private text search.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "banking", "routing-number", "account"], thumbnail: sampleRoutingThumb(), hoursAgo: 13),
         item(id: "sample-health-fasting-autophagy", title: "Intermittent fasting and cancer: cure?", description: "PubMed research save about intermittent fasting, autophagy, and cancer questions. Kept as a reading note for clinician discussion, not medical advice or a proven treatment.", url: "https://pubmed.ncbi.nlm.nih.gov/34383300/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "cancer", "questions-for-doctor"], thumbnail: "https://cdn.ncbi.nlm.nih.gov/pubmed/persistent/pubmed-meta-image-v2.jpg", hoursAgo: 9),
         item(id: "sample-meme-goyo", title: "Chocolate Rain", description: "Tay Zonday's viral classic, saved as a proper YouTube video instead of a generic placeholder.", url: "https://www.youtube.com/watch?v=EwTZ2xpQwpA", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "chocolate-rain", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("EwTZ2xpQwpA"), hoursAgo: 22, metadataPolicy: .liveMetadata),
@@ -1816,16 +1745,12 @@ enum SaviText {
         if haystack.contains("vimeo") { tags += ["vimeo", "video"] }
         if haystack.contains("spotify") { tags += ["spotify", "music"] }
         if haystack.contains("soundcloud") { tags += ["soundcloud", "music"] }
-        if haystack.contains("audio/") || haystack.range(of: #"\.(m4a|mp3|wav|caf|aac)(\?|$|\s)"#, options: .regularExpression) != nil { tags += ["audio", "voice-note"] }
         if haystack.contains("pinterest") { tags += ["pinterest", "image"] }
         if haystack.contains("facebook") || haystack.contains("fb.watch") { tags += ["facebook", "post"] }
         if haystack.contains("threads.net") || haystack.contains("threads.com") { tags += ["threads", "post"] }
         if haystack.contains("bsky.app") || haystack.contains("bluesky") { tags += ["bluesky", "post"] }
         if haystack.contains("linkedin") { tags += ["linkedin", "post"] }
         if haystack.contains("maps") { tags += ["place", "map"] }
-        if haystack.contains("warranty") || haystack.contains("serial number") || haystack.contains("model number") { tags += ["warranty", "life-admin"] }
-        if haystack.contains("booking confirmation") || haystack.contains("confirmation number") || haystack.contains("hotel booking") { tags += ["booking", "confirmation", "travel"] }
-        if haystack.contains("door code") || haystack.contains("access code") || haystack.contains("wi-fi") || haystack.contains("wifi") { tags += ["door-code", "wifi", "important"] }
         if haystack.contains("ai") || haystack.contains("llm") || haystack.contains("chatgpt") || haystack.contains("claude") { tags.append("ai") }
         if haystack.contains("prompt") { tags.append("prompt") }
         if haystack.contains("recipe") || haystack.contains("ingredients") { tags.append("recipe") }
@@ -1966,7 +1891,6 @@ enum SaviText {
         if mimeType == "application/pdf" || name.lowercased().hasSuffix(".pdf") { return "PDF document" }
         if mimeType.hasPrefix("image/") { return "\(mimeType.replacingOccurrences(of: "image/", with: "").uppercased()) image" }
         if mimeType.hasPrefix("video/") { return "\(mimeType.replacingOccurrences(of: "video/", with: "").uppercased()) video" }
-        if mimeType.hasPrefix("audio/") { return "\(mimeType.replacingOccurrences(of: "audio/", with: "").uppercased()) audio" }
         return URL(fileURLWithPath: name).pathExtension.uppercased().nilIfBlank ?? "File"
     }
 

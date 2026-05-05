@@ -978,13 +978,13 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         folderSummaryTitleLabel.text = selectedPreset.name
         let hint: String
         if folderSelectionSource == .intelligence {
-            hint = "Smart folder · Apple Intelligence"
+            hint = "AI suggested"
         } else if folderSelectionSource == .metadata {
-            hint = "Smart folder · \(friendlyFolderReason(pendingShare?.folderReason) ?? "Metadata")"
+            hint = "Metadata suggested"
         } else if folderSelectionSource == .rules {
-            hint = "Smart folder · \(friendlyFolderReason(pendingShare?.folderReason) ?? "Quick rules")"
+            hint = "Rules suggested"
         } else if ShareFolderSelection.isAuto(selectedFolderId) {
-            hint = "Auto-selects when you save"
+            hint = "Auto-select on import"
         } else {
             hint = "You picked this"
         }
@@ -1021,43 +1021,6 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
             }
 
             folderGridStack.addArrangedSubview(row)
-        }
-    }
-
-    private func friendlyFolderReason(_ reason: String?) -> String? {
-        switch reason?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "life-admin-guardrail":
-            return "codes, warranty, or docs"
-        case "private-guardrail":
-            return "private document"
-        case "place-guardrail":
-            return "map or place"
-        case "paste-guardrail":
-            return "copied note"
-        case .some(let value) where value.hasPrefix("profile-f-life-admin"):
-            return "life admin"
-        case .some(let value) where value.hasPrefix("profile-f-recipes"):
-            return "recipe or food"
-        case .some(let value) where value.hasPrefix("profile-f-health"):
-            return "health"
-        case .some(let value) where value.hasPrefix("profile-f-growth"):
-            return "AI or work"
-        case .some(let value) where value.hasPrefix("profile-f-lmao"):
-            return "meme or funny"
-        case .some(let value) where value.hasPrefix("profile-f-travel"):
-            return "place or trip"
-        case .some(let value) where value.hasPrefix("profile-f-research"):
-            return "research"
-        case .some(let value) where value.hasPrefix("profile-f-tinfoil"):
-            return "rabbit hole"
-        case .some(let value) where value.hasPrefix("profile-f-must-see"):
-            return "watch or read"
-        case .some(let value) where value.hasPrefix("custom-folder"):
-            return "folder name match"
-        case .some(let value) where value.hasPrefix("learned"):
-            return "learned from you"
-        default:
-            return nil
         }
     }
 
@@ -1369,10 +1332,6 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
             joined.contains("vimeo") || joined.contains("video/") || share.type.caseInsensitiveCompare("video") == .orderedSame {
             return "video"
         }
-        if joined.contains("audio/") ||
-            joined.range(of: #"\.(m4a|mp3|wav|caf|aac)(\?|$|\s)"#, options: .regularExpression) != nil {
-            return "audio"
-        }
         if share.type.caseInsensitiveCompare("pdf") == .orderedSame ||
             joined.contains("application/pdf") ||
             joined.range(of: #"\.pdf(\?|$|\s)"#, options: .regularExpression) != nil {
@@ -1595,7 +1554,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     private func folderSuggestionTags(for folderId: String, share: PendingShare) -> [String] {
         switch folderId {
         case "f-life-admin":
-            return ["important", "admin", "code", "warranty", "document"]
+            return ["important", "admin", "code", "document", "travel"]
         case "f-must-see":
             return isVideoLike(share) ? ["watch later", "funny", "music", "tutorial", "review"] : ["read later", "reference", "important"]
         case "f-growth":
@@ -1655,10 +1614,9 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
             (["recipe", "cook", "dinner", "restaurant", "food"], ["recipe", "food"]),
             (["buy", "shopping", "amazon", "deal"], ["shopping"]),
             (["trip", "travel", "hotel", "flight", "map"], ["travel", "maps"]),
-            (["door code", "wifi", "wi-fi", "contract", "insurance", "license", "receipt", "recovery code", "warranty", "serial number", "model number", "booking confirmation", "confirmation number"], ["important", "admin", "document"]),
+            (["door code", "wifi", "wi-fi", "contract", "insurance", "license", "receipt", "recovery code"], ["important", "admin", "document"]),
             (["paper", "study", "research", "report"], ["research", "reference"]),
-            (["invoice", "receipt", "tax", "insurance", "medical", "bank"], ["important", "document"]),
-            (["voice note", "voice memo", "audio", "m4a", "mp3"], ["audio", "voice-note"])
+            (["invoice", "receipt", "tax", "insurance", "medical", "bank"], ["important", "document"])
         ]
         for mapping in mappings where mapping.needles.contains(where: { haystack.contains($0) }) {
             tags.append(contentsOf: mapping.tags)
@@ -1670,9 +1628,6 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     private func commonFallbackTags(for share: PendingShare) -> [String] {
         if isVideoLike(share) {
             return ["watch later", "funny", "tutorial", "music", "review", "news"]
-        }
-        if isAudioLike(share) {
-            return ["audio", "voice-note", "important", "reference"]
         }
         if isPDFLike(share) {
             return ["PDF", "document", "important", "reference"]
@@ -1695,16 +1650,6 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
             joined.contains("vimeo") ||
             joined.contains("fb.watch") ||
             joined.contains("video/")
-    }
-
-    private func isAudioLike(_ share: PendingShare) -> Bool {
-        let joined = [share.type, share.url, share.mimeType, share.fileName, share.sourceApp]
-            .compactMap { $0 }
-            .joined(separator: " ")
-            .lowercased()
-        return joined.contains("audio/") ||
-            joined.range(of: #"\.(m4a|mp3|wav|caf|aac)(\?|$|\s)"#, options: .regularExpression) != nil ||
-            joined.contains("voice memo")
     }
 
     private func isPDFLike(_ share: PendingShare) -> Bool {
