@@ -6,9 +6,6 @@ targets, and QA evidence.
 
 ## 2026-05-05
 
-- Polished Profile/Settings around a clearer SAVI Beta explanation, a setup
-  checklist, cleaner management hierarchy, and more honest Social Beta
-  coming-soon copy.
 - Added a V22 sample-library and Folder Intelligence pass with an A/C warranty
   screenshot sample, stronger audio/sample file typing, screenshot OCR in the
   share extension, and Life Admin vs Private Vault guardrails.
