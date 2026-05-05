@@ -159,16 +159,6 @@ struct NativeSaviRootView: View {
                 } message: {
                     Text(store.pendingBackupPreview?.restoreMessage ?? "This backup will replace the current SAVI library on this device.")
                 }
-                .alert("Lock Private Vault?", isPresented: $store.isPrivateVaultSetupPromptPresented) {
-                    Button("Enable Face ID") {
-                        store.enablePrivateVaultLockAndOpen()
-                    }
-                    Button("Keep unlocked", role: .cancel) {
-                        store.keepPrivateVaultUnlockedAndOpen()
-                    }
-                } message: {
-                    Text("Private Vault starts open in the sample library so you can see what belongs there. Enable Face ID or passcode now to hide it from Home, Search, and Explore after you leave the app.")
-                }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                     Task {
                         await store.refreshForegroundWork()

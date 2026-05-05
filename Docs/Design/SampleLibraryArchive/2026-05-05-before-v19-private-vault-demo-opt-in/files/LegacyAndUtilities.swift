@@ -242,15 +242,15 @@ struct SafariLinkPreview: UIViewControllerRepresentable {
 
 enum SaviSeeds {
     static let folders: [SaviFolder] = [
-        .init(id: "f-private-vault", name: "Private Vault", color: "#171026", image: nil, system: false, symbolName: "lock.open.fill", order: 0),
-        .init(id: "f-life-admin", name: "Life Admin", color: "#FFD15C", image: nil, system: false, symbolName: "key.fill", order: 1),
-        .init(id: "f-health", name: "Health", color: "#70D59B", image: nil, system: false, symbolName: "heart.fill", order: 2),
-        .init(id: "f-must-see", name: "Watch / Read Later", color: "#7A35E8", image: nil, system: false, symbolName: "bookmark.fill", order: 3),
-        .init(id: "f-growth", name: "AI & Work", color: "#F47A3B", image: nil, system: false, symbolName: "bolt.fill", order: 4),
-        .init(id: "f-travel", name: "Places & Trips", color: "#68C6E8", image: nil, system: false, symbolName: "mappin.and.ellipse", order: 5),
-        .init(id: "f-lmao", name: "Memes & Laughs", color: "#D6F83A", image: nil, system: false, symbolName: "theatermasks.fill", order: 6),
-        .init(id: "f-recipes", name: "Recipes & Food", color: "#FFB978", image: nil, system: false, symbolName: "fork.knife", order: 7),
-        .init(id: "f-paste-bin", name: "Notes & Clips", color: "#9286A8", image: nil, system: false, symbolName: "clipboard.fill", order: 8),
+        .init(id: "f-life-admin", name: "Life Admin", color: "#FFD15C", image: nil, system: false, symbolName: "key.fill", order: 0),
+        .init(id: "f-health", name: "Health", color: "#70D59B", image: nil, system: false, symbolName: "heart.fill", order: 1),
+        .init(id: "f-must-see", name: "Watch / Read Later", color: "#7A35E8", image: nil, system: false, symbolName: "bookmark.fill", order: 2),
+        .init(id: "f-growth", name: "AI & Work", color: "#F47A3B", image: nil, system: false, symbolName: "bolt.fill", order: 3),
+        .init(id: "f-travel", name: "Places & Trips", color: "#68C6E8", image: nil, system: false, symbolName: "mappin.and.ellipse", order: 4),
+        .init(id: "f-lmao", name: "Memes & Laughs", color: "#D6F83A", image: nil, system: false, symbolName: "theatermasks.fill", order: 5),
+        .init(id: "f-recipes", name: "Recipes & Food", color: "#FFB978", image: nil, system: false, symbolName: "fork.knife", order: 6),
+        .init(id: "f-paste-bin", name: "Notes & Clips", color: "#9286A8", image: nil, system: false, symbolName: "clipboard.fill", order: 7),
+        .init(id: "f-private-vault", name: "Private Vault", color: "#171026", image: nil, system: false, symbolName: "lock.fill", order: 8, locked: true),
         .init(id: "f-research", name: "Research & PDFs", color: "#5ADDCB", image: nil, system: false, symbolName: "magnifyingglass", order: 9),
         .init(id: "f-design", name: "Design Inspo", color: "#DE5B98", image: nil, system: false, symbolName: "paintpalette.fill", order: 10),
         .init(id: "f-wtf-favorites", name: "Science Finds", color: "#73CDED", image: nil, system: false, symbolName: "atom", order: 11),
@@ -1071,36 +1071,6 @@ enum SaviSeeds {
         )
     }
 
-    private static func sampleMembershipThumb() -> String {
-        sampleGraphicThumb(
-            title: "Member ID",
-            subtitle: "Sample card",
-            accentHex: "#7A35E8",
-            symbolName: "person.text.rectangle.fill",
-            rows: ["MIA SAMPLE", "MEM-4829-17", "Plan: Family", "SAMPLE only"]
-        )
-    }
-
-    private static func sampleRoutingThumb() -> String {
-        sampleGraphicThumb(
-            title: "Routing info",
-            subtitle: "Bank note",
-            accentHex: "#70D59B",
-            symbolName: "building.columns.fill",
-            rows: ["Routing 000111000", "Account ****4821", "Bill pay only", "SAMPLE only"]
-        )
-    }
-
-    private static func sampleTaxPinThumb() -> String {
-        sampleGraphicThumb(
-            title: "Tax PIN",
-            subtitle: "Protected note",
-            accentHex: "#FFD15C",
-            symbolName: "number.square.fill",
-            rows: ["IP PIN 482901", "Tax year 2026", "Saved for filing", "SAMPLE only"]
-        )
-    }
-
     private static func sampleAIPromptThumb() -> String {
         sampleGraphicThumb(
             title: "Next actions",
@@ -1302,16 +1272,14 @@ enum SaviSeeds {
         item(id: "sample-ai-chaos-plan", title: "Prompt: turn chaos into next actions", description: "Reusable AI prompt: Act as my planning chief of staff. Ask three sharp questions, separate facts from guesses, then give me the first three next actions, risks, and the smallest useful first move.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "planning", "productivity"], thumbnail: sampleAIPromptThumb(), hoursAgo: 7),
         item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 8),
         item(id: "sample-health-sugar-cancer-myths", title: "Common Cancer Myths and Misconceptions", description: "The latest science-based information concerning some common misconceptions about cancer.", url: "https://www.cancer.gov/about-cancer/causes-prevention/risk/myths", source: "NCI", type: .article, folderId: "f-health", tags: ["research", "cancer-myths", "nutrition", "questions-for-doctor"], thumbnail: "https://www.cancer.gov/sites/www/files/cgov_image/social_media/900/700/files/pensive-woman-blue-background-social-media.jpg", hoursAgo: 9, metadataPolicy: .liveMetadata),
-        item(id: "sample-life-insurance-card", title: "Insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 10, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
-        item(id: "sample-life-driver-license", title: "Driver's license copy", description: "Watermarked fake ID copy with invented demo data for testing protected document saves.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 11, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
-        item(id: "sample-private-membership-id", title: "Membership ID card", description: "Fake membership card with invented member numbers, kept as a private-vault example.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "membership", "id", "card"], thumbnail: sampleMembershipThumb(), hoursAgo: 12, assetName: "sample-membership-id.png", assetMime: "image/png", assetSize: 154_000),
-        item(id: "sample-private-bank-routing", title: "Bank routing number note", description: "SAMPLE banking note with invented routing/account details. Demonstrates exact private text search.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "banking", "routing-number", "account"], thumbnail: sampleRoutingThumb(), hoursAgo: 13),
+        item(id: "sample-life-insurance-card", title: "Insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 10, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
+        item(id: "sample-life-driver-license", title: "Driver's license copy", description: "Watermarked fake ID copy with invented demo data for testing document saves.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 11, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
         item(id: "sample-health-fasting-autophagy", title: "Intermittent fasting research", description: "PubMed research save about intermittent fasting, autophagy, and cancer prevention/treatment questions to discuss with a clinician.", url: "https://pubmed.ncbi.nlm.nih.gov/34383300/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "questions-for-doctor"], thumbnail: "https://cdn.ncbi.nlm.nih.gov/pubmed/persistent/pubmed-meta-image-v2.jpg", hoursAgo: 15),
         item(id: "sample-meme-goyo", title: "Goyo goyo with lyrics", description: "A funny video save that shows how memes land in SAVI.", url: "https://www.youtube.com/results?search_query=goyo+goyo+with+lyrics", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "youtube"], thumbnail: sampleVideoThumb(title: "Goyo goyo with lyrics"), hoursAgo: 22),
         item(id: "sample-science-webb", title: "James Webb Space Telescope - NASA Science", description: "Webb is the premier observatory of the next decade, serving thousands of astronomers worldwide.", url: "https://science.nasa.gov/mission/webb/", source: "NASA", type: .article, folderId: "f-wtf-favorites", tags: ["space", "nasa", "science"], thumbnail: "https://science.nasa.gov/wp-content/uploads/2024/05/jwst_artist_concept_0.png", hoursAgo: 16, metadataPolicy: .liveMetadata),
         item(id: "sample-life-contract-template", title: "Contract template to reuse", description: "A reusable service agreement template saved where life admin documents live.", source: "Files", type: .file, folderId: "f-life-admin", tags: ["contract", "template", "docx", "important"], thumbnail: sampleContractThumb(), hoursAgo: 17, assetName: "sample-service-contract-template.docx", assetMime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", assetSize: 312_000),
         item(id: "sample-health-parasites-gut", title: "Parasites and gut health: evidence notes", description: "Neutral reading list from CDC and PubMed on parasite risk, prevention, and the gut parasitome.", url: "https://www.cdc.gov/parasites/causes/index.html", source: "CDC", type: .article, folderId: "f-health", tags: ["research", "gut-health", "parasites", "questions-for-doctor"], thumbnail: sampleHealthResearchThumb(), hoursAgo: 23, metadataPolicy: .liveMetadata),
-        item(id: "sample-life-recovery-code", title: "Emergency recovery code", description: "SAMPLE long code: RK8F-Q44P-29LM-7DZQ. Shows how SAVI keeps exact private text findable.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "recovery-code", "important", "credential"], thumbnail: sampleRecoveryThumb(), hoursAgo: 24),
+        item(id: "sample-life-recovery-code", title: "Emergency recovery code", description: "SAMPLE long code: RK8F-Q44P-29LM-7DZQ. Shows how SAVI keeps exact text findable.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "recovery-code", "important", "admin"], thumbnail: sampleRecoveryThumb(), hoursAgo: 24),
         item(id: "sample-ai-agent-guide", title: "Building Effective AI Agents", description: "Discover how Anthropic approaches the development of reliable AI agents.", url: "https://www.anthropic.com/engineering/building-effective-agents", source: "Anthropic", type: .article, folderId: "f-growth", tags: ["ai", "agent", "productivity", "life-hack"], thumbnail: "https://cdn.sanity.io/images/4zrzovbb/website/76b5733c669f0dfb9c7aa7fc512a495867cf12e6-2400x1260.png", hoursAgo: 25, metadataPolicy: .liveMetadata),
 
         item(id: "sample-watch-claude", title: "How to use Claude like a thinking partner", description: "A practical setup for long-context productivity and better saved research.", url: "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview", source: "Anthropic", type: .article, folderId: "f-must-see", tags: ["read-later", "ai", "productivity"], thumbnailSeed: "savi-claude-thinking", hoursAgo: 26, metadataPolicy: .liveMetadata),
@@ -1350,7 +1318,6 @@ enum SaviSeeds {
         item(id: "sample-note-quote", title: "Random quote to keep", description: "A line that made sense at 1:12 AM and may make sense again later.", source: "Clipboard", type: .text, folderId: "f-paste-bin", tags: ["quote", "note"], thumbnail: sampleNoteThumb(title: "Quote", subtitle: "Saved at 1:12 AM", accentHex: "#7A35E8", symbolName: "quote.bubble.fill", rows: ["Keep the weird line", "Find it later", "Maybe it matters", "Maybe it was midnight"]), hoursAgo: 296),
         item(id: "sample-note-before-disappears", title: "Save this before it disappears", description: "The kind of tiny copied detail that gets lost unless you park it somewhere.", source: "Clipboard", type: .text, folderId: "f-paste-bin", tags: ["note", "clipboard", "temporary"], thumbnail: sampleNoteThumb(title: "Quick clip", subtitle: "Before it disappears", accentHex: "#D6F83A", symbolName: "paperclip", rows: ["Copied detail", "Temporary but useful", "Searchable later", "No tab pile"]), hoursAgo: 308),
 
-        item(id: "sample-private-tax-pin", title: "Sample tax PIN reminder", description: "Invented tax PIN note for showing the kind of exact private detail SAVI can protect.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "tax", "pin", "document"], thumbnail: sampleTaxPinThumb(), hoursAgo: 52),
         item(id: "sample-private-passport", title: "Sample passport checklist", description: "SAMPLE only: invented renewal reminder, scan checklist, and travel document note.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "passport"], thumbnail: sampleVaultThumb(title: "Passport list", subtitle: "Renewal checklist", symbolName: "airplane"), hoursAgo: 64),
         item(id: "sample-private-birth-certificate", title: "Sample birth certificate copy", description: "Fake birth certificate record with invented demo data and SAMPLE watermark.", source: "Files", type: .file, folderId: "f-private-vault", tags: ["sample", "birth-certificate", "private", "pdf"], thumbnail: sampleVaultThumb(title: "Birth record", subtitle: "Invented sample copy", symbolName: "doc.richtext.fill"), hoursAgo: 332, assetName: "sample-birth-certificate.pdf", assetMime: "application/pdf", assetSize: 205_000),
         item(id: "sample-private-medical-note", title: "Sample medical appointment note", description: "SAMPLE only: invented appointment time, questions to ask, and follow-up reminder.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "medical", "private"], thumbnail: sampleVaultThumb(title: "Medical note", subtitle: "Questions to ask", symbolName: "cross.case.fill"), hoursAgo: 344),
@@ -1431,14 +1398,14 @@ enum SaviSeeds {
             "f-random": ["Random AF", "Everything Else"]
         ]
         let previousOrders: [String: [Int]] = [
-            "f-private-vault": [0, 5, 6, 7, 8],
-            "f-life-admin": [0, 1],
+            "f-life-admin": [0],
             "f-must-see": [0, 1],
             "f-growth": [1, 2, 3],
             "f-lmao": [2, 3, 4],
             "f-travel": [3, 4, 6],
             "f-recipes": [4, 5, 7],
             "f-paste-bin": [1, 5, 6],
+            "f-private-vault": [5, 6, 7],
             "f-research": [7, 8, 10],
             "f-design": [8, 9, 10],
             "f-health": [8, 9, 10],
@@ -1458,9 +1425,7 @@ enum SaviSeeds {
             if previousOrders[folder.id]?.contains(folder.order) == true {
                 next.order = seed.order
             }
-            if folder.id == "f-private-vault", ["lock.fill", "lock.open.fill"].contains(folder.symbolName) {
-                next.symbolName = seed.symbolName
-            } else if folder.symbolName == seed.symbolName {
+            if folder.symbolName == seed.symbolName {
                 next.symbolName = seed.symbolName
             }
             if folder.color.caseInsensitiveCompare(seed.color) == .orderedSame ||

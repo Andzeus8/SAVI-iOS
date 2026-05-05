@@ -13,12 +13,6 @@ targets, and QA evidence.
 - Moved Rick Astley/Rickroll into the first Home scroll and converted classic
   meme saves to real YouTube links with remote video thumbnails where stable
   video IDs were verified.
-- Moved Private Vault to the first sample folder position, made demo-only vault
-  content visible before opt-in, and added a one-time Face ID/passcode prompt
-  when users first open it.
-- Expanded Private Vault samples with driver license, insurance, membership ID,
-  routing number, tax PIN, and recovery-code examples using stronger full-card
-  generated thumbnails.
 - Simplified generated sample video thumbnails so Explore cards no longer show
   duplicate baked-in title text under the card overlay.
 - Shortened the Home search launcher hint so it fits cleanly on iPhone SE.

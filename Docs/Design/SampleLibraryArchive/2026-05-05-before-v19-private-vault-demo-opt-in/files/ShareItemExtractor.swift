@@ -349,7 +349,6 @@ struct FolderPreset {
 
 extension ShareItemExtractor {
     static let defaultFolderPresets: [FolderPreset] = [
-        .init(id: "f-private-vault", name: "Private Vault", symbolName: "lock.fill", colorHex: "#171026"),
         .init(id: "f-life-admin", name: "Life Admin", symbolName: "key.fill", colorHex: "#FFD15C"),
         .init(id: "f-must-see", name: "Watch / Read Later", symbolName: "bookmark.fill", colorHex: "#7A35E8"),
         .init(id: "f-growth", name: "AI & Work", symbolName: "bolt.fill", colorHex: "#F47A3B"),
@@ -357,6 +356,7 @@ extension ShareItemExtractor {
         .init(id: "f-travel", name: "Places & Trips", symbolName: "mappin.and.ellipse", colorHex: "#68C6E8"),
         .init(id: "f-recipes", name: "Recipes & Food", symbolName: "fork.knife", colorHex: "#FFB978"),
         .init(id: "f-paste-bin", name: "Notes & Clips", symbolName: "clipboard.fill", colorHex: "#9286A8"),
+        .init(id: "f-private-vault", name: "Private Vault", symbolName: "lock.fill", colorHex: "#171026"),
         .init(id: "f-research", name: "Research & PDFs", symbolName: "magnifyingglass", colorHex: "#5ADDCB"),
         .init(id: "f-design", name: "Design Inspo", symbolName: "paintpalette.fill", colorHex: "#DE5B98"),
         .init(id: "f-health", name: "Health", symbolName: "heart.fill", colorHex: "#70D59B"),

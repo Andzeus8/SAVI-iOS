@@ -950,7 +950,6 @@ enum SAVIFolderClassifier {
     }
 
     static let defaultFolderOptions: [SAVIFolderOption] = [
-        .init(id: "f-private-vault", name: "Private Vault"),
         .init(id: "f-life-admin", name: "Life Admin"),
         .init(id: "f-must-see", name: "Watch / Read Later"),
         .init(id: "f-growth", name: "AI & Work"),
@@ -958,6 +957,7 @@ enum SAVIFolderClassifier {
         .init(id: "f-travel", name: "Places & Trips"),
         .init(id: "f-recipes", name: "Recipes & Food"),
         .init(id: "f-paste-bin", name: "Notes & Clips"),
+        .init(id: "f-private-vault", name: "Private Vault"),
         .init(id: "f-research", name: "Research & PDFs"),
         .init(id: "f-design", name: "Design Inspo"),
         .init(id: "f-health", name: "Health"),

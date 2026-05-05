@@ -1057,7 +1057,6 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         append(presets.first(where: { ShareFolderSelection.isAuto($0.id) }))
 
         let preferredIds = [
-            "f-private-vault",
             "f-life-admin",
             "f-must-see",
             "f-growth",
@@ -1065,7 +1064,8 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
             "f-wtf-favorites",
             "f-travel",
             "f-recipes",
-            "f-research"
+            "f-research",
+            "f-private-vault"
         ]
         preferredIds.forEach { id in
             append(presets.first(where: { $0.id == id }))

@@ -837,17 +837,15 @@ struct SaviFolder: Codable, Identifiable, Equatable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let decodedId = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
-        id = decodedId
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
         name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Folder"
         color = try container.decodeIfPresent(String.self, forKey: .color) ?? "#C4B5FD"
         image = try container.decodeIfPresent(String.self, forKey: .image)
         system = try container.decodeIfPresent(Bool.self, forKey: .system) ?? false
         symbolName = try container.decodeIfPresent(String.self, forKey: .symbolName) ?? SaviText.folderSymbolName(id: id, name: name, system: system)
-        order = try container.decodeIfPresent(Int.self, forKey: .order) ?? SaviSeeds.defaultOrder(for: decodedId)
-        let seedLocked = SaviSeeds.folders.first(where: { $0.id == decodedId })?.locked
-        locked = try container.decodeIfPresent(Bool.self, forKey: .locked) ?? seedLocked ?? (decodedId == "f-private-vault")
-        isPublic = locked || decodedId == "f-private-vault" ? false : (try container.decodeIfPresent(Bool.self, forKey: .isPublic) ?? false)
+        order = try container.decodeIfPresent(Int.self, forKey: .order) ?? SaviSeeds.defaultOrder(for: id)
+        locked = try container.decodeIfPresent(Bool.self, forKey: .locked) ?? (id == "f-private-vault")
+        isPublic = locked || id == "f-private-vault" ? false : (try container.decodeIfPresent(Bool.self, forKey: .isPublic) ?? false)
         let decodedUsesImageBackground = try container.decodeIfPresent(Bool.self, forKey: .usesImageBackground) ?? false
         usesImageBackground = image?.nilIfBlank != nil && decodedUsesImageBackground
     }
@@ -1025,7 +1023,6 @@ struct SaviPrefs: Codable, Equatable {
     var shareSetupLastReminderAt: Double?
     var shareSetupSnoozedUntil: Double?
     var shareSetupDontRemindAgain: Bool = false
-    var privateVaultLockPromptShown: Bool = false
 
     enum CodingKeys: String, CodingKey {
         case viewMode
@@ -1065,7 +1062,6 @@ struct SaviPrefs: Codable, Equatable {
         case shareSetupLastReminderAt
         case shareSetupSnoozedUntil
         case shareSetupDontRemindAgain
-        case privateVaultLockPromptShown
     }
 
     init() {}
@@ -1113,7 +1109,6 @@ struct SaviPrefs: Codable, Equatable {
         shareSetupLastReminderAt = try container.decodeIfPresent(Double.self, forKey: .shareSetupLastReminderAt)
         shareSetupSnoozedUntil = try container.decodeIfPresent(Double.self, forKey: .shareSetupSnoozedUntil)
         shareSetupDontRemindAgain = try container.decodeIfPresent(Bool.self, forKey: .shareSetupDontRemindAgain) ?? false
-        privateVaultLockPromptShown = try container.decodeIfPresent(Bool.self, forKey: .privateVaultLockPromptShown) ?? false
     }
 }
 
@@ -1677,7 +1672,6 @@ final class SaviStore: ObservableObject {
     @Published var cloudBackupMessage: String?
     @Published var isShareSetupGuidePresented = false
     @Published var isShareSetupReminderPresented = false
-    @Published var isPrivateVaultSetupPromptPresented = false
     @Published var publicProfile: SaviPublicProfile
     @Published var friends: [SaviFriend]
     @Published var friendLinks: [SaviSharedLink] {
@@ -1741,7 +1735,7 @@ final class SaviStore: ObservableObject {
     private static let shareSetupSecondReminderDelay: TimeInterval = 3 * 86_400
     private static let shareSetupLaterReminderDelay: TimeInterval = 7 * 86_400
     private static let sampleFriendTargetLinkCount = 24
-    private static let currentLegacySeedVersion = 19
+    private static let currentLegacySeedVersion = 18
     private static let currentFolderRepairVersion = 2
     private static let currentSearchTagRepairVersion = 1
     private static let currentFolderLayoutVersion = 3
@@ -1834,13 +1828,6 @@ final class SaviStore: ObservableObject {
             shouldPersistPreferenceNormalization = true
             initialFolders = SaviSeeds.refreshingDefaultFolderPresentation(SaviSeeds.withSeedDefaults(initialFolders))
         }
-        if Self.normalizePrivateVaultDemoLockState(
-            folders: &initialFolders,
-            prefs: &loadedPrefs,
-            personalItems: storedPersonalItems
-        ) {
-            shouldPersistPreferenceNormalization = true
-        }
         let releaseSafeItems = SaviReleaseGate.demoLibraryEnabled ? initialItems : initialItems.filter { $0.demo != true }
         if releaseSafeItems.count != initialItems.count {
             shouldPersistPreferenceNormalization = true
@@ -1911,24 +1898,6 @@ final class SaviStore: ObservableObject {
 
         guard prefs.homePresentationVersion < currentHomePresentationVersion || changed else { return false }
         prefs.homePresentationVersion = currentHomePresentationVersion
-        return true
-    }
-
-    @discardableResult
-    private static func normalizePrivateVaultDemoLockState(
-        folders: inout [SaviFolder],
-        prefs: inout SaviPrefs,
-        personalItems: [SaviItem]
-    ) -> Bool {
-        guard SaviReleaseGate.demoLibraryEnabled,
-              !prefs.privateVaultLockPromptShown,
-              !personalItems.contains(where: { $0.folderId == "f-private-vault" }),
-              let index = folders.firstIndex(where: { $0.id == "f-private-vault" })
-        else { return false }
-
-        guard folders[index].locked else { return false }
-        folders[index].locked = false
-        folders[index].isPublic = false
         return true
     }
 
@@ -2590,42 +2559,7 @@ final class SaviStore: ObservableObject {
     }
 
     func openFolder(_ folder: SaviFolder) {
-        if shouldOfferPrivateVaultLockSetup(folder) {
-            isPrivateVaultSetupPromptPresented = true
-            return
-        }
         Task { await openProtectedFolderIfAllowed(folder) }
-    }
-
-    private func shouldOfferPrivateVaultLockSetup(_ folder: SaviFolder) -> Bool {
-        folder.id == "f-private-vault" && !folder.locked && !prefs.privateVaultLockPromptShown
-    }
-
-    func keepPrivateVaultUnlockedAndOpen() {
-        prefs.privateVaultLockPromptShown = true
-        isPrivateVaultSetupPromptPresented = false
-        persist()
-        guard let folder = folder(for: "f-private-vault") else { return }
-        Task { await openProtectedFolderIfAllowed(folder) }
-    }
-
-    func enablePrivateVaultLockAndOpen() {
-        isPrivateVaultSetupPromptPresented = false
-        guard let index = folders.firstIndex(where: { $0.id == "f-private-vault" }) else { return }
-
-        let context = LAContext()
-        var error: NSError?
-        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
-            toast = "Turn on Face ID or a device passcode to lock Private Vault."
-            keepPrivateVaultUnlockedAndOpen()
-            return
-        }
-
-        folders[index].locked = true
-        folders[index].isPublic = false
-        prefs.privateVaultLockPromptShown = true
-        persist()
-        Task { await openProtectedFolderIfAllowed(folders[index]) }
     }
 
     func selectFolderFilter(_ folder: SaviFolder) {
