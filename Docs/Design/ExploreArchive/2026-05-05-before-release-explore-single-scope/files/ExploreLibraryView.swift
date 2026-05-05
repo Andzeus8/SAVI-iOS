@@ -19,9 +19,6 @@ struct ExploreLibraryView: View {
     @Binding var seed: Int
 
     private var emptyTitle: String {
-        if !SaviReleaseGate.socialFeaturesEnabled {
-            return "Nothing to explore yet"
-        }
         switch store.exploreScope {
         case .all, .mine: return "No browseable saves yet"
         case .friends: return "No friend links yet"
@@ -29,9 +26,6 @@ struct ExploreLibraryView: View {
     }
 
     private var emptyMessage: String {
-        if !SaviReleaseGate.socialFeaturesEnabled {
-            return "Save links, videos, images, and places, and SAVI will turn them into a fresh mix worth revisiting."
-        }
         switch store.exploreScope {
         case .all:
             return "Links, videos, images, and places will show up here when they are not private or paste-bin material."
@@ -48,9 +42,7 @@ struct ExploreLibraryView: View {
         VStack(alignment: .leading, spacing: 12) {
             ExploreCompactHeader(snapshot: snapshot)
 
-            if SaviReleaseGate.socialFeaturesEnabled {
-                ExploreScopeControl()
-            }
+            ExploreScopeControl()
 
             if snapshot.items.isEmpty {
                 EmptyStateView(
@@ -85,7 +77,7 @@ private struct ExploreCompactHeader: View {
 
                 Text(SaviReleaseGate.socialFeaturesEnabled
                     ? "A fresh mix from you and your friends."
-                    : "A fresh shuffle of links, videos, places, memes, and rabbit holes you saved.")
+                    : "A fresh mix of what you saved.")
                     .font(SaviType.reading(.subheadline, weight: .semibold))
                     .foregroundStyle(SaviTheme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)

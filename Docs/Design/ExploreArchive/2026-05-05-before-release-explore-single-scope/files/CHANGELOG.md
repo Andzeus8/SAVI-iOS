@@ -9,9 +9,6 @@ targets, and QA evidence.
 - Polished Profile/Settings around a clearer SAVI Beta explanation, a setup
   checklist, cleaner management hierarchy, and more honest Social Beta
   coming-soon copy.
-- Simplified Release/TestFlight Explore into a single personal Explore view
-  with clearer explanatory copy, while keeping Explore scopes for internal
-  Social builds.
 - Added a V22 sample-library and Folder Intelligence pass with an A/C warranty
   screenshot sample, stronger audio/sample file typing, screenshot OCR in the
   share extension, and Life Admin vs Private Vault guardrails.

@@ -621,13 +621,13 @@ enum ExploreScope: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     static var allCases: [ExploreScope] {
-        SaviReleaseGate.socialFeaturesEnabled ? [.all, .mine, .friends] : [.all]
+        SaviReleaseGate.socialFeaturesEnabled ? [.all, .mine, .friends] : [.all, .mine]
     }
 
     static func visibleScope(for rawValue: String) -> ExploreScope {
         let scope = ExploreScope(rawValue: rawValue) ?? .all
-        if !SaviReleaseGate.socialFeaturesEnabled {
-            return .all
+        if scope == .friends, !SaviReleaseGate.socialFeaturesEnabled {
+            return .mine
         }
         return scope
     }
