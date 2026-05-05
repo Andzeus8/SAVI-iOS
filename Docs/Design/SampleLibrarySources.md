@@ -9,19 +9,19 @@ SAVI uses these stock-safe images only for removable sample-library thumbnails. 
 - Hotel booking sample: [Bed in Hotel Room](https://www.pexels.com/photo/bed-in-hotel-room-8089081/)
 - License terms: [Pexels License](https://www.pexels.com/license/)
 
-## V16 Meme And Rabbit-Hole Sources
+## V16/V18 Meme And Rabbit-Hole Sources
 
 These links are used as removable sample-library examples. They are selected to be recognizable, stable, and App Store-safe, with third-party thumbnails loaded as normal link metadata rather than bundled as SAVI-owned assets.
 
-- Numa Numa: [Wikipedia](https://en.wikipedia.org/wiki/Numa_Numa_(video))
-- Charlie Bit My Finger: [Know Your Meme](https://knowyourmeme.com/memes/charlie-bit-my-finger)
+- Numa Numa: [YouTube](https://www.youtube.com/watch?v=Cqd1Gvq-RBY)
+- Charlie Bit My Finger: [YouTube](https://www.youtube.com/watch?v=0EqSXDwTq6U)
 - Rickroll: [YouTube](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
-- Dramatic Chipmunk: [Know Your Meme](https://knowyourmeme.com/memes/dramatic-chipmunk)
-- Badger Badger Badger: [Know Your Meme](https://knowyourmeme.com/memes/badger-badger-badger)
-- Keyboard Cat: [Know Your Meme](https://knowyourmeme.com/memes/keyboard-cat)
-- Double Rainbow: [Know Your Meme](https://knowyourmeme.com/memes/double-rainbow)
-- Evolution of Dance: [Wikipedia](https://en.wikipedia.org/wiki/Evolution_of_Dance)
-- Leave Britney Alone: [Wikipedia](https://en.wikipedia.org/wiki/Leave_Britney_Alone!)
+- Dramatic Look: [YouTube](https://www.youtube.com/watch?v=y8Kyi0WNg40)
+- Badger Badger Badger: [YouTube](https://www.youtube.com/watch?v=EIyixC9NsLI)
+- Keyboard Cat: [YouTube](https://www.youtube.com/watch?v=J---aiyznGQ)
+- Double Rainbow: [YouTube](https://www.youtube.com/watch?v=OQSNhk5ICTI)
+- Evolution of Dance: [YouTube](https://www.youtube.com/watch?v=dMH0bHeiRNg)
+- Leave Britney Alone: [YouTube](https://www.youtube.com/watch?v=WqSTXuJeTks)
 - Pentagon audit: [Defense.gov](https://www.defense.gov/News/News-Stories/Article/Article/3967135/dods-2024-audit-shows-progress-toward-2028-goals/)
 - Pyramid alignment: [Smithsonian Magazine](https://www.smithsonianmag.com/smart-news/fall-equinox-secret-pyramids-near-perfect-alignment-180968223/)
 - UFO/UAP records: [National Archives](https://www.archives.gov/news/topics/ufos)

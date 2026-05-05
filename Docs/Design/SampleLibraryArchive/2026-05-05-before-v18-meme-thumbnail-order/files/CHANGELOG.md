@@ -10,9 +10,6 @@ targets, and QA evidence.
   add more memorable memes, rabbit holes, science, recipes, and AI examples.
 - Expanded `Memes & Laughs` and `Rabbit Holes` so Home, Explore, and Search feel
   more entertaining during first-run sample browsing.
-- Moved Rick Astley/Rickroll into the first Home scroll and converted classic
-  meme saves to real YouTube links with remote video thumbnails where stable
-  video IDs were verified.
 - Simplified generated sample video thumbnails so Explore cards no longer show
   duplicate baked-in title text under the card overlay.
 - Shortened the Home search launcher hint so it fits cleanly on iPhone SE.

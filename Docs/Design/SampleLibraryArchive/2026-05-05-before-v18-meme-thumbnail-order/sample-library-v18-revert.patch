@@ -1,0 +1,131 @@
+diff --git b/Docs/CHANGELOG.md a/Docs/CHANGELOG.md
+index 395eb0f..4968eac 100644
+--- b/Docs/CHANGELOG.md
++++ a/Docs/CHANGELOG.md
+@@ -10,9 +10,6 @@ targets, and QA evidence.
+   add more memorable memes, rabbit holes, science, recipes, and AI examples.
+ - Expanded `Memes & Laughs` and `Rabbit Holes` so Home, Explore, and Search feel
+   more entertaining during first-run sample browsing.
+-- Moved Rick Astley/Rickroll into the first Home scroll and converted classic
+-  meme saves to real YouTube links with remote video thumbnails where stable
+-  video IDs were verified.
+ - Simplified generated sample video thumbnails so Explore cards no longer show
+   duplicate baked-in title text under the card overlay.
+ - Shortened the Home search launcher hint so it fits cleanly on iPhone SE.
+diff --git b/Docs/ChangeLog/2026-05-05.md a/Docs/ChangeLog/2026-05-05.md
+index 37981cd..f678410 100644
+--- b/Docs/ChangeLog/2026-05-05.md
++++ a/Docs/ChangeLog/2026-05-05.md
+@@ -56,18 +56,3 @@
+   iPhone SE while keeping the fuller Search screen copy unchanged.
+ - Captured a targeted final iPhone SE Home screenshot after that copy tweak:
+   `/Users/guest1/Documents/SAVI-iOS/build/production-ui-qa/20260505-014310/savi-qa-iphone-se-light-home.png`.
+-
+-## Sample Library V18 Meme Thumbnail And Order Pass
+-
+-- Created rollback archive:
+-  `Docs/Design/SampleLibraryArchive/2026-05-05-before-v18-meme-thumbnail-order/`.
+-- Bumped native sample seed version to `18` so sample-only installs refresh.
+-- Moved `Rick Astley - Never Gonna Give You Up` into the first Home scroll
+-  after Jennifer's ramen recommendation, replacing the early driver-license /
+-  insurance cluster with a recognizable fun save.
+-- Moved `Insurance card` and `Driver's license copy` lower in the story so they
+-  remain available as Life Admin examples without making the first page feel
+-  too document-heavy.
+-- Converted classic meme saves to real YouTube links with remote YouTube
+-  thumbnail URLs where stable video IDs were verified, rather than using SAVI's
+-  generic generated video sample art.
+diff --git b/Docs/Design/SampleLibrarySources.md a/Docs/Design/SampleLibrarySources.md
+index c813716..f43e32b 100644
+--- b/Docs/Design/SampleLibrarySources.md
++++ a/Docs/Design/SampleLibrarySources.md
+@@ -9,19 +9,19 @@ SAVI uses these stock-safe images only for removable sample-library thumbnails.
+ - Hotel booking sample: [Bed in Hotel Room](https://www.pexels.com/photo/bed-in-hotel-room-8089081/)
+ - License terms: [Pexels License](https://www.pexels.com/license/)
+ 
+-## V16/V18 Meme And Rabbit-Hole Sources
++## V16 Meme And Rabbit-Hole Sources
+ 
+ These links are used as removable sample-library examples. They are selected to be recognizable, stable, and App Store-safe, with third-party thumbnails loaded as normal link metadata rather than bundled as SAVI-owned assets.
+ 
+-- Numa Numa: [YouTube](https://www.youtube.com/watch?v=Cqd1Gvq-RBY)
+-- Charlie Bit My Finger: [YouTube](https://www.youtube.com/watch?v=0EqSXDwTq6U)
++- Numa Numa: [Wikipedia](https://en.wikipedia.org/wiki/Numa_Numa_(video))
++- Charlie Bit My Finger: [Know Your Meme](https://knowyourmeme.com/memes/charlie-bit-my-finger)
+ - Rickroll: [YouTube](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
+-- Dramatic Look: [YouTube](https://www.youtube.com/watch?v=y8Kyi0WNg40)
+-- Badger Badger Badger: [YouTube](https://www.youtube.com/watch?v=EIyixC9NsLI)
+-- Keyboard Cat: [YouTube](https://www.youtube.com/watch?v=J---aiyznGQ)
+-- Double Rainbow: [YouTube](https://www.youtube.com/watch?v=OQSNhk5ICTI)
+-- Evolution of Dance: [YouTube](https://www.youtube.com/watch?v=dMH0bHeiRNg)
+-- Leave Britney Alone: [YouTube](https://www.youtube.com/watch?v=WqSTXuJeTks)
++- Dramatic Chipmunk: [Know Your Meme](https://knowyourmeme.com/memes/dramatic-chipmunk)
++- Badger Badger Badger: [Know Your Meme](https://knowyourmeme.com/memes/badger-badger-badger)
++- Keyboard Cat: [Know Your Meme](https://knowyourmeme.com/memes/keyboard-cat)
++- Double Rainbow: [Know Your Meme](https://knowyourmeme.com/memes/double-rainbow)
++- Evolution of Dance: [Wikipedia](https://en.wikipedia.org/wiki/Evolution_of_Dance)
++- Leave Britney Alone: [Wikipedia](https://en.wikipedia.org/wiki/Leave_Britney_Alone!)
+ - Pentagon audit: [Defense.gov](https://www.defense.gov/News/News-Stories/Article/Article/3967135/dods-2024-audit-shows-progress-toward-2028-goals/)
+ - Pyramid alignment: [Smithsonian Magazine](https://www.smithsonianmag.com/smart-news/fall-equinox-secret-pyramids-near-perfect-alignment-180968223/)
+ - UFO/UAP records: [National Archives](https://www.archives.gov/news/topics/ufos)
+diff --git b/SAVI/Core/SaviCore.swift a/SAVI/Core/SaviCore.swift
+index aae355e..7b69df5 100644
+--- b/SAVI/Core/SaviCore.swift
++++ a/SAVI/Core/SaviCore.swift
+@@ -1735,7 +1735,7 @@ final class SaviStore: ObservableObject {
+     private static let shareSetupSecondReminderDelay: TimeInterval = 3 * 86_400
+     private static let shareSetupLaterReminderDelay: TimeInterval = 7 * 86_400
+     private static let sampleFriendTargetLinkCount = 24
+-    private static let currentLegacySeedVersion = 18
++    private static let currentLegacySeedVersion = 17
+     private static let currentFolderRepairVersion = 2
+     private static let currentSearchTagRepairVersion = 1
+     private static let currentFolderLayoutVersion = 3
+diff --git b/SAVI/Services/LegacyAndUtilities.swift a/SAVI/Services/LegacyAndUtilities.swift
+index a340822..99d1f91 100644
+--- b/SAVI/Services/LegacyAndUtilities.swift
++++ a/SAVI/Services/LegacyAndUtilities.swift
+@@ -1267,13 +1267,12 @@ enum SaviSeeds {
+         item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi", description: "SAMPLE stay note: front door 2486, Wi-Fi Pinehouse Guest, checkout 11 AM.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "airbnb", "door-code", "wifi", "travel"], thumbnail: sampleFullBleedStayThumb(), hoursAgo: 2),
+         item(id: "sample-research-mebendazole", title: "Mebendazole and cancer remission?", description: "PubMed case-report save about mebendazole and tumor remission. Kept as a research note for doctor questions, not as medical advice.", url: "https://pubmed.ncbi.nlm.nih.gov/24160353/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "mebendazole", "case-report", "cancer", "questions-for-doctor", "clinical-trial"], thumbnail: sampleMebendazoleResearchThumb(), hoursAgo: 3),
+         item(id: "sample-place-ramen", title: "Jennifer's ramen recommendation", description: "Jennifer said to order the spicy miso, sit at the counter, and save the pin before the group chat buries it.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Jennifer", type: .place, folderId: "f-travel", tags: ["maps", "restaurant", "friend-rec", "tokyo", "food"], thumbnail: sampleFoodRecommendationThumb(), hoursAgo: 4),
+-        item(id: "sample-meme-typo", title: "Rick Astley - Never Gonna Give You Up", description: "The classic bait-and-switch music video, saved because some memes are infrastructure.", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "rickroll", "youtube", "internet-history"], thumbnail: youtubeThumb("dQw4w9WgXcQ"), hoursAgo: 5, metadataPolicy: .liveMetadata),
+-        item(id: "sample-watch-ted-procrastination", title: "Inside the Mind of a Master Procrastinator | Tim Urban | TED", description: "Tim Urban via YouTube. A famous talk saved for the next productivity rabbit hole.", url: "https://www.youtube.com/watch?v=arj7oStGLkU", source: "YouTube", type: .video, folderId: "f-must-see", tags: ["youtube", "video", "productivity", "life-hack"], thumbnail: youtubeThumb("arj7oStGLkU"), hoursAgo: 6, metadataPolicy: .liveMetadata),
+-        item(id: "sample-ai-chaos-plan", title: "Prompt: turn chaos into next actions", description: "Reusable AI prompt: Act as my planning chief of staff. Ask three sharp questions, separate facts from guesses, then give me the first three next actions, risks, and the smallest useful first move.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "planning", "productivity"], thumbnail: sampleAIPromptThumb(), hoursAgo: 7),
+-        item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 8),
+-        item(id: "sample-health-sugar-cancer-myths", title: "Common Cancer Myths and Misconceptions", description: "The latest science-based information concerning some common misconceptions about cancer.", url: "https://www.cancer.gov/about-cancer/causes-prevention/risk/myths", source: "NCI", type: .article, folderId: "f-health", tags: ["research", "cancer-myths", "nutrition", "questions-for-doctor"], thumbnail: "https://www.cancer.gov/sites/www/files/cgov_image/social_media/900/700/files/pensive-woman-blue-background-social-media.jpg", hoursAgo: 9, metadataPolicy: .liveMetadata),
+-        item(id: "sample-life-insurance-card", title: "Insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 10, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
+-        item(id: "sample-life-driver-license", title: "Driver's license copy", description: "Watermarked fake ID copy with invented demo data for testing document saves.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 11, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
++        item(id: "sample-life-driver-license", title: "Driver's license copy", description: "Watermarked fake ID copy with invented demo data for testing document saves.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 5, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
++        item(id: "sample-life-insurance-card", title: "Insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 6, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
++        item(id: "sample-watch-ted-procrastination", title: "Inside the Mind of a Master Procrastinator | Tim Urban | TED", description: "Tim Urban via YouTube. A famous talk saved for the next productivity rabbit hole.", url: "https://www.youtube.com/watch?v=arj7oStGLkU", source: "YouTube", type: .video, folderId: "f-must-see", tags: ["youtube", "video", "productivity", "life-hack"], thumbnail: youtubeThumb("arj7oStGLkU"), hoursAgo: 9, metadataPolicy: .liveMetadata),
++        item(id: "sample-ai-chaos-plan", title: "Prompt: turn chaos into next actions", description: "Reusable AI prompt: Act as my planning chief of staff. Ask three sharp questions, separate facts from guesses, then give me the first three next actions, risks, and the smallest useful first move.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "planning", "productivity"], thumbnail: sampleAIPromptThumb(), hoursAgo: 12),
++        item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 13),
++        item(id: "sample-health-sugar-cancer-myths", title: "Common Cancer Myths and Misconceptions", description: "The latest science-based information concerning some common misconceptions about cancer.", url: "https://www.cancer.gov/about-cancer/causes-prevention/risk/myths", source: "NCI", type: .article, folderId: "f-health", tags: ["research", "cancer-myths", "nutrition", "questions-for-doctor"], thumbnail: "https://www.cancer.gov/sites/www/files/cgov_image/social_media/900/700/files/pensive-woman-blue-background-social-media.jpg", hoursAgo: 21, metadataPolicy: .liveMetadata),
+         item(id: "sample-health-fasting-autophagy", title: "Intermittent fasting research", description: "PubMed research save about intermittent fasting, autophagy, and cancer prevention/treatment questions to discuss with a clinician.", url: "https://pubmed.ncbi.nlm.nih.gov/34383300/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "questions-for-doctor"], thumbnail: "https://cdn.ncbi.nlm.nih.gov/pubmed/persistent/pubmed-meta-image-v2.jpg", hoursAgo: 15),
+         item(id: "sample-meme-goyo", title: "Goyo goyo with lyrics", description: "A funny video save that shows how memes land in SAVI.", url: "https://www.youtube.com/results?search_query=goyo+goyo+with+lyrics", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "youtube"], thumbnail: sampleVideoThumb(title: "Goyo goyo with lyrics"), hoursAgo: 22),
+         item(id: "sample-science-webb", title: "James Webb Space Telescope - NASA Science", description: "Webb is the premier observatory of the next decade, serving thousands of astronomers worldwide.", url: "https://science.nasa.gov/mission/webb/", source: "NASA", type: .article, folderId: "f-wtf-favorites", tags: ["space", "nasa", "science"], thumbnail: "https://science.nasa.gov/wp-content/uploads/2024/05/jwst_artist_concept_0.png", hoursAgo: 16, metadataPolicy: .liveMetadata),
+@@ -1293,14 +1292,15 @@ enum SaviSeeds {
+         item(id: "sample-ai-inbox-zero", title: "Inbox zero with shortcuts", description: "A workflow link for shortcuts, reminders, and calmer inboxes.", url: "https://support.apple.com/guide/shortcuts/welcome/ios", source: "Apple Support", type: .article, folderId: "f-growth", tags: ["workflow", "shortcuts", "productivity"], thumbnailSeed: "savi-inbox-zero", hoursAgo: 80),
+         item(id: "sample-ai-workspace", title: "Prompt: find my strongest talents", description: "Reusable AI prompt: Look at my work history, hobbies, saved notes, and the problems people ask me to solve. Identify my recurring strengths, where they are useful, and a 7-day experiment to test one direction.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "talent", "reflection", "career"], thumbnail: sampleTalentPromptThumb(), hoursAgo: 92),
+ 
+-        item(id: "sample-meme-cursed", title: "Numa Numa: the webcam dance that ate the internet", description: "A classic early internet video save for the Memes & Laughs folder.", url: "https://www.youtube.com/watch?v=Cqd1Gvq-RBY", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "numa-numa", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("Cqd1Gvq-RBY"), hoursAgo: 14, metadataPolicy: .liveMetadata),
+-        item(id: "sample-meme-group-chat", title: "Charlie Bit My Finger: early YouTube history", description: "A famous family video moment saved as internet-history, not a random clip.", url: "https://www.youtube.com/watch?v=0EqSXDwTq6U", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "charlie-bit-my-finger", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("0EqSXDwTq6U"), hoursAgo: 18, metadataPolicy: .liveMetadata),
+-        item(id: "sample-meme-review", title: "Dramatic Look", description: "Five seconds of dramatic zoom, somehow a whole era of the internet.", url: "https://www.youtube.com/watch?v=y8Kyi0WNg40", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "reaction", "internet-history"], thumbnail: youtubeThumb("y8Kyi0WNg40"), hoursAgo: 31, metadataPolicy: .liveMetadata),
+-        item(id: "sample-meme-badger", title: "Badger Badger Badger", description: "A looping Flash-era internet song that still explains an entire corner of web history.", url: "https://www.youtube.com/watch?v=EIyixC9NsLI", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "flash", "internet-history"], thumbnail: youtubeThumb("EIyixC9NsLI"), hoursAgo: 104, metadataPolicy: .liveMetadata),
+-        item(id: "sample-meme-keyboard-cat", title: "Keyboard Cat", description: "The musical send-off meme, saved for when something deserves a tiny piano exit.", url: "https://www.youtube.com/watch?v=J---aiyznGQ", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "keyboard-cat", "internet-history"], thumbnail: youtubeThumb("J---aiyznGQ"), hoursAgo: 116, metadataPolicy: .liveMetadata),
+-        item(id: "sample-meme-double-rainbow", title: "Double Rainbow", description: "A classic joyful reaction video saved for peak wholesome internet energy.", url: "https://www.youtube.com/watch?v=OQSNhk5ICTI", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "double-rainbow", "classic-youtube"], thumbnail: youtubeThumb("OQSNhk5ICTI"), hoursAgo: 128, metadataPolicy: .liveMetadata),
+-        item(id: "sample-meme-evolution-dance", title: "Evolution of Dance", description: "A viral performance save from the era when one video could own the whole web.", url: "https://www.youtube.com/watch?v=dMH0bHeiRNg", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "dance", "classic-youtube"], thumbnail: youtubeThumb("dMH0bHeiRNg"), hoursAgo: 140, metadataPolicy: .liveMetadata),
+-        item(id: "sample-meme-leave-britney", title: "Leave Britney Alone", description: "A famous emotional reaction clip saved as pop-culture internet history.", url: "https://www.youtube.com/watch?v=WqSTXuJeTks", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "reaction", "pop-culture", "internet-history"], thumbnail: youtubeThumb("WqSTXuJeTks"), hoursAgo: 152, metadataPolicy: .liveMetadata),
++        item(id: "sample-meme-cursed", title: "Numa Numa: the webcam dance that ate the internet", description: "A classic early internet video save for the Memes & Laughs folder.", url: "https://en.wikipedia.org/wiki/Numa_Numa_(video)", source: "Wikipedia", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "numa-numa", "classic-youtube", "internet-history"], thumbnail: sampleVideoThumb(title: "Numa Numa"), hoursAgo: 7),
++        item(id: "sample-meme-group-chat", title: "Charlie Bit My Finger: early YouTube history", description: "A famous family video moment saved as internet-history, not a random clip.", url: "https://knowyourmeme.com/memes/charlie-bit-my-finger", source: "Know Your Meme", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "charlie-bit-my-finger", "classic-youtube", "internet-history"], thumbnail: sampleVideoThumb(title: "Charlie bit my finger", accentHex: "#D6F83A"), hoursAgo: 8),
++        item(id: "sample-meme-typo", title: "Rickroll: the prank link that refuses to die", description: "The classic bait-and-switch music video, saved because some memes are infrastructure.", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "rickroll", "youtube", "internet-history"], thumbnail: youtubeThumb("dQw4w9WgXcQ"), hoursAgo: 14, metadataPolicy: .liveMetadata),
++        item(id: "sample-meme-review", title: "Dramatic Chipmunk", description: "Five seconds of dramatic zoom, somehow a whole era of the internet.", url: "https://knowyourmeme.com/memes/dramatic-chipmunk", source: "Know Your Meme", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "reaction", "internet-history"], thumbnail: sampleVideoThumb(title: "Dramatic Chipmunk", accentHex: "#D6F83A"), hoursAgo: 18),
++        item(id: "sample-meme-badger", title: "Badger Badger Badger", description: "A looping Flash-era internet song that still explains an entire corner of web history.", url: "https://knowyourmeme.com/memes/badger-badger-badger", source: "Know Your Meme", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "flash", "internet-history"], thumbnail: sampleVideoThumb(title: "Badger Badger Badger", accentHex: "#D6F83A"), hoursAgo: 104),
++        item(id: "sample-meme-keyboard-cat", title: "Keyboard Cat", description: "The musical send-off meme, saved for when something deserves a tiny piano exit.", url: "https://knowyourmeme.com/memes/keyboard-cat", source: "Know Your Meme", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "keyboard-cat", "internet-history"], thumbnail: sampleVideoThumb(title: "Keyboard Cat", accentHex: "#D6F83A"), hoursAgo: 116),
++        item(id: "sample-meme-double-rainbow", title: "Double Rainbow", description: "A classic joyful reaction video saved for peak wholesome internet energy.", url: "https://knowyourmeme.com/memes/double-rainbow", source: "Know Your Meme", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "double-rainbow", "classic-youtube"], thumbnail: sampleVideoThumb(title: "Double Rainbow", accentHex: "#D6F83A"), hoursAgo: 128),
++        item(id: "sample-meme-evolution-dance", title: "Evolution of Dance", description: "A viral performance save from the era when one video could own the whole web.", url: "https://en.wikipedia.org/wiki/Evolution_of_Dance", source: "Wikipedia", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "dance", "classic-youtube"], thumbnail: sampleVideoThumb(title: "Evolution of Dance", accentHex: "#D6F83A"), hoursAgo: 140),
++        item(id: "sample-meme-leave-britney", title: "Leave Britney Alone", description: "A famous emotional reaction clip saved as pop-culture internet history.", url: "https://en.wikipedia.org/wiki/Leave_Britney_Alone!", source: "Wikipedia", type: .video, folderId: "f-lmao", tags: ["meme", "reaction", "pop-culture", "internet-history"], thumbnail: sampleVideoThumb(title: "Leave Britney Alone", accentHex: "#D6F83A"), hoursAgo: 152),
+ 
+         item(id: "sample-place-airport-coffee", title: "Best airport coffee backup", description: "A useful pin for the next time your gate changes twice.", url: "https://maps.apple.com/?q=airport%20coffee", source: "Maps", type: .place, folderId: "f-travel", tags: ["maps", "coffee", "travel"], thumbnailSeed: "savi-airport-coffee", hoursAgo: 30),
+         item(id: "sample-place-museum", title: "Weekend museum idea", description: "A place save for the kind of Saturday that starts with coffee.", url: "https://maps.apple.com/?q=museum", source: "Maps", type: .place, folderId: "f-travel", tags: ["maps", "museum", "weekend"], thumbnailSeed: "savi-museum", hoursAgo: 164),
