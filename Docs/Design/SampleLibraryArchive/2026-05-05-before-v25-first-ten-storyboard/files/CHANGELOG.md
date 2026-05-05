@@ -6,8 +6,6 @@ targets, and QA evidence.
 
 ## 2026-05-05
 
-- Reordered the launch sample library's first ten saves into a tighter
-  utility/personality/knowledge storyboard for first-run Home.
 - Polished Profile/Settings around a clearer SAVI Beta explanation, a setup
   checklist, cleaner management hierarchy, and more honest Social Beta
   coming-soon copy.
