@@ -17,9 +17,6 @@ targets, and QA evidence.
   Rain` YouTube save and remote YouTube thumbnail.
 - Reframed the fasting sample as `Intermittent fasting and cancer: cure?` with
   safer research-note copy instead of a treatment claim.
-- Replaced the early TED procrastination slot with a fuller problem-solving AI
-  prompt and added stretching/core mobility plus perpetual-motion rabbit-hole
-  samples.
 - Moved Private Vault to the first sample folder position, made demo-only vault
   content visible before opt-in, and added a one-time Face ID/passcode prompt
   when users first open it.
