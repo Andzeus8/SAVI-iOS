@@ -1741,7 +1741,7 @@ final class SaviStore: ObservableObject {
     private static let shareSetupSecondReminderDelay: TimeInterval = 3 * 86_400
     private static let shareSetupLaterReminderDelay: TimeInterval = 7 * 86_400
     private static let sampleFriendTargetLinkCount = 24
-    private static let currentLegacySeedVersion = 20
+    private static let currentLegacySeedVersion = 19
     private static let currentFolderRepairVersion = 2
     private static let currentSearchTagRepairVersion = 1
     private static let currentFolderLayoutVersion = 3

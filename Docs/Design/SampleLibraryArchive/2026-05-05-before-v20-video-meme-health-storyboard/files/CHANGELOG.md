@@ -13,10 +13,6 @@ targets, and QA evidence.
 - Moved Rick Astley/Rickroll into the first Home scroll and converted classic
   meme saves to real YouTube links with remote video thumbnails where stable
   video IDs were verified.
-- Replaced the last generic meme-video placeholder with a direct `Chocolate
-  Rain` YouTube save and remote YouTube thumbnail.
-- Reframed the fasting sample as `Intermittent fasting and cancer: cure?` with
-  safer research-note copy instead of a treatment claim.
 - Moved Private Vault to the first sample folder position, made demo-only vault
   content visible before opt-in, and added a one-time Face ID/passcode prompt
   when users first open it.

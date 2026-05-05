@@ -9,7 +9,7 @@ SAVI uses these stock-safe images only for removable sample-library thumbnails. 
 - Hotel booking sample: [Bed in Hotel Room](https://www.pexels.com/photo/bed-in-hotel-room-8089081/)
 - License terms: [Pexels License](https://www.pexels.com/license/)
 
-## V16/V18/V20 Meme And Rabbit-Hole Sources
+## V16/V18 Meme And Rabbit-Hole Sources
 
 These links are used as removable sample-library examples. They are selected to be recognizable, stable, and App Store-safe, with third-party thumbnails loaded as normal link metadata rather than bundled as SAVI-owned assets.
 
@@ -22,7 +22,6 @@ These links are used as removable sample-library examples. They are selected to 
 - Double Rainbow: [YouTube](https://www.youtube.com/watch?v=OQSNhk5ICTI)
 - Evolution of Dance: [YouTube](https://www.youtube.com/watch?v=dMH0bHeiRNg)
 - Leave Britney Alone: [YouTube](https://www.youtube.com/watch?v=WqSTXuJeTks)
-- Chocolate Rain: [YouTube](https://www.youtube.com/watch?v=EwTZ2xpQwpA)
 - Pentagon audit: [Defense.gov](https://www.defense.gov/News/News-Stories/Article/Article/3967135/dods-2024-audit-shows-progress-toward-2028-goals/)
 - Pyramid alignment: [Smithsonian Magazine](https://www.smithsonianmag.com/smart-news/fall-equinox-secret-pyramids-near-perfect-alignment-180968223/)
 - UFO/UAP records: [National Archives](https://www.archives.gov/news/topics/ufos)
