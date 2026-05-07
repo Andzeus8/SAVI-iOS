@@ -584,7 +584,8 @@ private extension SAVIWebViewModel {
                 color: color,
                 system: system,
                 symbolName: symbolName,
-                order: index
+                order: index,
+                isPublic: (raw["isPublic"] as? Bool) ?? (raw["is_public"] as? Bool) ?? false
             )
         }
 

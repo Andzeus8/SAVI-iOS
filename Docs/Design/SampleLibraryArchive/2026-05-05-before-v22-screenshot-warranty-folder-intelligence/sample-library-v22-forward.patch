@@ -1,0 +1,906 @@
+diff --git a/Docs/CHANGELOG.md b/Docs/CHANGELOG.md
+index af295b6..1c0cb97 100644
+--- a/Docs/CHANGELOG.md
++++ b/Docs/CHANGELOG.md
+@@ -6,6 +6,9 @@ targets, and QA evidence.
+ 
+ ## 2026-05-05
+ 
++- Added a V22 sample-library and Folder Intelligence pass with an A/C warranty
++  screenshot sample, stronger audio/sample file typing, screenshot OCR in the
++  share extension, and Life Admin vs Private Vault guardrails.
+ - Recurated the launch sample library to keep the first six utility saves, then
+   add more memorable memes, rabbit holes, science, recipes, and AI examples.
+ - Expanded `Memes & Laughs` and `Rabbit Holes` so Home, Explore, and Search feel
+diff --git a/Docs/ChangeLog/2026-05-05.md b/Docs/ChangeLog/2026-05-05.md
+index 2e07e00..5467fec 100644
+--- a/Docs/ChangeLog/2026-05-05.md
++++ b/Docs/ChangeLog/2026-05-05.md
+@@ -1,5 +1,41 @@
+ # SAVI Change Log - 2026-05-05
+ 
++## Sample Library V22 Screenshot Warranty And Folder Intelligence
++
++- Created rollback archive:
++  `Docs/Design/SampleLibraryArchive/2026-05-05-before-v22-screenshot-warranty-folder-intelligence/`.
++- Bumped native sample seed version to `22`.
++- Added `A/C warranty screenshot`, a generated iPhone-style screenshot sample in
++  `Life Admin` with warranty, appliance, serial-number, receipt, and screenshot
++  tags.
++- Strengthened Mom's lasagna voice note as an audio-tagged file sample with
++  `audio/mp4` metadata so Search/refine can demonstrate audio filtering.
++- Hardened shared folder classification:
++  - warranty/serial/model-number, booking-confirmation, door/Wi-Fi code, and
++    practical admin screenshots now prefer `Life Admin`;
++  - driver licenses, passports, insurance cards, banking/routing, tax, medical,
++    credentials, and private IDs still prefer `Private Vault`;
++  - hotel confirmations no longer get forced into Places just because they say
++    `hotel`.
++- Added deterministic classifier audit cases for warranty screenshots, hotel
++  confirmations, and private ID screenshots.
++- Added short Vision OCR enrichment for image shares in the share extension, so
++  screenshots can improve title, tags, and folder choice after the first fast
++  render without requiring Apple Intelligence.
++- Improved share-sheet smart folder copy so users see `Smart folder` plus a
++  plain-English reason like `codes, warranty, or docs`.
++- Expanded smart tag defaults for warranty, booking confirmations, serial
++  numbers, audio/voice notes, and local document/file extensions.
++- Release iPhoneOS no-sign build passed after V22:
++  `/Users/guest1/Desktop/SAVI_QA/testflight-final-prep-20260505-003401/release-iphoneos-nosign-build-v22-folder-intelligence.log`.
++- Captured a focused Release Home screenshot on the healthy iPhone 17 Pro
++  simulator after a fresh install:
++  `/Users/guest1/Desktop/SAVI_QA/savi-v22-home-iphone17pro-release-20260505-102752.png`.
++- Attempted a focused iPhone SE simulator Home pass twice; both runs hung in
++  CoreSimulator before reliable app screenshot capture, including one fresh
++  recreated SE device stuck around boot/terminate. This was recorded as simulator
++  infrastructure friction, not a Release build failure.
++
+ ## Sample Library V16 Curation Pass
+ 
+ - Created rollback archive:
+diff --git a/SAVI/Core/SaviCore.swift b/SAVI/Core/SaviCore.swift
+index b17e284..563c6f3 100644
+--- a/SAVI/Core/SaviCore.swift
++++ b/SAVI/Core/SaviCore.swift
+@@ -1741,7 +1741,7 @@ final class SaviStore: ObservableObject {
+     private static let shareSetupSecondReminderDelay: TimeInterval = 3 * 86_400
+     private static let shareSetupLaterReminderDelay: TimeInterval = 7 * 86_400
+     private static let sampleFriendTargetLinkCount = 24
+-    private static let currentLegacySeedVersion = 21
++    private static let currentLegacySeedVersion = 22
+     private static let currentFolderRepairVersion = 2
+     private static let currentSearchTagRepairVersion = 1
+     private static let currentFolderLayoutVersion = 3
+diff --git a/SAVI/Services/LegacyAndUtilities.swift b/SAVI/Services/LegacyAndUtilities.swift
+index 07b72e7..916a177 100644
+--- a/SAVI/Services/LegacyAndUtilities.swift
++++ b/SAVI/Services/LegacyAndUtilities.swift
+@@ -1101,6 +1101,76 @@ enum SaviSeeds {
+         )
+     }
+ 
++    private static func sampleWarrantyScreenshotThumb() -> String {
++        let size = CGSize(width: 720, height: 720)
++        let format = UIGraphicsImageRendererFormat()
++        format.scale = 2
++        format.opaque = true
++
++        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
++            let bounds = CGRect(origin: .zero, size: size)
++            let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
++            let muted = UIColor(red: 0.38, green: 0.31, blue: 0.48, alpha: 1)
++            let lavender = UIColor(hex: "#F6F0FB")
++            let gold = UIColor(hex: "#FFD15C")
++            let green = UIColor(hex: "#70D59B")
++
++            lavender.setFill()
++            context.fill(bounds)
++
++            UIColor(hex: "#2A1745").withAlphaComponent(0.16).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 128, y: 36, width: 464, height: 652), cornerRadius: 58).fill()
++            UIColor.white.setFill()
++            UIBezierPath(roundedRect: CGRect(x: 108, y: 22, width: 464, height: 652), cornerRadius: 58).fill()
++
++            UIColor(hex: "#2A1745").setFill()
++            UIBezierPath(roundedRect: CGRect(x: 274, y: 44, width: 132, height: 18), cornerRadius: 9).fill()
++            UIColor(hex: "#EFE7F5").setFill()
++            UIBezierPath(roundedRect: CGRect(x: 140, y: 82, width: 400, height: 548), cornerRadius: 28).fill()
++
++            UIColor.white.withAlphaComponent(0.98).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 160, y: 108, width: 360, height: 142), cornerRadius: 24).fill()
++            gold.setFill()
++            UIBezierPath(roundedRect: CGRect(x: 184, y: 132, width: 112, height: 28), cornerRadius: 14).fill()
++            drawText("WARRANTY", in: CGRect(x: 198, y: 138, width: 84, height: 18), font: .systemFont(ofSize: 13, weight: .black), color: ink, alignment: .center, lineBreakMode: .byTruncatingTail)
++            drawText("A/C warranty", in: CGRect(x: 184, y: 176, width: 234, height: 34), font: .systemFont(ofSize: 28, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
++            drawText("Model NX-2400 · expires Sep 2028", in: CGRect(x: 184, y: 214, width: 292, height: 22), font: .systemFont(ofSize: 15, weight: .semibold), color: muted, lineBreakMode: .byTruncatingTail)
++            if let icon = UIImage(systemName: "snowflake")?.withTintColor(green, renderingMode: .alwaysOriginal) {
++                icon.draw(in: CGRect(x: 448, y: 142, width: 42, height: 42))
++            }
++
++            UIColor.white.withAlphaComponent(0.96).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 160, y: 274, width: 360, height: 228), cornerRadius: 24).fill()
++            let rows = [
++                ("Serial", "AC9-44P-7721"),
++                ("Receipt", "Lowe's · 06/14/26"),
++                ("Support", "(800) 555-0148"),
++                ("Install", "Kitchen window unit")
++            ]
++            for (index, row) in rows.enumerated() {
++                let y = 302 + CGFloat(index) * 45
++                UIColor(hex: "#D8D1E4").withAlphaComponent(0.52).setFill()
++                UIBezierPath(roundedRect: CGRect(x: 184, y: y + 30, width: 292, height: 1.5), cornerRadius: 0.75).fill()
++                drawText(row.0.uppercased(), in: CGRect(x: 184, y: y, width: 88, height: 24), font: .monospacedSystemFont(ofSize: 12, weight: .bold), color: muted, lineBreakMode: .byTruncatingTail)
++                drawText(row.1, in: CGRect(x: 284, y: y - 1, width: 210, height: 26), font: .systemFont(ofSize: 18, weight: .bold), color: ink, lineBreakMode: .byTruncatingTail)
++            }
++
++            green.withAlphaComponent(0.18).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 160, y: 524, width: 360, height: 68), cornerRadius: 24).fill()
++            drawText("Screenshot saved from Photos", in: CGRect(x: 188, y: 545, width: 268, height: 24), font: .systemFont(ofSize: 17, weight: .bold), color: ink, lineBreakMode: .byTruncatingTail)
++            if let photo = UIImage(systemName: "photo.fill")?.withTintColor(ink, renderingMode: .alwaysOriginal) {
++                photo.draw(in: CGRect(x: 464, y: 544, width: 22, height: 22))
++            }
++
++            drawSampleWatermark(in: context.cgContext, center: CGPoint(x: 360, y: 396), color: ink.withAlphaComponent(0.08), size: 58, rotation: -.pi / 10)
++        }
++
++        guard let data = image.pngData() else {
++            return picsumThumb("savi-ac-warranty-screenshot", width: 720, height: 720)
++        }
++        return "data:image/png;base64,\(data.base64EncodedString())"
++    }
++
+     private static func sampleAIPromptThumb() -> String {
+         sampleGraphicThumb(
+             title: "Next actions",
+@@ -1293,7 +1363,7 @@ enum SaviSeeds {
+ 
+     static let items: [SaviItem] = [
+         // First-run utility saves, ordered to prove SAVI's practical value immediately.
+-        item(id: "sample-food-mom-lasagna-audio", title: "Mom's lasagna sauce voice note", description: "Audio note sample: brown the garlic slowly, simmer the sauce, and add the basil at the end.", source: "Voice Memo", type: .file, folderId: "f-recipes", tags: ["audio", "recipe", "mom", "sauce", "lasagna"], thumbnail: sampleAudioRecipeThumb(), hoursAgo: 1, assetName: "moms-lasagna-sauce.m4a", assetMime: "audio/mp4", assetSize: 824_000),
++        item(id: "sample-food-mom-lasagna-audio", title: "Mom's lasagna sauce voice note", description: "Audio note sample: brown the garlic slowly, simmer the sauce, and add the basil at the end.", source: "Voice Memo", type: .file, folderId: "f-recipes", tags: ["audio", "voice-note", "recipe", "mom", "sauce", "lasagna"], thumbnail: sampleAudioRecipeThumb(), hoursAgo: 1, assetName: "moms-lasagna-sauce.m4a", assetMime: "audio/mp4", assetSize: 824_000),
+         item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi", description: "SAMPLE stay note: front door 2486, Wi-Fi Pinehouse Guest, checkout 11 AM.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "airbnb", "door-code", "wifi", "travel"], thumbnail: sampleFullBleedStayThumb(), hoursAgo: 2),
+         item(id: "sample-research-mebendazole", title: "Mebendazole and cancer remission?", description: "PubMed case-report save about mebendazole and tumor remission. Kept as a research note for doctor questions, not as medical advice.", url: "https://pubmed.ncbi.nlm.nih.gov/24160353/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "mebendazole", "case-report", "cancer", "questions-for-doctor", "clinical-trial"], thumbnail: sampleMebendazoleResearchThumb(), hoursAgo: 3),
+         item(id: "sample-place-ramen", title: "Jennifer's ramen recommendation", description: "Jennifer said to order the spicy miso, sit at the counter, and save the pin before the group chat buries it.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Jennifer", type: .place, folderId: "f-travel", tags: ["maps", "restaurant", "friend-rec", "tokyo", "food"], thumbnail: sampleFoodRecommendationThumb(), hoursAgo: 4),
+@@ -1306,6 +1376,7 @@ enum SaviSeeds {
+         item(id: "sample-life-insurance-card", title: "Insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 10, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
+         item(id: "sample-life-driver-license", title: "Driver's license copy", description: "Watermarked fake ID copy with invented demo data for testing protected document saves.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 11, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
+         item(id: "sample-private-membership-id", title: "Membership ID card", description: "Fake membership card with invented member numbers, kept as a private-vault example.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "membership", "id", "card"], thumbnail: sampleMembershipThumb(), hoursAgo: 12, assetName: "sample-membership-id.png", assetMime: "image/png", assetSize: 154_000),
++        item(id: "sample-life-ac-warranty-screenshot", title: "A/C warranty screenshot", description: "SAMPLE iPhone screenshot of an air-conditioner warranty, serial number, support phone, receipt note, and install detail.", source: "Photos", type: .image, folderId: "f-life-admin", tags: ["sample", "screenshot", "warranty", "air-conditioner", "serial-number", "receipt", "life-admin", "appliance"], thumbnail: sampleWarrantyScreenshotThumb(), hoursAgo: 12.5, assetName: "sample-ac-warranty-screenshot.png", assetMime: "image/png", assetSize: 188_000),
+         item(id: "sample-private-bank-routing", title: "Bank routing number note", description: "SAMPLE banking note with invented routing/account details. Demonstrates exact private text search.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "banking", "routing-number", "account"], thumbnail: sampleRoutingThumb(), hoursAgo: 13),
+         item(id: "sample-health-fasting-autophagy", title: "Intermittent fasting and cancer: cure?", description: "PubMed research save about intermittent fasting, autophagy, and cancer questions. Kept as a reading note for clinician discussion, not medical advice or a proven treatment.", url: "https://pubmed.ncbi.nlm.nih.gov/34383300/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "cancer", "questions-for-doctor"], thumbnail: "https://cdn.ncbi.nlm.nih.gov/pubmed/persistent/pubmed-meta-image-v2.jpg", hoursAgo: 9),
+         item(id: "sample-meme-goyo", title: "Chocolate Rain", description: "Tay Zonday's viral classic, saved as a proper YouTube video instead of a generic placeholder.", url: "https://www.youtube.com/watch?v=EwTZ2xpQwpA", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "chocolate-rain", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("EwTZ2xpQwpA"), hoursAgo: 22, metadataPolicy: .liveMetadata),
+@@ -1745,12 +1816,16 @@ enum SaviText {
+         if haystack.contains("vimeo") { tags += ["vimeo", "video"] }
+         if haystack.contains("spotify") { tags += ["spotify", "music"] }
+         if haystack.contains("soundcloud") { tags += ["soundcloud", "music"] }
++        if haystack.contains("audio/") || haystack.range(of: #"\.(m4a|mp3|wav|caf|aac)(\?|$|\s)"#, options: .regularExpression) != nil { tags += ["audio", "voice-note"] }
+         if haystack.contains("pinterest") { tags += ["pinterest", "image"] }
+         if haystack.contains("facebook") || haystack.contains("fb.watch") { tags += ["facebook", "post"] }
+         if haystack.contains("threads.net") || haystack.contains("threads.com") { tags += ["threads", "post"] }
+         if haystack.contains("bsky.app") || haystack.contains("bluesky") { tags += ["bluesky", "post"] }
+         if haystack.contains("linkedin") { tags += ["linkedin", "post"] }
+         if haystack.contains("maps") { tags += ["place", "map"] }
++        if haystack.contains("warranty") || haystack.contains("serial number") || haystack.contains("model number") { tags += ["warranty", "life-admin"] }
++        if haystack.contains("booking confirmation") || haystack.contains("confirmation number") || haystack.contains("hotel booking") { tags += ["booking", "confirmation", "travel"] }
++        if haystack.contains("door code") || haystack.contains("access code") || haystack.contains("wi-fi") || haystack.contains("wifi") { tags += ["door-code", "wifi", "important"] }
+         if haystack.contains("ai") || haystack.contains("llm") || haystack.contains("chatgpt") || haystack.contains("claude") { tags.append("ai") }
+         if haystack.contains("prompt") { tags.append("prompt") }
+         if haystack.contains("recipe") || haystack.contains("ingredients") { tags.append("recipe") }
+@@ -1891,6 +1966,7 @@ enum SaviText {
+         if mimeType == "application/pdf" || name.lowercased().hasSuffix(".pdf") { return "PDF document" }
+         if mimeType.hasPrefix("image/") { return "\(mimeType.replacingOccurrences(of: "image/", with: "").uppercased()) image" }
+         if mimeType.hasPrefix("video/") { return "\(mimeType.replacingOccurrences(of: "video/", with: "").uppercased()) video" }
++        if mimeType.hasPrefix("audio/") { return "\(mimeType.replacingOccurrences(of: "audio/", with: "").uppercased()) audio" }
+         return URL(fileURLWithPath: name).pathExtension.uppercased().nilIfBlank ?? "File"
+     }
+ 
+diff --git a/SAVIShareExtension/ShareItemExtractor.swift b/SAVIShareExtension/ShareItemExtractor.swift
+index 90672f2..800e0a9 100644
+--- a/SAVIShareExtension/ShareItemExtractor.swift
++++ b/SAVIShareExtension/ShareItemExtractor.swift
+@@ -4,7 +4,11 @@ import FoundationModels
+ #endif
+ import LinkPresentation
+ import MobileCoreServices
++import UIKit
+ import UniformTypeIdentifiers
++#if canImport(Vision)
++import Vision
++#endif
+ 
+ enum ShareItemExtractorError: LocalizedError {
+     case missingInputItem
+@@ -86,10 +90,12 @@ enum ShareItemExtractor {
+             )
+             let data = try Data(contentsOf: copiedURL)
+             let dataURL = "data:\(UTType.image.identifier);base64,\(data.base64EncodedString())"
++            let title = itemTitle ?? copiedURL.lastPathComponent
++            let tags = inferredTags(type: "image", url: nil, title: title, description: itemText, source: sourceBundleID, fileName: copiedURL.lastPathComponent, mimeType: UTType.image.identifier)
+             return PendingShare(
+                 id: UUID().uuidString,
+                 url: nil,
+-                title: itemTitle ?? copiedURL.lastPathComponent,
++                title: title,
+                 type: "image",
+                 thumbnail: dataURL,
+                 timestamp: timestamp,
+@@ -99,8 +105,8 @@ enum ShareItemExtractor {
+                 filePath: copiedURL.path,
+                 mimeType: UTType.image.identifier,
+                 itemDescription: itemText,
+-                folderId: suggestedFolderId(type: "image", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: UTType.image.identifier, source: sourceBundleID),
+-                tags: inferredTags(type: "image", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, source: sourceBundleID)
++                folderId: suggestedFolderId(type: "image", url: nil, title: title, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: UTType.image.identifier, tags: tags, source: sourceBundleID),
++                tags: tags
+             )
+         }
+ 
+@@ -108,10 +114,12 @@ enum ShareItemExtractor {
+             let copiedURL = try await provider.copyFileRepresentation(
+                 preferredTypeIdentifier: UTType.pdf.identifier
+             )
++            let title = itemTitle ?? copiedURL.lastPathComponent
++            let tags = inferredTags(type: "file", url: nil, title: title, description: itemText, source: sourceBundleID, fileName: copiedURL.lastPathComponent, mimeType: UTType.pdf.identifier)
+             return PendingShare(
+                 id: UUID().uuidString,
+                 url: nil,
+-                title: itemTitle ?? copiedURL.lastPathComponent,
++                title: title,
+                 type: "pdf",
+                 thumbnail: nil,
+                 timestamp: timestamp,
+@@ -121,19 +129,22 @@ enum ShareItemExtractor {
+                 filePath: copiedURL.path,
+                 mimeType: UTType.pdf.identifier,
+                 itemDescription: itemText,
+-                folderId: suggestedFolderId(type: "pdf", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: UTType.pdf.identifier, source: sourceBundleID),
+-                tags: inferredTags(type: "file", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, source: sourceBundleID)
++                folderId: suggestedFolderId(type: "pdf", url: nil, title: title, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: UTType.pdf.identifier, tags: tags, source: sourceBundleID),
++                tags: tags
+             )
+         }
+ 
+         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) || provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
+             let preferred = provider.registeredTypeIdentifiers.first ?? UTType.data.identifier
+             let copiedURL = try await provider.copyFileRepresentation(preferredTypeIdentifier: preferred)
++            let title = itemTitle ?? copiedURL.lastPathComponent
++            let shareType = localFileShareType(fileName: copiedURL.lastPathComponent, mimeType: preferred)
++            let tags = inferredTags(type: shareType, url: nil, title: title, description: itemText, source: sourceBundleID, fileName: copiedURL.lastPathComponent, mimeType: preferred)
+             return PendingShare(
+                 id: UUID().uuidString,
+                 url: nil,
+-                title: itemTitle ?? copiedURL.lastPathComponent,
+-                type: "file",
++                title: title,
++                type: shareType,
+                 thumbnail: nil,
+                 timestamp: timestamp,
+                 sourceApp: sourceLabel(from: sourceBundleID, sharedURL: nil),
+@@ -142,8 +153,8 @@ enum ShareItemExtractor {
+                 filePath: copiedURL.path,
+                 mimeType: preferred,
+                 itemDescription: itemText,
+-                folderId: suggestedFolderId(type: "file", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: preferred, source: sourceBundleID),
+-                tags: inferredTags(type: "file", url: nil, title: itemTitle ?? copiedURL.lastPathComponent, description: itemText, source: sourceBundleID)
++                folderId: suggestedFolderId(type: shareType, url: nil, title: title, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: preferred, tags: tags, source: sourceBundleID),
++                tags: tags
+             )
+         }
+ 
+@@ -161,6 +172,8 @@ enum ShareItemExtractor {
+             resolved.url = canonicalizedURLString(from: urlString)
+         }
+ 
++        resolved = await enrichLocalAttachmentIfNeeded(resolved)
++
+         guard let urlString = resolved.url,
+               let url = URL(string: urlString),
+               url.scheme?.hasPrefix("http") == true
+@@ -175,13 +188,13 @@ enum ShareItemExtractor {
+                 tags: resolved.tags ?? [],
+                 source: resolved.sourceApp
+             )
+-            resolved.folderId = resolved.folderId ?? classification.folderId
++            resolved.folderId = classification.folderId
+             if (resolved.folderSource ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                 resolved.folderSource = "rules"
+                 resolved.folderConfidence = classification.confidence
+                 resolved.folderReason = classification.reason
+             }
+-            resolved.tags = dedupeTags(resolved.tags ?? inferredTags(type: resolved.type, url: resolved.url, title: resolved.title, description: resolved.itemDescription ?? resolved.text, source: resolved.sourceApp))
++            resolved.tags = dedupeTags(resolved.tags ?? inferredTags(type: resolved.type, url: resolved.url, title: resolved.title, description: resolved.itemDescription ?? resolved.text, source: resolved.sourceApp, fileName: resolved.fileName, mimeType: resolved.mimeType))
+             return resolved
+         }
+ 
+@@ -233,7 +246,9 @@ enum ShareItemExtractor {
+                 url: resolved.url,
+                 title: resolved.title,
+                 description: resolved.itemDescription ?? resolved.text,
+-                source: resolved.sourceApp
++                source: resolved.sourceApp,
++                fileName: resolved.fileName,
++                mimeType: resolved.mimeType
+             )
+         )
+         return resolved
+@@ -486,6 +501,186 @@ private extension ShareItemExtractor {
+         return "Shared item"
+     }
+ 
++    static func enrichLocalAttachmentIfNeeded(_ share: PendingShare) async -> PendingShare {
++        var resolved = share
++        let lowerType = resolved.type.lowercased()
++        let localText = [resolved.title, resolved.itemDescription, resolved.text, resolved.fileName, resolved.mimeType, resolved.sourceApp]
++            .compactMap { $0 }
++            .joined(separator: " ")
++
++        resolved.tags = dedupeTags(
++            (resolved.tags ?? []) +
++            localSignalTags(type: resolved.type, text: localText, fileName: resolved.fileName, mimeType: resolved.mimeType)
++        )
++
++        if lowerType == "image",
++           let recognizedText = await recognizedTextFromImageDataURL(resolved.thumbnail) {
++            let summary = compactRecognizedText(recognizedText)
++            if let title = attachmentTitle(from: summary, fallback: resolved.title),
++               shouldReplaceAttachmentTitle(current: resolved.title, fileName: resolved.fileName, candidate: title) {
++                resolved.title = title
++            }
++            if (resolved.itemDescription ?? resolved.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
++                resolved.itemDescription = "Screenshot text: \(summary)"
++            }
++            resolved.tags = dedupeTags(
++                (resolved.tags ?? []) +
++                inferredTags(
++                    type: resolved.type,
++                    url: resolved.url,
++                    title: resolved.title,
++                    description: summary,
++                    source: resolved.sourceApp,
++                    fileName: resolved.fileName,
++                    mimeType: resolved.mimeType
++                ) +
++                ["screenshot"]
++            )
++        }
++
++        return resolved
++    }
++
++    static func attachmentTitle(from text: String, fallback: String) -> String? {
++        let lower = text.lowercased()
++        if containsAnyToken(lower, ["warranty", "serial number", "model number"]) {
++            if containsAnyToken(lower, ["air conditioner", "a/c", "ac warranty", "window unit"]) {
++                return "A/C warranty screenshot"
++            }
++            return "Warranty screenshot"
++        }
++        if containsAnyToken(lower, ["booking confirmation", "reservation confirmation", "confirmation number"]) {
++            if containsAnyToken(lower, ["hotel", "stay", "check-in", "check in"]) {
++                return "Hotel booking confirmation"
++            }
++            return "Booking confirmation"
++        }
++        if containsAnyToken(lower, ["door code", "access code", "wi-fi", "wifi"]) {
++            return "Door code + Wi-Fi"
++        }
++        if containsAnyToken(lower, ["receipt", "invoice", "order total"]) {
++            return "Receipt screenshot"
++        }
++        return nil
++    }
++
++    static func shouldReplaceAttachmentTitle(current: String, fileName: String?, candidate: String) -> Bool {
++        let normalized = current.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
++        let fileBase = (fileName ?? "")
++            .trimmingCharacters(in: .whitespacesAndNewlines)
++            .lowercased()
++        if normalized.isEmpty { return true }
++        if normalized == fileBase { return true }
++        if normalized.range(of: #"^(img|image|screenshot|screen shot|photo|scan)[-_ ]?\d+"#, options: .regularExpression) != nil { return true }
++        if normalized.hasPrefix("tmp") || normalized.hasPrefix("asset") { return true }
++        return candidate.count > current.count + 10 && current.count < 36
++    }
++
++    static func localSignalTags(type: String, text: String, fileName: String?, mimeType: String?) -> [String] {
++        let haystack = [type, text, fileName ?? "", mimeType ?? ""].joined(separator: " ").lowercased()
++        var tags: [String] = []
++
++        if haystack.contains("audio/") ||
++            haystack.range(of: #"\.(m4a|mp3|wav|caf|aac)(\s|$)"#, options: .regularExpression) != nil {
++            tags += ["audio", "voice-note"]
++        }
++        if haystack.contains("image/") || type.caseInsensitiveCompare("image") == .orderedSame {
++            tags.append("image")
++        }
++        if haystack.contains("application/pdf") || haystack.contains(".pdf") {
++            tags += ["pdf", "document"]
++        }
++        if haystack.range(of: #"\.(docx?|pages|rtf|txt)(\s|$)"#, options: .regularExpression) != nil {
++            tags += ["document", "file"]
++        }
++        if haystack.range(of: #"\.(xlsx?|numbers|csv)(\s|$)"#, options: .regularExpression) != nil {
++            tags += ["spreadsheet", "document"]
++        }
++        if haystack.range(of: #"\.(pptx?|key)(\s|$)"#, options: .regularExpression) != nil {
++            tags += ["presentation", "document"]
++        }
++        if containsAnyToken(haystack, ["warranty", "serial number", "model number", "product registration", "appliance", "air conditioner"]) {
++            tags += ["warranty", "appliance", "life-admin"]
++        }
++        if containsAnyToken(haystack, ["receipt", "invoice", "order confirmation"]) {
++            tags += ["receipt", "document"]
++        }
++        if containsAnyToken(haystack, ["booking confirmation", "confirmation number", "hotel booking", "reservation"]) {
++            tags += ["booking", "confirmation", "travel"]
++        }
++        if containsAnyToken(haystack, ["door code", "access code", "wifi", "wi-fi", "guest code"]) {
++            tags += ["door-code", "wifi", "important"]
++        }
++        if containsAnyToken(haystack, ["driver license", "passport", "insurance card", "bank routing", "tax pin"]) {
++            tags += ["private", "document"]
++        }
++        return tags
++    }
++
++    static func compactRecognizedText(_ value: String) -> String {
++        let cleaned = value
++            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
++            .trimmingCharacters(in: .whitespacesAndNewlines)
++        guard cleaned.count > 240 else { return cleaned }
++        return "\(cleaned.prefix(240))..."
++    }
++
++    static func containsAnyToken(_ haystack: String, _ needles: [String]) -> Bool {
++        needles.contains { haystack.contains($0.lowercased()) }
++    }
++
++    static func recognizedTextFromImageDataURL(_ thumbnail: String?) async -> String? {
++#if canImport(Vision)
++        guard let thumbnail,
++              thumbnail.hasPrefix("data:"),
++              let comma = thumbnail.firstIndex(of: ",")
++        else { return nil }
++        let encoded = String(thumbnail[thumbnail.index(after: comma)...])
++        guard let data = Data(base64Encoded: encoded), data.count <= 8 * 1024 * 1024 else { return nil }
++
++        return await withTaskGroup(of: String?.self) { group in
++            group.addTask(priority: .utility) {
++                recognizeTextSynchronously(from: data)
++            }
++            group.addTask {
++                try? await Task.sleep(nanoseconds: 900_000_000)
++                return nil
++            }
++
++            while let result = await group.next() {
++                group.cancelAll()
++                return result?.nilIfBlank
++            }
++            return nil
++        }
++#else
++        return nil
++#endif
++    }
++
++#if canImport(Vision)
++    static func recognizeTextSynchronously(from data: Data) -> String? {
++        guard let cgImage = UIImage(data: data)?.cgImage else { return nil }
++        let request = VNRecognizeTextRequest()
++        request.recognitionLevel = .fast
++        request.usesLanguageCorrection = false
++        request.recognitionLanguages = ["en-US"]
++
++        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
++        do {
++            try handler.perform([request])
++        } catch {
++            return nil
++        }
++
++        let text = (request.results ?? [])
++            .compactMap { $0.topCandidates(1).first?.string }
++            .joined(separator: "\n")
++            .trimmingCharacters(in: .whitespacesAndNewlines)
++        return text.isEmpty ? nil : text
++    }
++#endif
++
+     static func inferredType(for urlString: String) -> String {
+         let value = urlString.lowercased()
+         if value.contains("maps.google.") || value.contains("google.com/maps") || value.contains("goo.gl/maps") || value.contains("maps.apple.com") {
+@@ -509,6 +704,20 @@ private extension ShareItemExtractor {
+         return "link"
+     }
+ 
++    static func localFileShareType(fileName: String, mimeType: String) -> String {
++        let lower = "\(fileName) \(mimeType)".lowercased()
++        if lower.contains("audio/") || lower.range(of: #"\.(m4a|mp3|wav|caf|aac)(\s|$)"#, options: .regularExpression) != nil {
++            return "audio"
++        }
++        if lower.contains("video/") {
++            return "video"
++        }
++        if lower.contains("image/") || lower.range(of: #"\.(png|jpe?g|gif|webp|heic)(\s|$)"#, options: .regularExpression) != nil {
++            return "image"
++        }
++        return "file"
++    }
++
+     static func sourceLabel(from sourceBundleOrLabel: String?, sharedURL: String?) -> String {
+         let seed = sourceBundleOrLabel ?? ""
+         let lowered = seed.lowercased()
+@@ -748,8 +957,9 @@ private extension ShareItemExtractor {
+         mime type: \(mimeType)
+         existing tags: \(tags)
+ 
+-        Use exactly one folderId from the choices. Life Admin is for useful non-secret admin/reference saves like door codes, Wi-Fi notes, travel access, templates, contracts, receipts, and account recovery notes.
+-        For actual private documents, IDs, receipts, medical, insurance, banking, credentials, passwords, or tax files, choose f-private-vault instead of Life Admin.
++        Use exactly one folderId from the choices. Life Admin is for useful non-secret admin/reference saves like door codes, Wi-Fi notes, travel access, warranty screenshots, product serial numbers, templates, contracts, receipts, and account recovery notes.
++        If screenshot/OCR text mentions warranty, serial number, model number, appliance, booking confirmation, or door/Wi-Fi code, strongly prefer Life Admin unless it is an actual ID, banking, tax, medical, password, or credential.
++        For actual private documents, IDs, medical records, insurance cards, banking, credentials, passwords, tax files, or sensitive receipts, choose f-private-vault instead of Life Admin.
+         Entertainment, trailers, news, and fandom posts are not private just because their title says secret, leaked, vault, or password.
+         Entertainment videos default to Watch / Read Later unless clearly comedy/meme, then Memes & Laughs.
+         Never choose Science Finds unless the item has real science, space, research, or discovery intent.
+@@ -940,15 +1150,24 @@ private extension ShareItemExtractor {
+         )
+     }
+ 
+-    static func inferredTags(type: String, url: String?, title: String?, description: String?, source: String?) -> [String] {
++    static func inferredTags(
++        type: String,
++        url: String?,
++        title: String?,
++        description: String?,
++        source: String?,
++        fileName: String? = nil,
++        mimeType: String? = nil
++    ) -> [String] {
+         let sourceTag = (source ?? "")
+             .lowercased()
+             .replacingOccurrences(of: " ", with: "-")
+             .replacingOccurrences(of: ".", with: "")
+-        let haystack = [url ?? "", title ?? "", description ?? "", source ?? ""].joined(separator: " ").lowercased()
++        let haystack = [url ?? "", title ?? "", description ?? "", source ?? "", fileName ?? "", mimeType ?? ""].joined(separator: " ").lowercased()
+         var tags: [String] = []
+         tags.append(contentsOf: keywordTags(title: title, description: description, url: url, source: source))
+         tags.append(contentsOf: topicalTags(from: haystack))
++        tags.append(contentsOf: localSignalTags(type: type, text: haystack, fileName: fileName, mimeType: mimeType))
+         if type != "link" && type != "text" {
+             tags.append(type)
+         }
+diff --git a/SAVIShareExtension/ShareViewController.swift b/SAVIShareExtension/ShareViewController.swift
+index 488ce3d..359eb3f 100644
+--- a/SAVIShareExtension/ShareViewController.swift
++++ b/SAVIShareExtension/ShareViewController.swift
+@@ -978,13 +978,13 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate,
+         folderSummaryTitleLabel.text = selectedPreset.name
+         let hint: String
+         if folderSelectionSource == .intelligence {
+-            hint = "AI suggested"
++            hint = "Smart folder · Apple Intelligence"
+         } else if folderSelectionSource == .metadata {
+-            hint = "Metadata suggested"
++            hint = "Smart folder · \(friendlyFolderReason(pendingShare?.folderReason) ?? "Metadata")"
+         } else if folderSelectionSource == .rules {
+-            hint = "Rules suggested"
++            hint = "Smart folder · \(friendlyFolderReason(pendingShare?.folderReason) ?? "Quick rules")"
+         } else if ShareFolderSelection.isAuto(selectedFolderId) {
+-            hint = "Auto-select on import"
++            hint = "Auto-selects when you save"
+         } else {
+             hint = "You picked this"
+         }
+@@ -1024,6 +1024,43 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate,
+         }
+     }
+ 
++    private func friendlyFolderReason(_ reason: String?) -> String? {
++        switch reason?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
++        case "life-admin-guardrail":
++            return "codes, warranty, or docs"
++        case "private-guardrail":
++            return "private document"
++        case "place-guardrail":
++            return "map or place"
++        case "paste-guardrail":
++            return "copied note"
++        case .some(let value) where value.hasPrefix("profile-f-life-admin"):
++            return "life admin"
++        case .some(let value) where value.hasPrefix("profile-f-recipes"):
++            return "recipe or food"
++        case .some(let value) where value.hasPrefix("profile-f-health"):
++            return "health"
++        case .some(let value) where value.hasPrefix("profile-f-growth"):
++            return "AI or work"
++        case .some(let value) where value.hasPrefix("profile-f-lmao"):
++            return "meme or funny"
++        case .some(let value) where value.hasPrefix("profile-f-travel"):
++            return "place or trip"
++        case .some(let value) where value.hasPrefix("profile-f-research"):
++            return "research"
++        case .some(let value) where value.hasPrefix("profile-f-tinfoil"):
++            return "rabbit hole"
++        case .some(let value) where value.hasPrefix("profile-f-must-see"):
++            return "watch or read"
++        case .some(let value) where value.hasPrefix("custom-folder"):
++            return "folder name match"
++        case .some(let value) where value.hasPrefix("learned"):
++            return "learned from you"
++        default:
++            return nil
++        }
++    }
++
+     private func prioritizedFolderPresets(_ presets: [FolderPreset]) -> [FolderPreset] {
+         var ordered: [FolderPreset] = []
+ 
+@@ -1332,6 +1369,10 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate,
+             joined.contains("vimeo") || joined.contains("video/") || share.type.caseInsensitiveCompare("video") == .orderedSame {
+             return "video"
+         }
++        if joined.contains("audio/") ||
++            joined.range(of: #"\.(m4a|mp3|wav|caf|aac)(\?|$|\s)"#, options: .regularExpression) != nil {
++            return "audio"
++        }
+         if share.type.caseInsensitiveCompare("pdf") == .orderedSame ||
+             joined.contains("application/pdf") ||
+             joined.range(of: #"\.pdf(\?|$|\s)"#, options: .regularExpression) != nil {
+@@ -1554,7 +1595,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate,
+     private func folderSuggestionTags(for folderId: String, share: PendingShare) -> [String] {
+         switch folderId {
+         case "f-life-admin":
+-            return ["important", "admin", "code", "document", "travel"]
++            return ["important", "admin", "code", "warranty", "document"]
+         case "f-must-see":
+             return isVideoLike(share) ? ["watch later", "funny", "music", "tutorial", "review"] : ["read later", "reference", "important"]
+         case "f-growth":
+@@ -1614,9 +1655,10 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate,
+             (["recipe", "cook", "dinner", "restaurant", "food"], ["recipe", "food"]),
+             (["buy", "shopping", "amazon", "deal"], ["shopping"]),
+             (["trip", "travel", "hotel", "flight", "map"], ["travel", "maps"]),
+-            (["door code", "wifi", "wi-fi", "contract", "insurance", "license", "receipt", "recovery code"], ["important", "admin", "document"]),
++            (["door code", "wifi", "wi-fi", "contract", "insurance", "license", "receipt", "recovery code", "warranty", "serial number", "model number", "booking confirmation", "confirmation number"], ["important", "admin", "document"]),
+             (["paper", "study", "research", "report"], ["research", "reference"]),
+-            (["invoice", "receipt", "tax", "insurance", "medical", "bank"], ["important", "document"])
++            (["invoice", "receipt", "tax", "insurance", "medical", "bank"], ["important", "document"]),
++            (["voice note", "voice memo", "audio", "m4a", "mp3"], ["audio", "voice-note"])
+         ]
+         for mapping in mappings where mapping.needles.contains(where: { haystack.contains($0) }) {
+             tags.append(contentsOf: mapping.tags)
+@@ -1629,6 +1671,9 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate,
+         if isVideoLike(share) {
+             return ["watch later", "funny", "tutorial", "music", "review", "news"]
+         }
++        if isAudioLike(share) {
++            return ["audio", "voice-note", "important", "reference"]
++        }
+         if isPDFLike(share) {
+             return ["PDF", "document", "important", "reference"]
+         }
+@@ -1652,6 +1697,16 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate,
+             joined.contains("video/")
+     }
+ 
++    private func isAudioLike(_ share: PendingShare) -> Bool {
++        let joined = [share.type, share.url, share.mimeType, share.fileName, share.sourceApp]
++            .compactMap { $0 }
++            .joined(separator: " ")
++            .lowercased()
++        return joined.contains("audio/") ||
++            joined.range(of: #"\.(m4a|mp3|wav|caf|aac)(\?|$|\s)"#, options: .regularExpression) != nil ||
++            joined.contains("voice memo")
++    }
++
+     private func isPDFLike(_ share: PendingShare) -> Bool {
+         let joined = [share.type, share.url, share.mimeType, share.fileName]
+             .compactMap { $0 }
+diff --git a/Shared/AppGroupSupport.swift b/Shared/AppGroupSupport.swift
+index e6167bb..9ccd33a 100644
+--- a/Shared/AppGroupSupport.swift
++++ b/Shared/AppGroupSupport.swift
+@@ -987,6 +987,10 @@ enum SAVIFolderClassifier {
+             return .init(folderId: firstAllowed("f-paste-bin", allowedIds: allowedIds), confidence: 82, reason: "paste-guardrail")
+         }
+ 
++        if shouldUseLifeAdminGuardrail(input, normalized: normalized) {
++            return .init(folderId: firstAllowed("f-life-admin", allowedIds: allowedIds), confidence: 88, reason: "life-admin-guardrail")
++        }
++
+         var best = scoreSystemProfiles(normalized, allowedIds: allowedIds, roles: [.semantic])
+         if let custom = scoreCustomFolders(folders, normalized: normalized),
+            custom.confidence >= max(18, best.confidence + 4) {
+@@ -1027,7 +1031,7 @@ enum SAVIFolderClassifier {
+     }
+ 
+     static func looksSensitive(_ text: String) -> Bool {
+-        if regexMatch(#"\b(password|credential|bearer|private key|apikey|api key|seed phrase|recovery phrase|wallet|passcode|ssh)\b"#, in: text) {
++        if regexMatch(#"\b(password|credential|bearer|private key|apikey|api key|seed phrase|recovery phrase|wallet|passcode|ssh|routing number|account number|tax pin)\b"#, in: text) {
+             return true
+         }
+         return regexMatch(#"\b(api|client|auth|access|refresh|jwt|oauth|ssh)\b.{0,40}\b(secret|token)\b|\b(secret|token)\b.{0,40}\b(api|client|auth|access|refresh|jwt|oauth|ssh)\b"#, in: text)
+@@ -1038,7 +1042,7 @@ enum SAVIFolderClassifier {
+     }
+ 
+     static func looksPrivateDocument(_ text: String) -> Bool {
+-        regexMatch(#"\b(passport|driver'?s license|social security|ssn|tax return|w-2|1099|insurance|bank statement|credit card|debit card|receipt|lease|medical record|lab result|prescription|id card|paystub|pay stub)\b"#, in: text)
++        regexMatch(#"\b(passport|driver'?s license|social security|ssn|tax return|w-2|1099|insurance card|bank statement|bank routing|routing number|account number|credit card|debit card|return receipt|medical receipt|tax receipt|lease|medical record|lab result|prescription|id card|membership id|paystub|pay stub)\b"#, in: text)
+     }
+ 
+     static func shouldAcceptIntelligenceFolder(
+@@ -1335,6 +1339,51 @@ enum SAVIFolderClassifier {
+                 tags: ["contract", "template"]
+             )
+         ),
++        .init(
++            id: "life-admin-warranty-screenshot",
++            name: "Warranty screenshot",
++            expectedFolderId: "f-life-admin",
++            minimumConfidence: 60,
++            input: .init(
++                title: "A/C warranty screenshot",
++                description: "Screenshot from Photos with warranty, serial number, model number, receipt note, and support phone.",
++                type: "image",
++                source: "Photos",
++                fileName: "IMG_4821.PNG",
++                mimeType: "image/png",
++                tags: ["screenshot", "warranty", "air-conditioner", "serial-number"]
++            )
++        ),
++        .init(
++            id: "life-admin-hotel-confirmation",
++            name: "Hotel confirmation is admin, not map pin",
++            expectedFolderId: "f-life-admin",
++            minimumConfidence: 48,
++            input: .init(
++                title: "Hotel booking confirmation",
++                description: "Reservation confirmation number, check-in code, checkout time, and guest details.",
++                type: "image",
++                source: "Photos",
++                fileName: "hotel-confirmation-screenshot.png",
++                mimeType: "image/png",
++                tags: ["booking", "confirmation", "travel"]
++            )
++        ),
++        .init(
++            id: "private-driver-license-screenshot",
++            name: "Private ID screenshot",
++            expectedFolderId: "f-private-vault",
++            minimumConfidence: 90,
++            input: .init(
++                title: "Driver's license copy",
++                description: "Photo of my driver license front and back.",
++                type: "image",
++                source: "Photos",
++                fileName: "driver-license-copy.png",
++                mimeType: "image/png",
++                tags: ["id", "document"]
++            )
++        ),
+         .init(
+             id: "recipes-sourdough",
+             name: "Recipe video",
+@@ -1735,6 +1784,8 @@ enum SAVIFolderClassifier {
+             ("template", 6), ("agreement", 7), ("license copy", 8), ("driver license copy", 8),
+             ("insurance card", 8), ("policy", 6), ("certificate copy", 7), ("birth certificate copy", 7),
+             ("receipt", 5), ("return receipt", 6), ("warranty", 6), ("serial number", 7),
++            ("warranty screenshot", 9), ("product registration", 8), ("model number", 7),
++            ("appliance", 6), ("air conditioner", 8), ("support phone", 6),
+             ("recovery code", 7), ("backup code", 7), ("long code", 6), ("document", 4),
+             ("docx", 5), ("important document", 8), ("account recovery", 6)
+         ])),
+@@ -1745,6 +1796,7 @@ enum SAVIFolderClassifier {
+             ("salad", 5), ("tacos", 5), ("pizza", 5), ("chicken", 5), ("steak", 5), ("rice", 4), ("meal prep", 8),
+             ("grocery", 6), ("groceries", 6), ("baking", 7), ("bread", 5), ("cocktail", 6), ("coffee", 5),
+             ("allrecipes", 9), ("bon appetit", 8), ("smitten kitchen", 8), ("serious eats", 8), ("nytcooking", 8),
++            ("voice note recipe", 8), ("lasagna sauce", 9), ("audio recipe", 8),
+             ("marinade", 6), ("roast", 5), ("grill", 5), ("ferment", 6), ("sourdough", 7), ("vegan", 6), ("keto", 6)
+         ])),
+         .init(id: "f-travel", terms: weighted([
+@@ -1765,7 +1817,9 @@ enum SAVIFolderClassifier {
+             ("microbiome", 8), ("digestion", 7), ("inflammation", 7), ("immune", 7), ("hormone", 7), ("blood sugar", 8),
+             ("therapy", 6), ("protocol", 5), ("recovery", 6), ("mobility", 6), ("cardio", 6), ("strength", 5),
+             ("exercise", 7), ("meditation", 7), ("mindfulness", 7), ("anxiety", 7), ("adhd", 8), ("depression", 7),
+-            ("clinic", 7), ("blood pressure", 8), ("cholesterol", 7), ("glucose", 7), ("metabolism", 7), ("fasting", 6)
++            ("clinic", 7), ("blood pressure", 8), ("cholesterol", 7), ("glucose", 7), ("metabolism", 7), ("fasting", 6),
++            ("intermittent fasting", 8), ("autophagy", 9), ("fascia", 7), ("mobility", 7),
++            ("mebendazole", 10), ("cancer remission", 9), ("clinical trial", 8), ("tumor", 8)
+         ])),
+         .init(id: "f-design", terms: weighted([
+             ("design", 9), ("figma", 9), ("ui", 7), ("ux", 7), ("typography", 8), ("font", 7), ("layout", 7),
+@@ -1804,7 +1858,8 @@ enum SAVIFolderClassifier {
+             ("coverup", 8), ("area 51", 9), ("mkultra", 9), ("northwoods", 8), ("rabbit hole", 7),
+             ("ancient egypt", 7), ("pyramid", 6), ("sphinx", 6), ("pentagon", 5), ("classified", 6),
+             ("declassified", 6), ("secret program", 7), ("shadow government", 9), ("deep state", 8), ("psyop", 8),
+-            ("mandela effect", 8), ("simulation theory", 8), ("illuminati", 9), ("freemason", 7)
++            ("mandela effect", 8), ("simulation theory", 8), ("illuminati", 9), ("freemason", 7),
++            ("perpetual motion", 9), ("free energy", 9), ("infinite energy", 9), ("over unity", 8)
+         ])),
+         .init(id: "f-lmao", terms: weighted([
+             ("meme", 9), ("memes", 9), ("funny", 8), ("comedy", 8), ("joke", 7), ("lmao", 8), ("lol", 6),
+@@ -1858,7 +1913,11 @@ enum SAVIFolderClassifier {
+         let normalized = NormalizedInput(input)
+         return normalizedKey(input.type) == "place" ||
+             containsAny(normalized.url, ["maps google", "google com maps", "maps apple", "maps apple com"]) ||
+-            containsAny(normalized.all, ["map pin", "directions", "restaurant", "hotel"])
++            containsAny(normalized.all, ["map pin", "directions", "google maps", "apple maps"]) ||
++            (
++                containsAny(normalized.all, ["restaurant", "hotel", "museum", "cafe", "coffee shop"]) &&
++                containsAny(normalized.all, ["map", "pin", "directions", "recommendation", "nearby", "place"])
++            )
+     }
+ 
+     private static func isWatchable(_ input: SAVIFolderClassificationInput) -> Bool {
+@@ -1896,6 +1955,10 @@ enum SAVIFolderClassifier {
+         let privateDocument = looksPrivateDocument(input)
+         guard sensitive || privateDocument else { return false }
+ 
++        if looksLikeLifeAdminUtility(normalized), !hasHighRiskPrivateSignal(normalized) {
++            return false
++        }
++
+         if isEntertainmentContext(normalized), !hasHighRiskPrivateSignal(normalized) {
+             return false
+         }
+@@ -1917,6 +1980,41 @@ enum SAVIFolderClassifier {
+         return true
+     }
+ 
++    private static func shouldUseLifeAdminGuardrail(_ input: SAVIFolderClassificationInput, normalized: NormalizedInput) -> Bool {
++        guard looksLikeLifeAdminUtility(normalized), !hasHighRiskPrivateSignal(normalized) else {
++            return false
++        }
++
++        let isSaveableAdminAsset = containsAny(normalized.type, ["text", "file", "pdf", "image", "link", "article"]) ||
++            containsAny(normalized.source, ["photos", "files", "safari", "clipboard", "savi", "device"]) ||
++            containsAny(normalized.mimeType, ["image", "application pdf", "text plain"]) ||
++            (input.url ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
++
++        return isSaveableAdminAsset
++    }
++
++    private static func looksLikeLifeAdminUtility(_ normalized: NormalizedInput) -> Bool {
++        if containsAny(normalized.all, [
++            "driver license", "driver s license", "passport", "social security", "ssn",
++            "tax return", "w 2", "1099", "bank statement", "bank routing", "routing number",
++            "account number", "credit card", "debit card", "medical record", "lab result",
++            "prescription", "insurance card", "membership id", "paystub", "pay stub"
++        ]) {
++            return false
++        }
++
++        return containsAny(normalized.all, [
++            "door code", "access code", "guest code", "wifi", "wi fi", "wi-fi",
++            "booking confirmation", "hotel confirmation", "reservation confirmation",
++            "confirmation number", "itinerary", "checkout", "check in", "check-in",
++            "warranty", "warranty screenshot", "product registration", "serial number",
++            "model number", "appliance", "air conditioner", "a c warranty", "ac warranty",
++            "receipt note", "return receipt", "invoice", "support phone",
++            "contract template", "service agreement", "agreement template",
++            "recovery code", "backup code", "long code"
++        ])
++    }
++
+     private static func isEntertainmentContext(_ normalized: NormalizedInput) -> Bool {
+         containsAny(normalized.all, [
+             "official trailer", "teaser trailer", "movie", "film", "episode", "season", "series", "cinema",
+@@ -1928,7 +2026,8 @@ enum SAVIFolderClassifier {
+         containsAny(normalized.all, [
+             "health", "medical", "doctor", "symptom", "symptoms", "cleanse", "detox", "deworm",
+             "supplement", "vitamin", "protocol", "wellness", "fitness", "infection", "disease",
+-            "digestion", "gut", "microbiome", "workout", "therapy", "nutrition"
++            "digestion", "gut", "microbiome", "workout", "therapy", "nutrition", "autophagy",
++            "fasting", "fascia", "mobility", "cancer", "tumor", "mebendazole", "clinical trial"
+         ])
+     }
+ 
+@@ -1969,7 +2068,7 @@ enum SAVIFolderClassifier {
+ 
+     private static let folderGuidanceById: [String: (use: String, avoid: String)] = [
+         "f-life-admin": (
+-            use: "useful admin/reference items like door codes, Wi-Fi notes, reservation details, templates, contracts, receipts, certificates, non-secret account recovery notes, and practical life documents",
++            use: "useful admin/reference items like door codes, Wi-Fi notes, reservation details, warranty screenshots, product serial numbers, templates, contracts, receipts, certificates, non-secret account recovery notes, and practical life documents",
+             avoid: "actual private IDs, banking, medical, tax, credentials, passwords, seed phrases, or sensitive scans that belong in Private Vault"
+         ),
+         "f-must-see": (

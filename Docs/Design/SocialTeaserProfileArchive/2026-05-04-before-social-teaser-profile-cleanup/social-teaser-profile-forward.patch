@@ -1,0 +1,390 @@
+--- /Users/guest1/Documents/SAVI-iOS/Docs/Design/SocialTeaserProfileArchive/2026-05-04-before-social-teaser-profile-cleanup/files/ExploreLibraryView.swift	2026-05-04 19:13:29
++++ SAVI/Views/Explore/ExploreLibraryView.swift	2026-05-04 19:15:07
+@@ -55,6 +55,10 @@
+                     .transition(.opacity)
+                     .id("\(store.exploreScope.rawValue)-\(seed)")
+             }
++
++            if !SaviReleaseGate.socialFeaturesEnabled {
++                ExploreSocialTeaserCard()
++            }
+         }
+     }
+ }
+@@ -167,8 +171,54 @@
+                 }
+                 .buttonStyle(.plain)
+                 .accessibilityLabel("Show \(scope.title) in Explore")
++            }
++        }
++    }
++}
++
++private struct ExploreSocialTeaserCard: View {
++    var body: some View {
++        HStack(alignment: .center, spacing: 12) {
++            Image(systemName: "person.2.fill")
++                .font(SaviType.ui(.subheadline, weight: .black))
++                .frame(width: 38, height: 38)
++                .background(SaviTheme.softAccent.opacity(0.58))
++                .foregroundStyle(SaviTheme.accentText)
++                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
++
++            VStack(alignment: .leading, spacing: 4) {
++                HStack(spacing: 7) {
++                    Text("Friends are coming")
++                        .font(SaviType.ui(.subheadline, weight: .black))
++                        .foregroundStyle(SaviTheme.text)
++
++                    Text("BETA")
++                        .font(SaviType.ui(.caption2, weight: .black))
++                        .tracking(0.5)
++                        .padding(.horizontal, 7)
++                        .frame(height: 20)
++                        .background(SaviTheme.chartreuse.opacity(0.78))
++                        .foregroundStyle(.black)
++                        .clipShape(Capsule())
++                }
++
++                Text("Soon you’ll be able to follow friends and see the saves they choose to make public.")
++                    .font(SaviType.reading(.caption, weight: .regular))
++                    .foregroundStyle(SaviTheme.textMuted)
++                    .fixedSize(horizontal: false, vertical: true)
+             }
++
++            Spacer(minLength: 0)
+         }
++        .padding(13)
++        .background(SaviTheme.surface.opacity(0.66))
++        .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
++        .overlay(
++            RoundedRectangle(cornerRadius: 17, style: .continuous)
++                .stroke(SaviTheme.cardStroke.opacity(0.72), lineWidth: 1)
++        )
++        .accessibilityElement(children: .combine)
++        .accessibilityLabel("Friends are coming. Beta. Soon you'll be able to follow friends and see the saves they choose to make public.")
+     }
+ }
+
+--- /Users/guest1/Documents/SAVI-iOS/Docs/Design/SocialTeaserProfileArchive/2026-05-04-before-social-teaser-profile-cleanup/files/ProfileAndFriends.swift	2026-05-04 19:13:29
++++ SAVI/Views/Profile/ProfileAndFriends.swift	2026-05-04 19:17:09
+@@ -28,7 +28,7 @@
+                         title: "Profile",
+                         subtitle: SaviReleaseGate.socialFeaturesEnabled
+                             ? "Your account, sharing, backups, and archive controls."
+-                            : "Backups, privacy, and beta-ready archive controls."
++                            : "Backups, privacy, appearance, and archive controls."
+                     )
+
+                     StatsPanel()
+@@ -43,15 +43,19 @@
+
+                     ProfileShortcutGrid(
+                         openFolders: { store.openFoldersManagement() },
+-                        openBackups: { activeProfileSheet = .backup }
++                        openBackups: { activeProfileSheet = .backup },
++                        openAppearance: { activeProfileSheet = .appearance },
++                        openGuide: { activeProfileSheet = .guide }
+                     )
+
+                     ProfileSettingsGroup(
+                         openAccount: { activeProfileSheet = .account },
+-                        openAppearance: { activeProfileSheet = .appearance },
+-                        openGuide: { activeProfileSheet = .guide },
+                         openLibrary: { activeProfileSheet = .library }
+                     )
++
++                    if !SaviReleaseGate.socialFeaturesEnabled {
++                        ProfileSocialComingSoonCard()
++                    }
+                 }
+                 .padding(.horizontal, 18)
+                 .padding(.top, 18)
+@@ -238,55 +242,80 @@
+
+ struct ProfileBetaNotesCard: View {
+     var body: some View {
+-        SettingsCard(title: "TestFlight beta", symbol: "lock.shield.fill") {
+-            VStack(alignment: .leading, spacing: 11) {
+-                Text("This build keeps Social Beta off while SAVI is being reviewed. Your saves stay on this device unless you export an archive or use optional private iCloud backup.")
+-                    .font(SaviType.ui(.subheadline, weight: .semibold))
+-                    .foregroundStyle(SaviTheme.textMuted)
+-                    .fixedSize(horizontal: false, vertical: true)
++        VStack(alignment: .leading, spacing: 10) {
++            HStack(alignment: .center, spacing: 12) {
++                Image(systemName: "sparkles.rectangle.stack.fill")
++                    .font(SaviType.ui(.headline, weight: .black))
++                    .frame(width: 42, height: 42)
++                    .background(SaviTheme.softAccent.opacity(0.72))
++                    .foregroundStyle(SaviTheme.accentText)
++                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+-                VStack(spacing: 8) {
+-                    ProfileBetaNoteRow(symbol: "square.and.arrow.up", title: "Share Sheet", subtitle: "Fast saving from Safari, Photos, Files, YouTube, and more.")
+-                    ProfileBetaNoteRow(symbol: "lock.fill", title: "Private folders", subtitle: "Face ID and passcode locks stay local and hidden until unlocked.")
+-                    ProfileBetaNoteRow(symbol: "externaldrive.fill", title: "Full archive", subtitle: "Export or restore your complete SAVI library from Backups.")
+-                    ProfileBetaNoteRow(symbol: "person.2.slash.fill", title: "Social off", subtitle: "Friend feeds, public folders, and publishing are hidden in TestFlight.")
++                VStack(alignment: .leading, spacing: 3) {
++                    Text("SAVI Beta")
++                        .font(SaviType.ui(.headline, weight: .black))
++                        .foregroundStyle(SaviTheme.text)
++                    Text("Saving, folders, search, Private Vault, Explore, and full archive backup.")
++                        .font(SaviType.reading(.caption, weight: .regular))
++                        .foregroundStyle(SaviTheme.textMuted)
++                        .fixedSize(horizontal: false, vertical: true)
+                 }
+             }
++
++            HStack(spacing: 7) {
++                Image(systemName: "person.2.slash.fill")
++                    .font(SaviType.ui(.caption, weight: .black))
++                Text("Social sharing is in progress.")
++                    .font(SaviType.ui(.caption, weight: .bold))
++            }
++            .foregroundStyle(SaviTheme.metadataText)
++            .padding(.horizontal, 10)
++            .frame(minHeight: 30)
++            .background(SaviTheme.surfaceRaised.opacity(0.68))
++            .clipShape(Capsule())
+         }
++        .padding(14)
++        .frame(maxWidth: .infinity, alignment: .leading)
++        .saviCard(cornerRadius: 18)
++        .accessibilityElement(children: .combine)
++        .accessibilityLabel("SAVI Beta. This beta is focused on saving, folders, search, Private Vault, Explore, and full archive backup. Social sharing is in progress.")
+     }
+ }
+
+-private struct ProfileBetaNoteRow: View {
+-    let symbol: String
+-    let title: String
+-    let subtitle: String
+-
++struct ProfileSocialComingSoonCard: View {
+     var body: some View {
+-        HStack(alignment: .top, spacing: 10) {
+-            Image(systemName: symbol)
++        HStack(alignment: .center, spacing: 11) {
++            Image(systemName: "person.2.fill")
+                 .font(SaviType.ui(.subheadline, weight: .black))
+-                .frame(width: 34, height: 34)
+-                .background(SaviTheme.subtleSurface)
++                .frame(width: 36, height: 36)
++                .background(SaviTheme.surfaceRaised)
+                 .foregroundStyle(SaviTheme.accentText)
+-                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
++                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+-            VStack(alignment: .leading, spacing: 2) {
+-                Text(title)
+-                    .font(SaviType.ui(.subheadline, weight: .black))
+-                    .foregroundStyle(SaviTheme.text)
+-                Text(subtitle)
+-                    .font(SaviType.ui(.caption, weight: .semibold))
++            VStack(alignment: .leading, spacing: 3) {
++                HStack(spacing: 7) {
++                    Text("Coming soon")
++                        .font(SaviType.ui(.caption, weight: .black))
++                        .foregroundStyle(SaviTheme.textMuted)
++                    SocialBetaBadge()
++                }
++                Text("Follow friends and see public saves when Social is ready.")
++                    .font(SaviType.reading(.caption, weight: .regular))
+                     .foregroundStyle(SaviTheme.textMuted)
+                     .fixedSize(horizontal: false, vertical: true)
+             }
++
++            Spacer(minLength: 0)
+         }
+-        .padding(10)
+-        .background(SaviTheme.surface.opacity(0.62))
+-        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
++        .padding(13)
++        .background(SaviTheme.surface.opacity(0.58))
++        .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
+         .overlay(
+-            RoundedRectangle(cornerRadius: 15, style: .continuous)
+-                .stroke(SaviTheme.cardStroke.opacity(0.72), lineWidth: 1)
++            RoundedRectangle(cornerRadius: 17, style: .continuous)
++                .stroke(SaviTheme.cardStroke.opacity(0.68), lineWidth: 1)
+         )
++        .accessibilityElement(children: .combine)
++        .accessibilityLabel("Coming soon. Social Beta. Follow friends and see public saves when Social is ready.")
+     }
+ }
+
+@@ -294,10 +323,10 @@
+     var body: some View {
+         SettingsCard(title: "Social Beta", symbol: "person.2.slash.fill") {
+             VStack(alignment: .leading, spacing: 10) {
+-                Text("Social is disabled for this TestFlight build.")
++                Text("Social is in progress.")
+                     .font(SaviType.ui(.headline, weight: .black))
+                     .foregroundStyle(SaviTheme.text)
+-                Text("Friend feeds, public profiles, public folder publishing, likes, and public CloudKit writes are hidden until SAVI has moderation, reporting, and terms ready for review.")
++                Text("Friend feeds, public profiles, likes, and public publishing stay hidden until SAVI has moderation, reporting, and terms ready for review.")
+                     .font(SaviType.ui(.subheadline, weight: .semibold))
+                     .foregroundStyle(SaviTheme.textMuted)
+                     .fixedSize(horizontal: false, vertical: true)
+@@ -348,6 +377,8 @@
+ struct ProfileShortcutGrid: View {
+     let openFolders: () -> Void
+     let openBackups: () -> Void
++    let openAppearance: () -> Void
++    let openGuide: () -> Void
+
+     private let columns = [
+         GridItem(.flexible(), spacing: 10),
+@@ -357,21 +388,37 @@
+     var body: some View {
+         LazyVGrid(columns: columns, spacing: 10) {
+             ProfileShortcutTile(
+-                title: "Folders",
+-                subtitle: "Organize and lock stacks.",
+-                symbol: "folder.fill",
+-                tint: SaviTheme.accentText,
+-                action: openFolders
+-            )
+-
+-            ProfileShortcutTile(
+                 title: "Backups",
+-                subtitle: "iCloud and file restore.",
++                subtitle: "Export or restore archives.",
+                 symbol: "externaldrive.fill",
+                 tint: SaviTheme.chartreuse,
+                 iconForeground: .black,
+                 action: openBackups
+             )
++
++            ProfileShortcutTile(
++                title: "Private Vault",
++                subtitle: "Manage locked folders.",
++                symbol: "lock.shield.fill",
++                tint: SaviTheme.accentText,
++                action: openFolders
++            )
++
++            ProfileShortcutTile(
++                title: "Appearance",
++                subtitle: "Theme and Home layout.",
++                symbol: "moon.stars.fill",
++                tint: SaviTheme.accentText,
++                action: openAppearance
++            )
++
++            ProfileShortcutTile(
++                title: "Guide",
++                subtitle: "Tour and Share Sheet setup.",
++                symbol: "questionmark.circle.fill",
++                tint: SaviTheme.accentText,
++                action: openGuide
++            )
+         }
+     }
+ }
+@@ -417,8 +464,6 @@
+ struct ProfileSettingsGroup: View {
+     @EnvironmentObject private var store: SaviStore
+     let openAccount: () -> Void
+-    let openAppearance: () -> Void
+-    let openGuide: () -> Void
+     let openLibrary: () -> Void
+
+     var body: some View {
+@@ -435,21 +480,6 @@
+                 )
+
+                 ProfileSettingsRow(
+-                    title: "Appearance",
+-                    subtitle: "Theme follows \(themeLabel.lowercased()).",
+-                    symbol: "moon.stars.fill",
+-                    trailing: themeLabel,
+-                    action: openAppearance
+-                )
+-
+-                ProfileSettingsRow(
+-                    title: "Guide",
+-                    subtitle: "Replay the quick tour.",
+-                    symbol: "questionmark.circle.fill",
+-                    action: openGuide
+-                )
+-
+-                ProfileSettingsRow(
+                     title: "Library tools",
+                     subtitle: "Sample saves, archives, and device cleanup.",
+                     symbol: "archivebox.fill",
+@@ -459,14 +489,6 @@
+             }
+         }
+     }
+-
+-    private var themeLabel: String {
+-        switch store.prefs.themeMode {
+-        case "dark": return "Dark"
+-        case "light": return "Light"
+-        default: return "System"
+-        }
+-    }
+ }
+
+ struct ProfileSettingsRow: View {
+--- /Users/guest1/Documents/SAVI-iOS/Docs/Design/SocialTeaserProfileArchive/2026-05-04-before-social-teaser-profile-cleanup/files/AppComponents.swift	2026-05-04 19:13:29
++++ SAVI/Views/Components/AppComponents.swift	2026-05-04 19:16:52
+@@ -22,14 +22,14 @@
+             VStack(alignment: .leading, spacing: 16) {
+                 HeaderBlock(
+                     eyebrow: "TestFlight",
+-                    title: "Social is off",
+-                    subtitle: "This beta focuses on private saving, folders, search, Explore, locks, and archive export. Friend feeds and public publishing are hidden until moderation and terms are ready.",
++                    title: "Social is coming",
++                    subtitle: "This beta focuses on private saving, folders, search, Explore, locks, and full archive backup. Friend feeds and public publishing are in progress.",
+                     titleSize: 32
+                 )
+
+                 VStack(alignment: .leading, spacing: 10) {
+-                    Label("No public profile changes", systemImage: "person.2.slash.fill")
+-                    Label("No public CloudKit publishing", systemImage: "icloud.slash.fill")
++                    Label("No friend feed in this build", systemImage: "person.2.slash.fill")
++                    Label("No public publishing yet", systemImage: "icloud.slash.fill")
+                     Label("Your saved files stay private", systemImage: "lock.shield.fill")
+                 }
+                 .font(SaviType.ui(.subheadline, weight: .black))
+@@ -41,7 +41,7 @@
+             }
+             .padding(18)
+             .background(SaviTheme.background.ignoresSafeArea())
+-            .navigationTitle("Social Beta")
++            .navigationTitle("Coming soon")
+             .navigationBarTitleDisplayMode(.inline)
+             .toolbar {
+                 ToolbarItem(placement: .confirmationAction) {
+--- /Users/guest1/Documents/SAVI-iOS/Docs/Design/SocialTeaserProfileArchive/2026-05-04-before-social-teaser-profile-cleanup/files/2026-05-04.md	2026-05-04 19:13:29
++++ Docs/ChangeLog/2026-05-04.md	2026-05-04 19:29:22
+@@ -268,3 +268,27 @@
+   `/Users/guest1/Desktop/SAVI_QA/savi_v11_utility_home_2026-05-04.png`
+   and
+   `/Users/guest1/Desktop/SAVI_QA/savi_v11_utility_home_mid_2026-05-04.png`.
++
++## Social Teaser And Profile Cleanup
++
++- Created rollback archive:
++  `Docs/Design/SocialTeaserProfileArchive/2026-05-04-before-social-teaser-profile-cleanup/`.
++- Kept `SAVI` Release/TestFlight social-safe: Explore shows only `All` and
++  `Mine`, with a subtle `Friends are coming` Beta teaser instead of a real
++  Friends tab, add-friend input, public profile editing, or public publishing.
++- Kept `SAVI Test` Debug social-enabled for internal development: Friends scope,
++  friend actions, and the Social Beta profile card remain visible.
++- Reworked Release Profile into a cleaner stack: compact `SAVI Beta` card,
++  Backups, Private Vault, Appearance, Guide, Account/iCloud, Library tools, and
++  a small `Coming soon` Social Beta note.
++- Softened the disabled social sheet copy to explain that Social is coming
++  rather than presenting a broken feature.
++- Built and installed both simulator channels:
++  `com.savi.app` and `com.altatecrd.savi.personaldebug`.
++- Captured QA screenshots:
++  `/Users/guest1/Desktop/SAVI_QA/savi_social_teaser_explore_release_2026-05-04.jpg`,
++  `/Users/guest1/Desktop/SAVI_QA/savi_social_teaser_explore_footer_release_2026-05-04.jpg`,
++  `/Users/guest1/Desktop/SAVI_QA/savi_profile_cleanup_release_2026-05-04.jpg`,
++  `/Users/guest1/Desktop/SAVI_QA/savi_test_social_explore_debug_2026-05-04.jpg`,
++  and
++  `/Users/guest1/Desktop/SAVI_QA/savi_test_social_profile_debug_2026-05-04.jpg`.

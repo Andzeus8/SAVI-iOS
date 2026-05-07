@@ -7,15 +7,32 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		053B53F65947BE5A89AED001 /* ShareItemExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22F59BE4ED4D78D7DFA5510 /* ShareItemExtractor.swift */; };
+		0A73FB184D18F78B889FB2BB /* Views/Profile/ProfileAndFriends.swift in Sources */ = {isa = PBXBuildFile; fileRef = D166879B440A6F89A637ABAA /* Views/Profile/ProfileAndFriends.swift */; };
 		17450B03B5250677DE7C0400 /* AppGroupSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */; };
-		21369F7A43FA24862791478A /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = E31AD178E16028A5BC865A87 /* index.html */; };
+		1EBFE9922D71262ABD190A52 /* Views/Components/AppComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EAF1025489363942E32DA03 /* Views/Components/AppComponents.swift */; };
+		2C2C1C0A4325CB28983D7BF1 /* Views/Folders/FolderComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2826535DAA243707DBEDB4 /* Views/Folders/FolderComponents.swift */; };
+		2E1362452A98F02BB35F1D8B /* Views/Items/ItemViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D338123ABAC95D43929E065 /* Views/Items/ItemViews.swift */; };
+		501CDA10B3D3B6325275890E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5E40DFD2F8E0A52A92271618 /* PrivacyInfo.xcprivacy */; };
+		5AE55BEA7ADDEE6F74212BED /* ShareItemExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADB78E370A042E025ABF5D4 /* ShareItemExtractor.swift */; };
 		6F56B5EA8EC5CA14D357CD09 /* SAVIShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, CodeSignOnCopy, ); }; };
 		75AB82B9897966CCF7028E0D /* AppGroupSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */; };
-		8D3C48C404FF29E62E974B6A /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E0E01594654714FD620E2F /* ShareViewController.swift */; };
-		9E0BF8DF6A2ACE7388B73DA7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25AEFE6C525A4559AFE2FCB0 /* ContentView.swift */; };
+		82457E00F8DA24234859881F /* Views/Folders/FolderBrainSettingsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF227CBE023EB9CCF3F90E6D /* Views/Folders/FolderBrainSettingsCard.swift */; };
+		85711EFD161397F71F0C14D7 /* Views/Save/SaveAndEditSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEBE255DC1157E1A7DA4FD96 /* Views/Save/SaveAndEditSheets.swift */; };
+		890932D034281E4E91BFC2AB /* Views/Explore/ExploreScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53945E235AEE3372A7962B6C /* Views/Explore/ExploreScreen.swift */; };
+		A113D6FAC0D8A2D8A60C5A82 /* Views/Folders/FoldersScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED720D56919D0A52DB70DC3 /* Views/Folders/FoldersScreen.swift */; };
+		A17CCA65790D2FB31D47B528 /* Views/Home/HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A72A0A4826AA5DC66A583B8 /* Views/Home/HomeScreen.swift */; };
+		AE1ADBE2271AF0A051249779 /* Views/Explore/ExploreLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C73790530FCF6C539CE4E6 /* Views/Explore/ExploreLibraryView.swift */; };
 		B1E3D6A7B0FF22BD01EB91E2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 98D87BA38D841BBC3186FCAC /* Assets.xcassets */; };
-		BADCDEFE3A64A6DE77A5879A /* SAVIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 454E8F99EB5E199E927BA378 /* SAVIApp.swift */; };
+		B9DEBF48B85A9BE25A8B9E5C /* Views/Search/SearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A1AB9F2889CE8E1FD7F9F9 /* Views/Search/SearchScreen.swift */; };
+		BA473D208670028D4C739F0C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B719040B173AD971B5BA57EF /* PrivacyInfo.xcprivacy */; };
+		BFACB20FD6E3BBEF240293E5 /* Services/LegacyAndUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C6C7F73B112A00ABB33153 /* Services/LegacyAndUtilities.swift */; };
+		C0521F507B2815780C8572ED /* Views/Root/NativeSaviRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9151FAEC9F2FF69E40F6E10A /* Views/Root/NativeSaviRootView.swift */; };
+		C0821CBB2C13D4A2A94A4A04 /* SAVIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9245D7F6243B8F5E2DCBA4AE /* SAVIApp.swift */; };
+		C4A861AE577862D8085287F9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB7D49DEB6A5B38091231594 /* ContentView.swift */; };
+		CC63859220D1D992CEE0AD14 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E49273AD35B2A825630406 /* ShareViewController.swift */; };
+		CEB167C7DFEC74A86ABB4BB2 /* Views/Search/SearchComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F8AC7B1B96FA8214BA76D83 /* Views/Search/SearchComponents.swift */; };
+		C6A9D4E7B15249388F70D222 /* Core/SaviArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F13A7C8B394D2F9234A111 /* Core/SaviArchive.swift */; };
+		DBA16A16F0625D365A2C825A /* Core/SaviCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE6624FFF9F559ACAF7E9441 /* Core/SaviCore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,17 +62,34 @@
 /* Begin PBXFileReference section */
 		11333F90426CE69B5643FED6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1DB32B332BE1517C41DD323F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1EAF1025489363942E32DA03 /* Views/Components/AppComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Components/AppComponents.swift; sourceTree = "<group>"; };
 		23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupSupport.swift; sourceTree = "<group>"; };
-		25AEFE6C525A4559AFE2FCB0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		454E8F99EB5E199E927BA378 /* SAVIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAVIApp.swift; sourceTree = "<group>"; };
+		2F8AC7B1B96FA8214BA76D83 /* Views/Search/SearchComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Search/SearchComponents.swift; sourceTree = "<group>"; };
+		31C73790530FCF6C539CE4E6 /* Views/Explore/ExploreLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Explore/ExploreLibraryView.swift; sourceTree = "<group>"; };
+		53945E235AEE3372A7962B6C /* Views/Explore/ExploreScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Explore/ExploreScreen.swift; sourceTree = "<group>"; };
+		5A72A0A4826AA5DC66A583B8 /* Views/Home/HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Home/HomeScreen.swift; sourceTree = "<group>"; };
+		5E40DFD2F8E0A52A92271618 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		8065247801A22C3651B51CB2 /* SAVI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SAVI.entitlements; sourceTree = "<group>"; };
 		8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SAVIShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		8D338123ABAC95D43929E065 /* Views/Items/ItemViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Items/ItemViews.swift; sourceTree = "<group>"; };
+		9151FAEC9F2FF69E40F6E10A /* Views/Root/NativeSaviRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Root/NativeSaviRootView.swift; sourceTree = "<group>"; };
+		9245D7F6243B8F5E2DCBA4AE /* SAVIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAVIApp.swift; sourceTree = "<group>"; };
 		98D87BA38D841BBC3186FCAC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		B22F59BE4ED4D78D7DFA5510 /* ShareItemExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareItemExtractor.swift; sourceTree = "<group>"; };
+		A7E49273AD35B2A825630406 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		A8A1AB9F2889CE8E1FD7F9F9 /* Views/Search/SearchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Search/SearchScreen.swift; sourceTree = "<group>"; };
+		AADB78E370A042E025ABF5D4 /* ShareItemExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareItemExtractor.swift; sourceTree = "<group>"; };
+		AF227CBE023EB9CCF3F90E6D /* Views/Folders/FolderBrainSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Folders/FolderBrainSettingsCard.swift; sourceTree = "<group>"; };
+		B719040B173AD971B5BA57EF /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		C03382BE6DF2A2C64092D179 /* SAVIShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SAVIShareExtension.entitlements; sourceTree = "<group>"; };
-		E31AD178E16028A5BC865A87 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
+		CEBE255DC1157E1A7DA4FD96 /* Views/Save/SaveAndEditSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Save/SaveAndEditSheets.swift; sourceTree = "<group>"; };
+		CED720D56919D0A52DB70DC3 /* Views/Folders/FoldersScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Folders/FoldersScreen.swift; sourceTree = "<group>"; };
+		D166879B440A6F89A637ABAA /* Views/Profile/ProfileAndFriends.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Profile/ProfileAndFriends.swift; sourceTree = "<group>"; };
+		DE6624FFF9F559ACAF7E9441 /* Core/SaviCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/SaviCore.swift; sourceTree = "<group>"; };
+		E5F13A7C8B394D2F9234A111 /* Core/SaviArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/SaviArchive.swift; sourceTree = "<group>"; };
+		E6C6C7F73B112A00ABB33153 /* Services/LegacyAndUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LegacyAndUtilities.swift; sourceTree = "<group>"; };
 		E816792053DE2717A057744F /* SAVI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SAVI.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		F7E0E01594654714FD620E2F /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		FB2826535DAA243707DBEDB4 /* Views/Folders/FolderComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Folders/FolderComponents.swift; sourceTree = "<group>"; };
+		FB7D49DEB6A5B38091231594 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,9 +140,26 @@
 		42006AB264CF2AB66A8087C0 /* SAVI */ = {
 			isa = PBXGroup;
 			children = (
-				454E8F99EB5E199E927BA378 /* SAVIApp.swift */,
-				25AEFE6C525A4559AFE2FCB0 /* ContentView.swift */,
+				FB7D49DEB6A5B38091231594 /* ContentView.swift */,
+				DE6624FFF9F559ACAF7E9441 /* Core/SaviCore.swift */,
+				E5F13A7C8B394D2F9234A111 /* Core/SaviArchive.swift */,
+				9245D7F6243B8F5E2DCBA4AE /* SAVIApp.swift */,
+				E6C6C7F73B112A00ABB33153 /* Services/LegacyAndUtilities.swift */,
+				1EAF1025489363942E32DA03 /* Views/Components/AppComponents.swift */,
+				31C73790530FCF6C539CE4E6 /* Views/Explore/ExploreLibraryView.swift */,
+				53945E235AEE3372A7962B6C /* Views/Explore/ExploreScreen.swift */,
+				AF227CBE023EB9CCF3F90E6D /* Views/Folders/FolderBrainSettingsCard.swift */,
+				FB2826535DAA243707DBEDB4 /* Views/Folders/FolderComponents.swift */,
+				CED720D56919D0A52DB70DC3 /* Views/Folders/FoldersScreen.swift */,
+				5A72A0A4826AA5DC66A583B8 /* Views/Home/HomeScreen.swift */,
+				8D338123ABAC95D43929E065 /* Views/Items/ItemViews.swift */,
+				D166879B440A6F89A637ABAA /* Views/Profile/ProfileAndFriends.swift */,
+				9151FAEC9F2FF69E40F6E10A /* Views/Root/NativeSaviRootView.swift */,
+				CEBE255DC1157E1A7DA4FD96 /* Views/Save/SaveAndEditSheets.swift */,
+				2F8AC7B1B96FA8214BA76D83 /* Views/Search/SearchComponents.swift */,
+				A8A1AB9F2889CE8E1FD7F9F9 /* Views/Search/SearchScreen.swift */,
 				11333F90426CE69B5643FED6 /* Info.plist */,
+				B719040B173AD971B5BA57EF /* PrivacyInfo.xcprivacy */,
 				8065247801A22C3651B51CB2 /* SAVI.entitlements */,
 				98D87BA38D841BBC3186FCAC /* Assets.xcassets */,
 				CA2DA976D1169AE0BBF0B8BE /* Resources */,
@@ -119,7 +170,6 @@
 		CA2DA976D1169AE0BBF0B8BE /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				E31AD178E16028A5BC865A87 /* index.html */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -127,9 +177,10 @@
 		DF34336E66928187F4B1CAB6 /* SAVIShareExtension */ = {
 			isa = PBXGroup;
 			children = (
-				F7E0E01594654714FD620E2F /* ShareViewController.swift */,
-				B22F59BE4ED4D78D7DFA5510 /* ShareItemExtractor.swift */,
+				AADB78E370A042E025ABF5D4 /* ShareItemExtractor.swift */,
+				A7E49273AD35B2A825630406 /* ShareViewController.swift */,
 				1DB32B332BE1517C41DD323F /* Info.plist */,
+				5E40DFD2F8E0A52A92271618 /* PrivacyInfo.xcprivacy */,
 				C03382BE6DF2A2C64092D179 /* SAVIShareExtension.entitlements */,
 			);
 			path = SAVIShareExtension;
@@ -218,6 +269,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				501CDA10B3D3B6325275890E /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -226,7 +278,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B1E3D6A7B0FF22BD01EB91E2 /* Assets.xcassets in Resources */,
-				21369F7A43FA24862791478A /* index.html in Resources */,
+				BA473D208670028D4C739F0C /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -237,8 +289,24 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BADCDEFE3A64A6DE77A5879A /* SAVIApp.swift in Sources */,
-				9E0BF8DF6A2ACE7388B73DA7 /* ContentView.swift in Sources */,
+				C4A861AE577862D8085287F9 /* ContentView.swift in Sources */,
+				DBA16A16F0625D365A2C825A /* Core/SaviCore.swift in Sources */,
+				C6A9D4E7B15249388F70D222 /* Core/SaviArchive.swift in Sources */,
+				C0821CBB2C13D4A2A94A4A04 /* SAVIApp.swift in Sources */,
+				BFACB20FD6E3BBEF240293E5 /* Services/LegacyAndUtilities.swift in Sources */,
+				1EBFE9922D71262ABD190A52 /* Views/Components/AppComponents.swift in Sources */,
+				AE1ADBE2271AF0A051249779 /* Views/Explore/ExploreLibraryView.swift in Sources */,
+				890932D034281E4E91BFC2AB /* Views/Explore/ExploreScreen.swift in Sources */,
+				82457E00F8DA24234859881F /* Views/Folders/FolderBrainSettingsCard.swift in Sources */,
+				2C2C1C0A4325CB28983D7BF1 /* Views/Folders/FolderComponents.swift in Sources */,
+				A113D6FAC0D8A2D8A60C5A82 /* Views/Folders/FoldersScreen.swift in Sources */,
+				A17CCA65790D2FB31D47B528 /* Views/Home/HomeScreen.swift in Sources */,
+				2E1362452A98F02BB35F1D8B /* Views/Items/ItemViews.swift in Sources */,
+				0A73FB184D18F78B889FB2BB /* Views/Profile/ProfileAndFriends.swift in Sources */,
+				C0521F507B2815780C8572ED /* Views/Root/NativeSaviRootView.swift in Sources */,
+				85711EFD161397F71F0C14D7 /* Views/Save/SaveAndEditSheets.swift in Sources */,
+				CEB167C7DFEC74A86ABB4BB2 /* Views/Search/SearchComponents.swift in Sources */,
+				B9DEBF48B85A9BE25A8B9E5C /* Views/Search/SearchScreen.swift in Sources */,
 				17450B03B5250677DE7C0400 /* AppGroupSupport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -247,8 +315,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8D3C48C404FF29E62E974B6A /* ShareViewController.swift in Sources */,
-				053B53F65947BE5A89AED001 /* ShareItemExtractor.swift in Sources */,
+				5AE55BEA7ADDEE6F74212BED /* ShareItemExtractor.swift in Sources */,
+				CC63859220D1D992CEE0AD14 /* ShareViewController.swift in Sources */,
 				75AB82B9897966CCF7028E0D /* AppGroupSupport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -270,11 +338,11 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 887JW5T2M8;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -284,8 +352,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = SAVI/SAVI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				CURRENT_PROJECT_VERSION = 18;
+				DEVELOPMENT_TEAM = 887JW5T2M8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SAVI/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -294,11 +362,14 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.savi.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.altatecrd.savi;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SAVI_DISPLAY_NAME = SAVI;
+				SAVI_SAMPLE_LIBRARY_ENABLED = YES;
+				SAVI_URL_SCHEME = savi;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -306,10 +377,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = SAVI/SAVI.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "SAVI/SAVI-PersonalDebug.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				CURRENT_PROJECT_VERSION = 18;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 887JW5T2M8;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SAVI/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -318,11 +392,18 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.savi.app;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.altatecrd.savi.personaldebug;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SAVI_DISPLAY_NAME = "SAVI Test";
+				SAVI_SAMPLE_LIBRARY_ENABLED = YES;
+				SAVI_URL_SCHEME = "savi-debug";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_COMPILATION_MODE = incremental;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -332,8 +413,8 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = SAVIShareExtension/SAVIShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				CURRENT_PROJECT_VERSION = 18;
+				DEVELOPMENT_TEAM = 887JW5T2M8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SAVIShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -343,12 +424,13 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.savi.app.ShareExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.altatecrd.savi.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SAVI_SHARE_DISPLAY_NAME = "SAVI Share";
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -358,11 +440,18 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 887JW5T2M8;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_COMPILATION_MODE = incremental;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -370,10 +459,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = SAVIShareExtension/SAVIShareExtension.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "SAVIShareExtension/SAVIShareExtension-PersonalDebug.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				CURRENT_PROJECT_VERSION = 18;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 887JW5T2M8;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SAVIShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -383,12 +475,17 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.savi.app.ShareExtension;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.altatecrd.savi.personaldebug.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SAVI_SHARE_DISPLAY_NAME = "SAVI Test Share";
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_COMPILATION_MODE = incremental;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};

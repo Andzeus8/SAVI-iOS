@@ -1,12 +1,21 @@
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 enum SAVISharedContainer {
-    static let appGroupIdentifier = "group.com.savi.shared"
+    static let productionAppGroupIdentifier = "group.com.altatecrd.savi.shared"
+    static let personalDebugAppGroupIdentifier = "group.com.altatecrd.savi.personaldebug"
+    static var appGroupIdentifier: String {
+        let bundleIdentifier = Bundle.main.bundleIdentifier ?? ""
+        return bundleIdentifier.contains(".personaldebug") ? personalDebugAppGroupIdentifier : productionAppGroupIdentifier
+    }
     static let pendingSharesDirectory = "pending_shares"
     static let pendingAssetsDirectory = "pending_assets"
     static let foldersFileName = "folders.json"
     static let folderLearningFileName = "folder_learning.json"
     static let folderDecisionsFileName = "folder_decisions.json"
+    static let shareSetupStateFileName = "share_setup_state.json"
 }
 
 struct PendingShare: Codable, Identifiable {
@@ -49,6 +58,182 @@ struct PendingShare: Codable, Identifiable {
     }
 }
 
+enum SAVIDeepLinkShare {
+    private static let productionScheme = "savi"
+    private static let debugScheme = "savi-debug"
+    private static let host = "share"
+    private static let acceptedSchemes: Set<String> = [productionScheme, debugScheme]
+    private static let maxTitleLength = 180
+    private static let maxFieldLength = 1_200
+    private static let maxURLLength = 3_500
+    private static let maxTags = 12
+
+    static var preferredScheme: String {
+        let bundleIdentifier = Bundle.main.bundleIdentifier ?? ""
+        return bundleIdentifier.contains(".personaldebug") ? debugScheme : productionScheme
+    }
+
+    static func supportsFallback(_ share: PendingShare) -> Bool {
+        guard clean(share.filePath) == nil else { return false }
+        if let thumbnail = clean(share.thumbnail), thumbnail.hasPrefix("data:") {
+            return false
+        }
+        return clean(share.url) != nil ||
+            clean(share.text) != nil ||
+            clean(share.itemDescription) != nil ||
+            clean(share.title) != nil
+    }
+
+    static func makeURL(from share: PendingShare) -> URL? {
+        guard supportsFallback(share) else { return nil }
+
+        var components = URLComponents()
+        components.scheme = preferredScheme
+        components.host = host
+
+        var queryItems: [URLQueryItem] = []
+        append("id", share.id, to: &queryItems)
+        append("url", share.url, to: &queryItems, limit: maxURLLength)
+        append("title", share.title, to: &queryItems, limit: maxTitleLength)
+        append("type", share.type, to: &queryItems)
+        append("thumbnail", share.thumbnail, to: &queryItems, limit: maxURLLength)
+        append("timestamp", String(share.timestamp), to: &queryItems)
+        append("source_app", share.sourceApp, to: &queryItems)
+        append("text", share.text, to: &queryItems)
+        append("file_name", share.fileName, to: &queryItems)
+        append("mime_type", share.mimeType, to: &queryItems)
+        append("description", share.itemDescription, to: &queryItems)
+        append("folder_id", share.folderId, to: &queryItems)
+        append("folder_source", share.folderSource, to: &queryItems)
+        append("folder_confidence", share.folderConfidence.map(String.init), to: &queryItems)
+        append("folder_reason", share.folderReason, to: &queryItems)
+
+        for tag in (share.tags ?? []).prefix(maxTags) {
+            append("tag", tag, to: &queryItems, limit: 48)
+        }
+
+        components.queryItems = queryItems
+        return components.url
+    }
+
+    static func pendingShare(from url: URL) -> PendingShare? {
+        guard let scheme = url.scheme?.lowercased(),
+              acceptedSchemes.contains(scheme),
+              url.host == host,
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else {
+            return nil
+        }
+
+        let queryItems = components.queryItems ?? []
+        func first(_ name: String) -> String? {
+            queryItems.first(where: { $0.name == name })?.value.flatMap(clean)
+        }
+
+        let tags = queryItems
+            .filter { $0.name == "tag" }
+            .compactMap { $0.value.flatMap(clean) }
+
+        let title = first("title") ??
+            first("url").flatMap { URL(string: $0)?.host } ??
+            "Shared item"
+        let type = first("type") ?? (first("url") == nil ? "text" : "link")
+        let timestamp = first("timestamp").flatMap(Double.init) ?? Date().timeIntervalSince1970
+
+        return PendingShare(
+            id: first("id") ?? UUID().uuidString,
+            url: first("url"),
+            title: title,
+            type: type,
+            thumbnail: first("thumbnail"),
+            timestamp: timestamp,
+            sourceApp: first("source_app") ?? "Share Extension",
+            text: first("text"),
+            fileName: first("file_name"),
+            filePath: nil,
+            mimeType: first("mime_type"),
+            itemDescription: first("description"),
+            folderId: first("folder_id"),
+            folderSource: first("folder_source"),
+            folderConfidence: first("folder_confidence").flatMap(Int.init),
+            folderReason: first("folder_reason"),
+            tags: tags.isEmpty ? nil : tags
+        )
+    }
+
+    private static func append(_ name: String, _ value: String?, to queryItems: inout [URLQueryItem], limit: Int = maxFieldLength) {
+        guard let value = clipped(value, limit: limit) else { return }
+        queryItems.append(URLQueryItem(name: name, value: value))
+    }
+
+    private static func clean(_ value: String?) -> String? {
+        guard let cleaned = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !cleaned.isEmpty
+        else {
+            return nil
+        }
+        return cleaned
+    }
+
+    private static func clipped(_ value: String?, limit: Int) -> String? {
+        guard let cleaned = clean(value) else { return nil }
+        guard cleaned.count > limit else { return cleaned }
+        return String(cleaned.prefix(limit))
+    }
+}
+
+#if canImport(UIKit)
+enum SAVIPasteboardShare {
+    private static let payloadType = "com.savi.pending-share+json"
+    private static let handoffHost = "handoff"
+    private static let acceptedSchemes: Set<String> = ["savi", "savi-debug"]
+
+    static func save(_ share: PendingShare) -> Bool {
+        guard SAVIDeepLinkShare.supportsFallback(share),
+              let data = try? JSONEncoder().encode(share)
+        else {
+            return false
+        }
+
+        UIPasteboard.general.setItems(
+            [[payloadType: data]],
+            options: [
+                .localOnly: true,
+                .expirationDate: Date().addingTimeInterval(10 * 60)
+            ]
+        )
+        return true
+    }
+
+    static func load() -> PendingShare? {
+        for item in UIPasteboard.general.items {
+            if let data = item[payloadType] as? Data,
+               let share = try? JSONDecoder().decode(PendingShare.self, from: data) {
+                return share
+            }
+        }
+        return nil
+    }
+
+    static func clearIfCurrent(_ share: PendingShare) {
+        guard load()?.id == share.id else { return }
+        UIPasteboard.general.items = []
+    }
+
+    static func makeHandoffURL() -> URL? {
+        var components = URLComponents()
+        components.scheme = SAVIDeepLinkShare.preferredScheme
+        components.host = handoffHost
+        return components.url
+    }
+
+    static func isHandoffURL(_ url: URL) -> Bool {
+        guard let scheme = url.scheme?.lowercased() else { return false }
+        return acceptedSchemes.contains(scheme) && url.host == handoffHost
+    }
+}
+#endif
+
 struct SharedFolder: Codable, Identifiable {
     var id: String
     var name: String
@@ -56,6 +241,17 @@ struct SharedFolder: Codable, Identifiable {
     var system: Bool
     var symbolName: String?
     var order: Int
+    var isPublic: Bool
+
+    init(id: String, name: String, color: String?, system: Bool, symbolName: String?, order: Int, isPublic: Bool = false) {
+        self.id = id
+        self.name = name
+        self.color = color
+        self.system = system
+        self.symbolName = symbolName
+        self.order = order
+        self.isPublic = isPublic
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -64,6 +260,85 @@ struct SharedFolder: Codable, Identifiable {
         case system
         case symbolName = "symbol_name"
         case order
+        case isPublic = "is_public"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        color = try container.decodeIfPresent(String.self, forKey: .color)
+        system = try container.decodeIfPresent(Bool.self, forKey: .system) ?? false
+        symbolName = try container.decodeIfPresent(String.self, forKey: .symbolName)
+        order = try container.decodeIfPresent(Int.self, forKey: .order) ?? 0
+        isPublic = try container.decodeIfPresent(Bool.self, forKey: .isPublic) ?? false
+    }
+}
+
+struct SAVIRecentShareFolderUse: Codable, Identifiable, Equatable {
+    var folderId: String
+    var useCount: Int
+    var lastUsedAt: Double
+
+    var id: String { folderId }
+
+    enum CodingKeys: String, CodingKey {
+        case folderId = "folder_id"
+        case useCount = "use_count"
+        case lastUsedAt = "last_used_at"
+    }
+}
+
+struct SAVIShareSetupState: Codable, Equatable {
+    var shareExtensionSaveCount: Int = 0
+    var firstShareExtensionSaveAt: Double?
+    var lastShareExtensionSaveAt: Double?
+    var lastSavedFolderId: String?
+    var recentFolders: [SAVIRecentShareFolderUse] = []
+
+    enum CodingKeys: String, CodingKey {
+        case shareExtensionSaveCount = "share_extension_save_count"
+        case firstShareExtensionSaveAt = "first_share_extension_save_at"
+        case lastShareExtensionSaveAt = "last_share_extension_save_at"
+        case lastSavedFolderId = "last_saved_folder_id"
+        case recentFolders = "recent_folders"
+    }
+
+    mutating func recordSuccessfulShare(folderId: String?, at timestamp: Double = Date().timeIntervalSince1970) {
+        shareExtensionSaveCount += 1
+        if firstShareExtensionSaveAt == nil {
+            firstShareExtensionSaveAt = timestamp
+        }
+        lastShareExtensionSaveAt = timestamp
+
+        guard let folderId = folderId?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !folderId.isEmpty
+        else { return }
+
+        lastSavedFolderId = folderId
+        if let index = recentFolders.firstIndex(where: { $0.folderId == folderId }) {
+            recentFolders[index].useCount += 1
+            recentFolders[index].lastUsedAt = timestamp
+        } else {
+            recentFolders.append(
+                SAVIRecentShareFolderUse(
+                    folderId: folderId,
+                    useCount: 1,
+                    lastUsedAt: timestamp
+                )
+            )
+        }
+
+        recentFolders = Array(
+            recentFolders
+                .sorted {
+                    if $0.lastUsedAt == $1.lastUsedAt {
+                        return $0.useCount > $1.useCount
+                    }
+                    return $0.lastUsedAt > $1.lastUsedAt
+                }
+                .prefix(12)
+        )
     }
 }
 
@@ -85,6 +360,53 @@ struct SAVIFolderLearningSignal: Codable, Identifiable, Equatable {
     }
 }
 
+enum SAVIFolderDecisionSource: String, Codable, CaseIterable {
+    case rules
+    case metadata
+    case appleIntelligence = "apple-intelligence"
+    case learning
+    case manual
+    case guardrail
+    case fallback
+
+    var label: String {
+        switch self {
+        case .rules: return "Rules"
+        case .metadata: return "Metadata"
+        case .appleIntelligence: return "Apple Intelligence"
+        case .learning: return "Learning"
+        case .manual: return "Manual"
+        case .guardrail: return "Guardrail"
+        case .fallback: return "Rules fallback"
+        }
+    }
+}
+
+enum SAVIIntelligenceDecisionOutcome: String, Codable, CaseIterable {
+    case accepted
+    case vetoed
+    case timedOut = "timed-out"
+    case unavailable
+    case failed
+    case skipped
+
+    var label: String {
+        switch self {
+        case .accepted: return "AI accepted"
+        case .vetoed: return "AI vetoed"
+        case .timedOut: return "AI timed out"
+        case .unavailable: return "AI unavailable"
+        case .failed: return "AI failed"
+        case .skipped: return "AI skipped"
+        }
+    }
+}
+
+struct SAVIIntelligenceAcceptance: Equatable {
+    var accepted: Bool
+    var vetoReason: String?
+}
+
 struct SAVIFolderDecisionRecord: Codable, Identifiable, Equatable {
     var id: String
     var title: String
@@ -94,6 +416,13 @@ struct SAVIFolderDecisionRecord: Codable, Identifiable, Equatable {
     var reason: String
     var context: String
     var createdAt: Double
+    var source: String
+    var outcome: String?
+    var aiFolderId: String?
+    var aiFolderName: String?
+    var aiConfidence: Int?
+    var aiReason: String?
+    var vetoReason: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -104,6 +433,100 @@ struct SAVIFolderDecisionRecord: Codable, Identifiable, Equatable {
         case reason
         case context
         case createdAt
+        case source
+        case outcome
+        case aiFolderId
+        case aiFolderName
+        case aiConfidence
+        case aiReason
+        case vetoReason
+    }
+
+    init(
+        id: String,
+        title: String,
+        folderId: String,
+        folderName: String,
+        confidence: Int,
+        reason: String,
+        context: String,
+        createdAt: Double,
+        source: SAVIFolderDecisionSource? = nil,
+        outcome: SAVIIntelligenceDecisionOutcome? = nil,
+        aiFolderId: String? = nil,
+        aiFolderName: String? = nil,
+        aiConfidence: Int? = nil,
+        aiReason: String? = nil,
+        vetoReason: String? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.folderId = folderId
+        self.folderName = folderName
+        self.confidence = confidence
+        self.reason = reason
+        self.context = context
+        self.createdAt = createdAt
+        self.source = source?.rawValue ?? Self.inferredSource(reason: reason, context: context).rawValue
+        self.outcome = outcome?.rawValue
+        self.aiFolderId = aiFolderId
+        self.aiFolderName = aiFolderName
+        self.aiConfidence = aiConfidence
+        self.aiReason = aiReason
+        self.vetoReason = vetoReason
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        folderId = try container.decode(String.self, forKey: .folderId)
+        folderName = try container.decode(String.self, forKey: .folderName)
+        confidence = try container.decode(Int.self, forKey: .confidence)
+        reason = try container.decode(String.self, forKey: .reason)
+        context = try container.decode(String.self, forKey: .context)
+        createdAt = try container.decode(Double.self, forKey: .createdAt)
+        source = try container.decodeIfPresent(String.self, forKey: .source) ??
+            Self.inferredSource(reason: reason, context: context).rawValue
+        outcome = try container.decodeIfPresent(String.self, forKey: .outcome)
+        aiFolderId = try container.decodeIfPresent(String.self, forKey: .aiFolderId)
+        aiFolderName = try container.decodeIfPresent(String.self, forKey: .aiFolderName)
+        aiConfidence = try container.decodeIfPresent(Int.self, forKey: .aiConfidence)
+        aiReason = try container.decodeIfPresent(String.self, forKey: .aiReason)
+        vetoReason = try container.decodeIfPresent(String.self, forKey: .vetoReason)
+    }
+
+    var sourceKind: SAVIFolderDecisionSource {
+        SAVIFolderDecisionSource(rawValue: source) ?? .rules
+    }
+
+    var outcomeKind: SAVIIntelligenceDecisionOutcome? {
+        outcome.flatMap(SAVIIntelligenceDecisionOutcome.init(rawValue:))
+    }
+
+    var statusLabel: String {
+        if let outcomeKind { return outcomeKind.label }
+        switch sourceKind {
+        case .appleIntelligence: return "AI accepted"
+        case .guardrail: return "Guardrail"
+        case .fallback: return "Rules fallback"
+        case .learning: return "Learning"
+        case .manual: return "Manual"
+        case .metadata: return "Metadata"
+        case .rules: return "Rules fallback"
+        }
+    }
+
+    private static func inferredSource(reason: String, context: String) -> SAVIFolderDecisionSource {
+        let reason = reason.lowercased()
+        let context = context.lowercased()
+        if context.contains("apple") || reason.contains("apple-intelligence") { return .appleIntelligence }
+        if context.contains("manual") || reason.contains("manual") { return .manual }
+        if reason.contains("learned") { return .learning }
+        if reason.contains("guardrail") { return .guardrail }
+        if context.contains("metadata") { return .metadata }
+        if reason.contains("fallback") { return .fallback }
+        return .rules
     }
 }
 
@@ -169,6 +592,10 @@ final class PendingShareStore {
 
     func folderDecisionsFileURL() throws -> URL {
         try containerURL().appendingPathComponent(SAVISharedContainer.folderDecisionsFileName)
+    }
+
+    func shareSetupStateFileURL() throws -> URL {
+        try containerURL().appendingPathComponent(SAVISharedContainer.shareSetupStateFileName)
     }
 
     @discardableResult
@@ -292,6 +719,28 @@ final class PendingShareStore {
         try? FileManager.default.removeItem(at: fileURL)
     }
 
+    func loadShareSetupState() -> SAVIShareSetupState {
+        guard let fileURL = try? shareSetupStateFileURL(),
+              let data = try? Data(contentsOf: fileURL),
+              let state = try? decoder.decode(SAVIShareSetupState.self, from: data)
+        else {
+            return SAVIShareSetupState()
+        }
+        return state
+    }
+
+    func saveShareSetupState(_ state: SAVIShareSetupState) throws {
+        let fileURL = try shareSetupStateFileURL()
+        let data = try encoder.encode(state)
+        try data.write(to: fileURL, options: .atomic)
+    }
+
+    func recordShareExtensionSave(folderId: String?) {
+        var state = loadShareSetupState()
+        state.recordSuccessfulShare(folderId: folderId)
+        try? saveShareSetupState(state)
+    }
+
     func remove(_ share: PendingShare) {
         guard let directory = try? pendingSharesDirectoryURL() else { return }
         let shareURL = directory.appendingPathComponent("\(share.id).json")
@@ -380,8 +829,29 @@ struct SAVIFolderAuditResult: Identifiable {
     }
 }
 
+struct SAVIIntelligenceAuditCase: Identifiable {
+    var id: String
+    var name: String
+    var input: SAVIFolderClassificationInput
+    var suggestedFolderId: String
+    var suggestedConfidence: Int
+    var expectedAccepted: Bool
+}
+
+struct SAVIIntelligenceAuditResult: Identifiable {
+    var id: String { testCase.id }
+    var testCase: SAVIIntelligenceAuditCase
+    var localClassification: SAVIFolderClassification
+    var acceptance: SAVIIntelligenceAcceptance
+
+    var passed: Bool {
+        acceptance.accepted == testCase.expectedAccepted
+    }
+}
+
 struct SAVIFolderAuditReport {
     var results: [SAVIFolderAuditResult]
+    var intelligenceResults: [SAVIIntelligenceAuditResult] = []
     var folderOptions: [SAVIFolderOption]
 
     var passedCount: Int {
@@ -394,6 +864,18 @@ struct SAVIFolderAuditReport {
 
     var failures: [SAVIFolderAuditResult] {
         results.filter { !$0.passed }
+    }
+
+    var intelligencePassedCount: Int {
+        intelligenceResults.filter(\.passed).count
+    }
+
+    var intelligenceFailedCount: Int {
+        intelligenceResults.count - intelligencePassedCount
+    }
+
+    var intelligenceFailures: [SAVIIntelligenceAuditResult] {
+        intelligenceResults.filter { !$0.passed }
     }
 
     var coveredFolderIds: Set<String> {
@@ -468,19 +950,20 @@ enum SAVIFolderClassifier {
     }
 
     static let defaultFolderOptions: [SAVIFolderOption] = [
-        .init(id: "f-must-see", name: "Watch / Read Later"),
-        .init(id: "f-paste-bin", name: "Paste Bin"),
-        .init(id: "f-wtf-favorites", name: "Science Stuff"),
-        .init(id: "f-growth", name: "AI Hacks"),
-        .init(id: "f-lmao", name: "LULZ"),
         .init(id: "f-private-vault", name: "Private Vault"),
-        .init(id: "f-travel", name: "Places"),
+        .init(id: "f-life-admin", name: "Life Admin"),
+        .init(id: "f-must-see", name: "Watch / Read Later"),
+        .init(id: "f-growth", name: "AI & Work"),
+        .init(id: "f-lmao", name: "Memes & Laughs"),
+        .init(id: "f-travel", name: "Places & Trips"),
         .init(id: "f-recipes", name: "Recipes & Food"),
-        .init(id: "f-health", name: "Health Hacks"),
+        .init(id: "f-paste-bin", name: "Notes & Clips"),
+        .init(id: "f-research", name: "Research & PDFs"),
         .init(id: "f-design", name: "Design Inspo"),
-        .init(id: "f-research", name: "Research"),
-        .init(id: "f-tinfoil", name: "Tinfoil Hat Club"),
-        .init(id: "f-random", name: "Random AF"),
+        .init(id: "f-health", name: "Health"),
+        .init(id: "f-wtf-favorites", name: "Science Finds"),
+        .init(id: "f-tinfoil", name: "Rabbit Holes"),
+        .init(id: "f-random", name: "Everything Else"),
     ]
 
     static func classify(
@@ -502,6 +985,10 @@ enum SAVIFolderClassifier {
 
         if shouldPreferPasteBin(input) {
             return .init(folderId: firstAllowed("f-paste-bin", allowedIds: allowedIds), confidence: 82, reason: "paste-guardrail")
+        }
+
+        if shouldUseLifeAdminGuardrail(input, normalized: normalized) {
+            return .init(folderId: firstAllowed("f-life-admin", allowedIds: allowedIds), confidence: 88, reason: "life-admin-guardrail")
         }
 
         var best = scoreSystemProfiles(normalized, allowedIds: allowedIds, roles: [.semantic])
@@ -544,7 +1031,7 @@ enum SAVIFolderClassifier {
     }
 
     static func looksSensitive(_ text: String) -> Bool {
-        if regexMatch(#"\b(password|credential|bearer|private key|apikey|api key|seed phrase|recovery phrase|wallet|passcode|ssh)\b"#, in: text) {
+        if regexMatch(#"\b(password|credential|bearer|private key|apikey|api key|seed phrase|recovery phrase|wallet|passcode|ssh|routing number|account number|tax pin)\b"#, in: text) {
             return true
         }
         return regexMatch(#"\b(api|client|auth|access|refresh|jwt|oauth|ssh)\b.{0,40}\b(secret|token)\b|\b(secret|token)\b.{0,40}\b(api|client|auth|access|refresh|jwt|oauth|ssh)\b"#, in: text)
@@ -555,7 +1042,7 @@ enum SAVIFolderClassifier {
     }
 
     static func looksPrivateDocument(_ text: String) -> Bool {
-        regexMatch(#"\b(passport|driver'?s license|social security|ssn|tax return|w-2|1099|insurance|bank statement|credit card|debit card|receipt|lease|medical record|lab result|prescription|id card|paystub|pay stub)\b"#, in: text)
+        regexMatch(#"\b(passport|driver'?s license|social security|ssn|tax return|w-2|1099|insurance card|bank statement|bank routing|routing number|account number|credit card|debit card|return receipt|medical receipt|tax receipt|lease|medical record|lab result|prescription|id card|membership id|paystub|pay stub)\b"#, in: text)
     }
 
     static func shouldAcceptIntelligenceFolder(
@@ -563,32 +1050,100 @@ enum SAVIFolderClassifier {
         localResult: SAVIFolderClassification,
         input: SAVIFolderClassificationInput
     ) -> Bool {
+        intelligenceAcceptance(folderId, localResult: localResult, input: input).accepted
+    }
+
+    static func intelligenceAcceptance(
+        _ folderId: String,
+        localResult: SAVIFolderClassification,
+        input: SAVIFolderClassificationInput,
+        aiConfidence: Int? = nil,
+        aiReason: String? = nil
+    ) -> SAVIIntelligenceAcceptance {
         let normalized = NormalizedInput(input)
+        let aiConfidence = max(0, min(aiConfidence ?? 60, 100))
+        let localConfidence = max(0, min(localResult.confidence, 100))
+
+        func veto(_ reason: String) -> SAVIIntelligenceAcceptance {
+            SAVIIntelligenceAcceptance(accepted: false, vetoReason: reason)
+        }
 
         if folderId == privateFolderId, !isSensitive(input), !looksPrivateDocument(input) {
-            return false
+            return veto("Private Vault needs a real private document or credential signal.")
         }
 
         if folderId == "f-wtf-favorites", !hasScienceIntent(normalized) {
-            return false
+            return veto("Science Finds needs real science, space, research, or discovery intent.")
+        }
+
+        if folderId == "f-health", isEntertainmentContext(normalized), !hasHealthIntent(normalized) {
+            return veto("Entertainment about scary topics is not Health.")
+        }
+
+        if folderId == "f-tinfoil", isEntertainmentContext(normalized) {
+            return veto("Movie, show, trailer, or fandom saves should not go to Rabbit Holes.")
+        }
+
+        if folderId == "f-lmao", isEntertainmentOrCasualVideo(input, normalized: normalized), !hasComedyIntent(normalized) {
+            return veto("Entertainment videos go to Watch / Read Later unless they are clearly comedy or memes.")
+        }
+
+        if folderId == fallbackFolderId,
+           localResult.folderId != fallbackFolderId,
+           localConfidence >= 14 {
+            return veto("Everything Else is only for low-confidence leftovers.")
         }
 
         if localResult.reason.hasSuffix("guardrail"), localResult.folderId != folderId {
-            return false
+            return veto("Local \(localResult.reason) guardrail wins.")
         }
 
         if localResult.folderId == privateFolderId, localResult.folderId != folderId {
-            return false
+            return veto("Private Vault guardrail wins.")
+        }
+
+        if localResult.reason == "learned-folder",
+           localResult.folderId != folderId,
+           localConfidence >= 30 {
+            return veto("Local learning from previous manual corrections wins.")
         }
 
         let genericFolders = Set([fallbackFolderId, "f-must-see", "f-paste-bin"])
         if !genericFolders.contains(localResult.folderId),
            localResult.folderId != folderId,
-           localResult.confidence >= 48 {
-            return false
+           localConfidence >= 48 {
+            return veto("Local rules were high confidence.")
         }
 
-        return true
+        if localResult.folderId != folderId,
+           localConfidence >= 22,
+           aiConfidence < 70 {
+            return veto("AI confidence was not strong enough to override local rules.")
+        }
+
+        return SAVIIntelligenceAcceptance(accepted: true, vetoReason: nil)
+    }
+
+    static func decisionSource(for result: SAVIFolderClassification, context: String = "") -> SAVIFolderDecisionSource {
+        let reason = result.reason.lowercased()
+        let context = context.lowercased()
+        if context.contains("apple") || reason.contains("apple-intelligence") { return .appleIntelligence }
+        if context.contains("manual") || reason.contains("manual") { return .manual }
+        if reason.contains("learned") { return .learning }
+        if reason.contains("guardrail") { return .guardrail }
+        if context.contains("metadata") { return .metadata }
+        if reason.contains("fallback") { return .fallback }
+        return .rules
+    }
+
+    static func folderGuidanceLines(for availableFolders: [SAVIFolderOption]) -> [String] {
+        normalizedFolders(availableFolders).map { folder in
+            let guidance = folderGuidanceById[folder.id] ?? (
+                use: "content that directly matches the custom folder name \"\(folder.name)\" or strong local learning examples",
+                avoid: "guessing from vibes when another folder is more literal"
+            )
+            return "\(folder.id): \(folder.name). Use for: \(guidance.use). Avoid: \(guidance.avoid)."
+        }
     }
 
     static func audit(
@@ -604,7 +1159,23 @@ enum SAVIFolderClassifier {
                 classification: classify(testCase.input, availableFolders: folders, learningSignals: learningSignals)
             )
         }
-        return SAVIFolderAuditReport(results: results, folderOptions: folders)
+        let intelligenceResults = intelligenceAuditCases
+            .filter { allowedIds.contains($0.suggestedFolderId) }
+            .map { testCase in
+                let local = classify(testCase.input, availableFolders: folders, learningSignals: learningSignals)
+                return SAVIIntelligenceAuditResult(
+                    testCase: testCase,
+                    localClassification: local,
+                    acceptance: intelligenceAcceptance(
+                        testCase.suggestedFolderId,
+                        localResult: local,
+                        input: testCase.input,
+                        aiConfidence: testCase.suggestedConfidence,
+                        aiReason: "mock-audit"
+                    )
+                )
+            }
+        return SAVIFolderAuditReport(results: results, intelligenceResults: intelligenceResults, folderOptions: folders)
     }
 
     static func learningExamples(
@@ -740,6 +1311,79 @@ enum SAVIFolderClassifier {
     }
 
     private static let auditCases: [SAVIFolderAuditCase] = [
+        .init(
+            id: "life-admin-airbnb-code",
+            name: "Travel access code",
+            expectedFolderId: "f-life-admin",
+            minimumConfidence: 42,
+            input: .init(
+                title: "Airbnb door code and Wi-Fi",
+                description: "Front door code, guest Wi-Fi, checkout details, and confirmation number.",
+                type: "text",
+                source: "SAVI",
+                tags: ["airbnb", "door-code", "wifi"]
+            )
+        ),
+        .init(
+            id: "life-admin-contract-template",
+            name: "Reusable admin template",
+            expectedFolderId: "f-life-admin",
+            minimumConfidence: 36,
+            input: .init(
+                title: "Contract template to reuse",
+                description: "Service agreement template and admin document checklist.",
+                type: "file",
+                source: "Files",
+                fileName: "service-contract-template.docx",
+                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                tags: ["contract", "template"]
+            )
+        ),
+        .init(
+            id: "life-admin-warranty-screenshot",
+            name: "Warranty screenshot",
+            expectedFolderId: "f-life-admin",
+            minimumConfidence: 60,
+            input: .init(
+                title: "A/C warranty screenshot",
+                description: "Screenshot from Photos with warranty, serial number, model number, receipt note, and support phone.",
+                type: "image",
+                source: "Photos",
+                fileName: "IMG_4821.PNG",
+                mimeType: "image/png",
+                tags: ["screenshot", "warranty", "air-conditioner", "serial-number"]
+            )
+        ),
+        .init(
+            id: "life-admin-hotel-confirmation",
+            name: "Hotel confirmation is admin, not map pin",
+            expectedFolderId: "f-life-admin",
+            minimumConfidence: 48,
+            input: .init(
+                title: "Hotel booking confirmation",
+                description: "Reservation confirmation number, check-in code, checkout time, and guest details.",
+                type: "image",
+                source: "Photos",
+                fileName: "hotel-confirmation-screenshot.png",
+                mimeType: "image/png",
+                tags: ["booking", "confirmation", "travel"]
+            )
+        ),
+        .init(
+            id: "private-driver-license-screenshot",
+            name: "Private ID screenshot",
+            expectedFolderId: "f-private-vault",
+            minimumConfidence: 90,
+            input: .init(
+                title: "Driver's license copy",
+                description: "Photo of my driver license front and back.",
+                type: "image",
+                source: "Photos",
+                fileName: "driver-license-copy.png",
+                mimeType: "image/png",
+                tags: ["id", "document"]
+            )
+        ),
         .init(
             id: "recipes-sourdough",
             name: "Recipe video",
@@ -1040,7 +1684,111 @@ enum SAVIFolderClassifier {
         )
     ]
 
+    private static let intelligenceAuditCases: [SAVIIntelligenceAuditCase] = [
+        .init(
+            id: "ai-veto-rick-astley-science",
+            name: "Veto music video into Science Finds",
+            input: .init(
+                title: "Rick Astley - Driving Me Crazy (Official Video)",
+                description: "Shared from YouTube by Rick Astley.",
+                url: "https://www.youtube.com/watch?v=mIHHfNVfhPk",
+                type: "video",
+                source: "YouTube",
+                tags: ["youtube", "video"]
+            ),
+            suggestedFolderId: "f-wtf-favorites",
+            suggestedConfidence: 91,
+            expectedAccepted: false
+        ),
+        .init(
+            id: "ai-veto-parasite-health",
+            name: "Veto movie trailer into Health",
+            input: .init(
+                title: "Parasite official movie trailer",
+                description: "Bong Joon Ho film trailer and cast.",
+                url: "https://youtube.com/watch?v=trailer",
+                type: "video",
+                source: "YouTube"
+            ),
+            suggestedFolderId: "f-health",
+            suggestedConfidence: 84,
+            expectedAccepted: false
+        ),
+        .init(
+            id: "ai-veto-map-random",
+            name: "Veto map pin into Everything Else",
+            input: .init(
+                title: "Google Maps pin for a tapas restaurant in Madrid",
+                description: "Directions and reservation notes for the trip.",
+                url: "https://maps.google.com/?q=tapas+madrid",
+                type: "place",
+                source: "Google Maps"
+            ),
+            suggestedFolderId: "f-random",
+            suggestedConfidence: 74,
+            expectedAccepted: false
+        ),
+        .init(
+            id: "ai-veto-research-science",
+            name: "Veto research PDF into Science Finds",
+            input: .init(
+                title: "arXiv paper: benchmark study for language models",
+                description: "Abstract, methodology, citations, and appendix.",
+                url: "https://arxiv.org/pdf/2501.00001.pdf",
+                type: "file",
+                source: "arXiv",
+                fileName: "language-model-benchmark.pdf",
+                mimeType: "application/pdf",
+                tags: ["research"]
+            ),
+            suggestedFolderId: "f-wtf-favorites",
+            suggestedConfidence: 76,
+            expectedAccepted: false
+        ),
+        .init(
+            id: "ai-accept-low-confidence-design",
+            name: "Accept strong AI when local rules are weak",
+            input: .init(
+                title: "Beautiful onboarding motion examples",
+                description: "Saved inspiration for app welcome animations.",
+                url: "https://example.com/onboarding-motion-gallery",
+                type: "link",
+                source: "Web"
+            ),
+            suggestedFolderId: "f-design",
+            suggestedConfidence: 86,
+            expectedAccepted: true
+        ),
+        .init(
+            id: "ai-veto-random-bucket",
+            name: "Veto Everything Else as personality bucket",
+            input: .init(
+                title: "Sourdough focaccia recipe with garlic oil",
+                description: "Ingredients, bake time, and meal prep notes.",
+                url: "https://www.seriouseats.com/sourdough-focaccia",
+                type: "article",
+                source: "Serious Eats",
+                tags: ["recipe", "bread"]
+            ),
+            suggestedFolderId: "f-random",
+            suggestedConfidence: 88,
+            expectedAccepted: false
+        )
+    ]
+
     private static let profiles: [Profile] = [
+        .init(id: "f-life-admin", terms: weighted([
+            ("life admin", 10), ("admin", 8), ("important", 5), ("door code", 10), ("access code", 10),
+            ("wifi", 8), ("wi-fi", 8), ("guest code", 8), ("airbnb", 8), ("reservation", 7),
+            ("confirmation number", 9), ("booking code", 8), ("itinerary", 6), ("contract", 9),
+            ("template", 6), ("agreement", 7), ("license copy", 8), ("driver license copy", 8),
+            ("insurance card", 8), ("policy", 6), ("certificate copy", 7), ("birth certificate copy", 7),
+            ("receipt", 5), ("return receipt", 6), ("warranty", 6), ("serial number", 7),
+            ("warranty screenshot", 9), ("product registration", 8), ("model number", 7),
+            ("appliance", 6), ("air conditioner", 8), ("support phone", 6),
+            ("recovery code", 7), ("backup code", 7), ("long code", 6), ("document", 4),
+            ("docx", 5), ("important document", 8), ("account recovery", 6)
+        ])),
         .init(id: "f-recipes", terms: weighted([
             ("recipe", 9), ("recipes", 9), ("ingredients", 8), ("cook", 7), ("cooking", 7), ("bake", 7), ("kitchen", 6),
             ("food", 6), ("meal", 6), ("dinner", 6), ("lunch", 6), ("breakfast", 6), ("dessert", 6), ("pasta", 7),
@@ -1048,6 +1796,7 @@ enum SAVIFolderClassifier {
             ("salad", 5), ("tacos", 5), ("pizza", 5), ("chicken", 5), ("steak", 5), ("rice", 4), ("meal prep", 8),
             ("grocery", 6), ("groceries", 6), ("baking", 7), ("bread", 5), ("cocktail", 6), ("coffee", 5),
             ("allrecipes", 9), ("bon appetit", 8), ("smitten kitchen", 8), ("serious eats", 8), ("nytcooking", 8),
+            ("voice note recipe", 8), ("lasagna sauce", 9), ("audio recipe", 8),
             ("marinade", 6), ("roast", 5), ("grill", 5), ("ferment", 6), ("sourdough", 7), ("vegan", 6), ("keto", 6)
         ])),
         .init(id: "f-travel", terms: weighted([
@@ -1068,7 +1817,9 @@ enum SAVIFolderClassifier {
             ("microbiome", 8), ("digestion", 7), ("inflammation", 7), ("immune", 7), ("hormone", 7), ("blood sugar", 8),
             ("therapy", 6), ("protocol", 5), ("recovery", 6), ("mobility", 6), ("cardio", 6), ("strength", 5),
             ("exercise", 7), ("meditation", 7), ("mindfulness", 7), ("anxiety", 7), ("adhd", 8), ("depression", 7),
-            ("clinic", 7), ("blood pressure", 8), ("cholesterol", 7), ("glucose", 7), ("metabolism", 7), ("fasting", 6)
+            ("clinic", 7), ("blood pressure", 8), ("cholesterol", 7), ("glucose", 7), ("metabolism", 7), ("fasting", 6),
+            ("intermittent fasting", 8), ("autophagy", 9), ("fascia", 7), ("mobility", 7),
+            ("mebendazole", 10), ("cancer remission", 9), ("clinical trial", 8), ("tumor", 8)
         ])),
         .init(id: "f-design", terms: weighted([
             ("design", 9), ("figma", 9), ("ui", 7), ("ux", 7), ("typography", 8), ("font", 7), ("layout", 7),
@@ -1107,7 +1858,8 @@ enum SAVIFolderClassifier {
             ("coverup", 8), ("area 51", 9), ("mkultra", 9), ("northwoods", 8), ("rabbit hole", 7),
             ("ancient egypt", 7), ("pyramid", 6), ("sphinx", 6), ("pentagon", 5), ("classified", 6),
             ("declassified", 6), ("secret program", 7), ("shadow government", 9), ("deep state", 8), ("psyop", 8),
-            ("mandela effect", 8), ("simulation theory", 8), ("illuminati", 9), ("freemason", 7)
+            ("mandela effect", 8), ("simulation theory", 8), ("illuminati", 9), ("freemason", 7),
+            ("perpetual motion", 9), ("free energy", 9), ("infinite energy", 9), ("over unity", 8)
         ])),
         .init(id: "f-lmao", terms: weighted([
             ("meme", 9), ("memes", 9), ("funny", 8), ("comedy", 8), ("joke", 7), ("lmao", 8), ("lol", 6),
@@ -1161,7 +1913,11 @@ enum SAVIFolderClassifier {
         let normalized = NormalizedInput(input)
         return normalizedKey(input.type) == "place" ||
             containsAny(normalized.url, ["maps google", "google com maps", "maps apple", "maps apple com"]) ||
-            containsAny(normalized.all, ["map pin", "directions", "restaurant", "hotel"])
+            containsAny(normalized.all, ["map pin", "directions", "google maps", "apple maps"]) ||
+            (
+                containsAny(normalized.all, ["restaurant", "hotel", "museum", "cafe", "coffee shop"]) &&
+                containsAny(normalized.all, ["map", "pin", "directions", "recommendation", "nearby", "place"])
+            )
     }
 
     private static func isWatchable(_ input: SAVIFolderClassificationInput) -> Bool {
@@ -1175,6 +1931,19 @@ enum SAVIFolderClassifier {
             containsAny(normalized.all, ["trailer", "movie", "film", "watch", "read later", "newsletter", "podcast", "episode"])
     }
 
+    private static func isEntertainmentOrCasualVideo(_ input: SAVIFolderClassificationInput, normalized: NormalizedInput) -> Bool {
+        let type = normalizedKey(input.type)
+        let isVideo = type == "video" ||
+            containsAny(normalized.url, ["youtube", "youtu be", "vimeo", "tiktok", "instagram", "reel"]) ||
+            containsAny(normalized.source, ["youtube", "vimeo", "tiktok", "instagram"])
+        guard isVideo else { return false }
+        return isEntertainmentContext(normalized) ||
+            containsAny(normalized.all, [
+                "official video", "music video", "lyric video", "song", "single", "album", "clip",
+                "trailer", "teaser", "reaction", "streaming", "watch"
+            ])
+    }
+
     private static func isDocumentLike(_ input: SAVIFolderClassificationInput) -> Bool {
         let normalized = NormalizedInput(input)
         return containsAny(normalized.type, ["file", "pdf", "image"]) ||
@@ -1185,6 +1954,10 @@ enum SAVIFolderClassifier {
         let sensitive = isSensitive(input)
         let privateDocument = looksPrivateDocument(input)
         guard sensitive || privateDocument else { return false }
+
+        if looksLikeLifeAdminUtility(normalized), !hasHighRiskPrivateSignal(normalized) {
+            return false
+        }
 
         if isEntertainmentContext(normalized), !hasHighRiskPrivateSignal(normalized) {
             return false
@@ -1207,6 +1980,41 @@ enum SAVIFolderClassifier {
         return true
     }
 
+    private static func shouldUseLifeAdminGuardrail(_ input: SAVIFolderClassificationInput, normalized: NormalizedInput) -> Bool {
+        guard looksLikeLifeAdminUtility(normalized), !hasHighRiskPrivateSignal(normalized) else {
+            return false
+        }
+
+        let isSaveableAdminAsset = containsAny(normalized.type, ["text", "file", "pdf", "image", "link", "article"]) ||
+            containsAny(normalized.source, ["photos", "files", "safari", "clipboard", "savi", "device"]) ||
+            containsAny(normalized.mimeType, ["image", "application pdf", "text plain"]) ||
+            (input.url ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+
+        return isSaveableAdminAsset
+    }
+
+    private static func looksLikeLifeAdminUtility(_ normalized: NormalizedInput) -> Bool {
+        if containsAny(normalized.all, [
+            "driver license", "driver s license", "passport", "social security", "ssn",
+            "tax return", "w 2", "1099", "bank statement", "bank routing", "routing number",
+            "account number", "credit card", "debit card", "medical record", "lab result",
+            "prescription", "insurance card", "membership id", "paystub", "pay stub"
+        ]) {
+            return false
+        }
+
+        return containsAny(normalized.all, [
+            "door code", "access code", "guest code", "wifi", "wi fi", "wi-fi",
+            "booking confirmation", "hotel confirmation", "reservation confirmation",
+            "confirmation number", "itinerary", "checkout", "check in", "check-in",
+            "warranty", "warranty screenshot", "product registration", "serial number",
+            "model number", "appliance", "air conditioner", "a c warranty", "ac warranty",
+            "receipt note", "return receipt", "invoice", "support phone",
+            "contract template", "service agreement", "agreement template",
+            "recovery code", "backup code", "long code"
+        ])
+    }
+
     private static func isEntertainmentContext(_ normalized: NormalizedInput) -> Bool {
         containsAny(normalized.all, [
             "official trailer", "teaser trailer", "movie", "film", "episode", "season", "series", "cinema",
@@ -1218,7 +2026,16 @@ enum SAVIFolderClassifier {
         containsAny(normalized.all, [
             "health", "medical", "doctor", "symptom", "symptoms", "cleanse", "detox", "deworm",
             "supplement", "vitamin", "protocol", "wellness", "fitness", "infection", "disease",
-            "digestion", "gut", "microbiome", "workout", "therapy", "nutrition"
+            "digestion", "gut", "microbiome", "workout", "therapy", "nutrition", "autophagy",
+            "fasting", "fascia", "mobility", "cancer", "tumor", "mebendazole", "clinical trial"
+        ])
+    }
+
+    private static func hasComedyIntent(_ normalized: NormalizedInput) -> Bool {
+        containsAny(normalized.all, [
+            "meme", "memes", "funny", "comedy", "joke", "lmao", "lol", "laugh", "parody",
+            "satire", "sketch", "standup", "stand up", "rickroll", "shitpost", "cursed",
+            "prank", "humor", "humour", "absurd"
         ])
     }
 
@@ -1247,6 +2064,65 @@ enum SAVIFolderClassifier {
         "lab", "laboratory", "mars", "microbe", "microbiology", "nasa", "neuroscience",
         "physics", "planetary science", "quantum", "research discovery", "robotics", "science paper",
         "space", "spacecraft", "starship", "telescope", "universe", "volcano", "webb"
+    ]
+
+    private static let folderGuidanceById: [String: (use: String, avoid: String)] = [
+        "f-life-admin": (
+            use: "useful admin/reference items like door codes, Wi-Fi notes, reservation details, warranty screenshots, product serial numbers, templates, contracts, receipts, certificates, non-secret account recovery notes, and practical life documents",
+            avoid: "actual private IDs, banking, medical, tax, credentials, passwords, seed phrases, or sensitive scans that belong in Private Vault"
+        ),
+        "f-must-see": (
+            use: "articles, videos, trailers, music videos, podcasts, essays, newsletters, and links to watch or read later",
+            avoid: "private files, raw clipboard snippets, map pins, recipes, or obvious jokes"
+        ),
+        "f-paste-bin": (
+            use: "copied text, prompts, snippets, checklists, drafts, transcripts, and scratch notes without a real destination",
+            avoid: "normal links with useful metadata or finished documents"
+        ),
+        "f-wtf-favorites": (
+            use: "real science, space, astronomy, research discoveries, engineering, nature, robotics, and lab findings",
+            avoid: "sci-fi, trailers, music videos, movie news, or content that merely says crazy, secret, parasite, alien, or mystery"
+        ),
+        "f-growth": (
+            use: "AI tools, prompts, automation, startups, business, coding, workflows, productivity, marketing, and career saves",
+            avoid: "actual credentials, private tokens, or generic entertainment"
+        ),
+        "f-lmao": (
+            use: "memes, jokes, comedy, parody, funny videos, internet classics, and obvious laugh saves",
+            avoid: "normal music videos, trailers, articles, or serious news unless clearly comedic"
+        ),
+        "f-private-vault": (
+            use: "credentials, IDs, receipts, tax, banking, insurance, medical, legal, personal scans, and sensitive private documents",
+            avoid: "entertainment/news that uses words like secret, leaked, vault, alien, parasite, or password"
+        ),
+        "f-travel": (
+            use: "map pins, places, restaurants, hotels, trips, directions, city guides, tickets, routes, and travel planning",
+            avoid: "private IDs unless it is only a public travel guide"
+        ),
+        "f-recipes": (
+            use: "recipes, ingredients, restaurants to try, cooking videos, meal prep, groceries, menus, and food ideas",
+            avoid: "food science articles unless the intent is actually cooking/eating"
+        ),
+        "f-health": (
+            use: "health, doctors, symptoms, supplements, workouts, nutrition, sleep, mental health, and wellness",
+            avoid: "movies, trailers, memes, or entertainment that happens to mention parasites, disease, or bodies"
+        ),
+        "f-design": (
+            use: "UI, UX, typography, app icons, branding, color palettes, design inspiration, Figma, mockups, and layouts",
+            avoid: "general tech articles without a visual/design angle"
+        ),
+        "f-research": (
+            use: "papers, PDFs, arXiv, studies, reports, citations, datasets, whitepapers, and deep technical references",
+            avoid: "lightweight blog posts unless they are clearly research material"
+        ),
+        "f-tinfoil": (
+            use: "conspiracy, UFO, declassified rabbit holes, shadow-government theories, Area 51, fringe mystery saves, and weird internet dives",
+            avoid: "Alien or Parasite movie trailers, science fiction, fandom, or mainstream entertainment"
+        ),
+        "f-random": (
+            use: "low-confidence leftovers when no folder clearly fits",
+            avoid: "using it as a personality bucket or when any specific folder has a clear match"
+        )
     ]
 
     private static func hasHighRiskPrivateSignal(_ normalized: NormalizedInput) -> Bool {

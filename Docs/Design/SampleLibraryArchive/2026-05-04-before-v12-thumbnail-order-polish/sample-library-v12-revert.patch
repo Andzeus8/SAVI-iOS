@@ -1,0 +1,537 @@
+--- SAVI/Services/LegacyAndUtilities.swift	2026-05-04 20:08:47
++++ /Users/guest1/Documents/SAVI-iOS/Docs/Design/SampleLibraryArchive/2026-05-04-before-v12-thumbnail-order-polish/files/LegacyAndUtilities.swift	2026-05-04 19:55:34
+@@ -495,40 +495,34 @@
+             let accent = UIColor(hex: "#FFD15C")
+             let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
+             let muted = UIColor(red: 0.37, green: 0.32, blue: 0.48, alpha: 1)
+-            let blue = UIColor(hex: "#68C6E8")
+
+-            UIColor(hex: "#ECE5F4").setFill()
++            UIColor(red: 0.985, green: 0.978, blue: 0.996, alpha: 1).setFill()
+             context.fill(bounds)
+-
+-            UIColor(hex: "#2A1745").withAlphaComponent(0.18).setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 60, y: 126, width: 610, height: 414), cornerRadius: 42).fill()
+-            UIColor.white.withAlphaComponent(0.98).setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 44, y: 104, width: 610, height: 414), cornerRadius: 42).fill()
+-
+-            blue.withAlphaComponent(0.20).setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 44, y: 104, width: 610, height: 126), cornerRadius: 42).fill()
+-            UIBezierPath(rect: CGRect(x: 44, y: 180, width: 610, height: 50)).fill()
++            accent.withAlphaComponent(0.24).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 54, y: 112, width: 612, height: 432), cornerRadius: 46).fill()
++            UIColor.white.withAlphaComponent(0.97).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 82, y: 142, width: 556, height: 374), cornerRadius: 34).fill()
++
+             accent.setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 76, y: 144, width: 210, height: 34), cornerRadius: 17).fill()
+-            drawText("SAMPLE ID", in: CGRect(x: 98, y: 151, width: 170, height: 22), font: .systemFont(ofSize: 16, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
+-            drawText("DRIVER LICENSE", in: CGRect(x: 330, y: 138, width: 270, height: 34), font: .systemFont(ofSize: 25, weight: .black), color: ink, alignment: .right, lineBreakMode: .byTruncatingTail)
++            UIBezierPath(roundedRect: CGRect(x: 116, y: 174, width: 488, height: 34), cornerRadius: 17).fill()
++            drawText("SAMPLE DRIVER LICENSE", in: CGRect(x: 136, y: 181, width: 420, height: 24), font: .systemFont(ofSize: 17, weight: .black), color: ink)
+
+             UIColor(hex: "#D9EEF8").setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 78, y: 256, width: 170, height: 190), cornerRadius: 24).fill()
+-            UIColor(hex: "#2A1745").withAlphaComponent(0.18).setFill()
+-            UIBezierPath(ovalIn: CGRect(x: 130, y: 292, width: 66, height: 66)).fill()
+-            UIBezierPath(roundedRect: CGRect(x: 106, y: 372, width: 118, height: 48), cornerRadius: 24).fill()
++            UIBezierPath(roundedRect: CGRect(x: 116, y: 246, width: 152, height: 174), cornerRadius: 22).fill()
++            UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 0.18).setFill()
++            UIBezierPath(ovalIn: CGRect(x: 162, y: 278, width: 60, height: 60)).fill()
++            UIBezierPath(roundedRect: CGRect(x: 142, y: 354, width: 100, height: 42), cornerRadius: 21).fill()
+
+-            drawText("Alex Sample", in: CGRect(x: 284, y: 260, width: 300, height: 42), font: .systemFont(ofSize: 31, weight: .black), color: ink)
+-            drawText("ID D123-456-789", in: CGRect(x: 284, y: 318, width: 310, height: 28), font: .monospacedSystemFont(ofSize: 20, weight: .bold), color: muted)
+-            drawText("DOB 05/04/1990", in: CGRect(x: 284, y: 360, width: 310, height: 28), font: .monospacedSystemFont(ofSize: 18, weight: .semibold), color: muted)
+-            drawText("EXP 05/04/2030", in: CGRect(x: 284, y: 402, width: 310, height: 28), font: .monospacedSystemFont(ofSize: 18, weight: .semibold), color: muted)
++            drawText("Alex Sample", in: CGRect(x: 300, y: 250, width: 260, height: 42), font: .systemFont(ofSize: 30, weight: .black), color: ink)
++            drawText("ID D123-456-789", in: CGRect(x: 300, y: 310, width: 260, height: 28), font: .monospacedSystemFont(ofSize: 20, weight: .bold), color: muted)
++            drawText("DOB 05/04/1990", in: CGRect(x: 300, y: 350, width: 260, height: 28), font: .monospacedSystemFont(ofSize: 18, weight: .semibold), color: muted)
++            drawText("EXP 05/04/2030", in: CGRect(x: 300, y: 390, width: 260, height: 28), font: .monospacedSystemFont(ofSize: 18, weight: .semibold), color: muted)
+
+-            for index in 0..<4 {
+-                UIColor(hex: "#9286A8").withAlphaComponent(0.40).setFill()
+-                UIBezierPath(roundedRect: CGRect(x: 78 + CGFloat(index) * 114, y: 474, width: 82, height: 12), cornerRadius: 6).fill()
++            for index in 0..<3 {
++                UIColor(red: 0.78, green: 0.74, blue: 0.84, alpha: 0.65).setFill()
++                UIBezierPath(roundedRect: CGRect(x: 116, y: 452 + CGFloat(index) * 18, width: 414, height: 8), cornerRadius: 4).fill()
+             }
+-            drawSampleWatermark(in: context.cgContext, center: CGPoint(x: 450, y: 460), color: ink.withAlphaComponent(0.11), size: 64, rotation: -.pi / 10)
++            drawSampleWatermark(in: context.cgContext, center: CGPoint(x: 442, y: 456), color: ink.withAlphaComponent(0.10), size: 62, rotation: -.pi / 10)
+         }
+
+         guard let data = image.pngData() else {
+@@ -538,55 +532,13 @@
+     }
+
+     private static func sampleInsuranceThumb() -> String {
+-        let size = CGSize(width: 720, height: 720)
+-        let format = UIGraphicsImageRendererFormat()
+-        format.scale = 2
+-        format.opaque = true
+-
+-        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
+-            let bounds = CGRect(origin: .zero, size: size)
+-            let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
+-            let muted = UIColor(red: 0.37, green: 0.32, blue: 0.48, alpha: 1)
+-            let green = UIColor(hex: "#70D59B")
+-            let blue = UIColor(hex: "#68C6E8")
+-
+-            UIColor(hex: "#F4EEF9").setFill()
+-            context.fill(bounds)
+-            blue.withAlphaComponent(0.20).setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 50, y: 96, width: 620, height: 428), cornerRadius: 44).fill()
+-            UIColor.white.withAlphaComponent(0.98).setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 34, y: 78, width: 620, height: 428), cornerRadius: 44).fill()
+-
+-            green.setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 34, y: 78, width: 620, height: 108), cornerRadius: 44).fill()
+-            UIBezierPath(rect: CGRect(x: 34, y: 136, width: 620, height: 50)).fill()
+-            drawText("SAVI SAMPLE HEALTH", in: CGRect(x: 72, y: 108, width: 330, height: 30), font: .systemFont(ofSize: 23, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
+-            if let icon = UIImage(systemName: "cross.case.fill")?.withTintColor(ink, renderingMode: .alwaysOriginal) {
+-                icon.draw(in: CGRect(x: 560, y: 104, width: 38, height: 38))
+-            }
+-
+-            drawText("INSURANCE CARD", in: CGRect(x: 72, y: 220, width: 380, height: 42), font: .systemFont(ofSize: 34, weight: .black), color: ink)
+-            let rows: [(String, String)] = [
+-                ("MEMBER", "SAVI-2048-00"),
+-                ("PLAN", "DEMO PPO"),
+-                ("GROUP", "SAMPLE"),
+-                ("COPAY", "$00")
+-            ]
+-            for (index, row) in rows.enumerated() {
+-                let column = index % 2
+-                let line = index / 2
+-                let x = CGFloat(column == 0 ? 72 : 362)
+-                let y = CGFloat(310 + line * 78)
+-                drawText(row.0, in: CGRect(x: x, y: y, width: 100, height: 20), font: .monospacedSystemFont(ofSize: 13, weight: .black), color: muted, lineBreakMode: .byTruncatingTail)
+-                drawText(row.1, in: CGRect(x: x, y: y + 25, width: 230, height: 30), font: .monospacedSystemFont(ofSize: 20, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
+-            }
+-            drawSampleWatermark(in: context.cgContext, center: CGPoint(x: 442, y: 452), color: ink.withAlphaComponent(0.11), size: 62, rotation: -.pi / 10)
+-        }
+-
+-        guard let data = image.pngData() else {
+-            return picsumThumb("savi-sample-insurance-card", width: 720, height: 720)
+-        }
+-        return "data:image/png;base64,\(data.base64EncodedString())"
++        sampleGraphicThumb(
++            title: "Insurance card",
++            subtitle: "Fake policy details",
++            accentHex: "#70D59B",
++            symbolName: "cross.case.fill",
++            rows: ["Plan DEMO PPO", "Member SAVI-2048", "Group SAMPLE", "Copay $00"]
++        )
+     }
+
+     private static func sampleAccessThumb() -> String {
+@@ -655,28 +607,42 @@
+     }
+
+     private static func sampleBookingThumb() -> String {
+-        samplePhotoThumb(imageName: "sample-hotel-room", fallbackAccentHex: "#68C6E8") { context, bounds in
++        let size = CGSize(width: 720, height: 720)
++        let format = UIGraphicsImageRendererFormat()
++        format.scale = 2
++        format.opaque = true
++
++        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
++            let bounds = CGRect(origin: .zero, size: size)
+             let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
+             let muted = UIColor(red: 0.40, green: 0.34, blue: 0.52, alpha: 1)
+             let blue = UIColor(hex: "#68C6E8")
+             let purple = UIColor(hex: "#7A35E8")
+
+-            drawPhotoBottomShade(context.cgContext, bounds: bounds, opacity: 0.55)
++            UIColor(red: 0.985, green: 0.978, blue: 0.996, alpha: 1).setFill()
++            context.fill(bounds)
+
+-            UIColor.white.withAlphaComponent(0.94).setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 58, y: 388, width: 604, height: 250), cornerRadius: 38).fill()
++            blue.withAlphaComponent(0.16).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 42, y: 44, width: 636, height: 632), cornerRadius: 56).fill()
++            UIColor.white.withAlphaComponent(0.98).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 78, y: 78, width: 564, height: 564), cornerRadius: 36).fill()
++
+             purple.setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 86, y: 418, width: 150, height: 34), cornerRadius: 17).fill()
+-            drawText("BOOKING", in: CGRect(x: 108, y: 425, width: 110, height: 20), font: .systemFont(ofSize: 14, weight: .black), color: .white, lineBreakMode: .byTruncatingTail)
+-            drawText("Hotel Nube", in: CGRect(x: 86, y: 470, width: 300, height: 44), font: .systemFont(ofSize: 36, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
+-            drawText("May 14 - May 17 · 2 guests", in: CGRect(x: 86, y: 522, width: 380, height: 28), font: .systemFont(ofSize: 19, weight: .semibold), color: muted, lineBreakMode: .byTruncatingTail)
++            UIBezierPath(roundedRect: CGRect(x: 78, y: 78, width: 564, height: 106), cornerRadius: 36).fill()
++            UIBezierPath(rect: CGRect(x: 78, y: 132, width: 564, height: 52)).fill()
++            drawText("HOTEL NUBE", in: CGRect(x: 116, y: 110, width: 250, height: 34), font: .systemFont(ofSize: 28, weight: .black), color: .white)
++            drawText("Booking confirmation", in: CGRect(x: 390, y: 116, width: 190, height: 24), font: .systemFont(ofSize: 16, weight: .bold), color: UIColor.white.withAlphaComponent(0.82), alignment: .right)
+
+-            let confirmationRect = CGRect(x: 86, y: 574, width: 348, height: 38)
++            drawText("May 14 - May 17", in: CGRect(x: 116, y: 220, width: 260, height: 36), font: .systemFont(ofSize: 30, weight: .black), color: ink)
++            drawText("2 guests  |  Late check-in noted", in: CGRect(x: 116, y: 264, width: 420, height: 28), font: .systemFont(ofSize: 20, weight: .semibold), color: muted)
++
++            let confirmationRect = CGRect(x: 116, y: 328, width: 488, height: 74)
+             blue.withAlphaComponent(0.22).setFill()
+-            UIBezierPath(roundedRect: confirmationRect, cornerRadius: 19).fill()
+-            drawText("CONFIRMATION  SVI-48291", in: CGRect(x: 108, y: 583, width: 300, height: 20), font: .monospacedSystemFont(ofSize: 14, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
++            UIBezierPath(roundedRect: confirmationRect, cornerRadius: 22).fill()
++            drawText("CONFIRMATION", in: CGRect(x: 142, y: 346, width: 160, height: 18), font: .monospacedSystemFont(ofSize: 13, weight: .black), color: muted)
++            drawText("SVI-48291", in: CGRect(x: 142, y: 366, width: 210, height: 28), font: .monospacedSystemFont(ofSize: 23, weight: .black), color: ink)
+
+-            let qrOrigin = CGPoint(x: 526, y: 514)
++            let qrOrigin = CGPoint(x: 486, y: 334)
+             UIColor.white.withAlphaComponent(0.98).setFill()
+             UIBezierPath(roundedRect: CGRect(x: qrOrigin.x, y: qrOrigin.y, width: 84, height: 84), cornerRadius: 12).fill()
+             ink.setFill()
+@@ -685,8 +651,27 @@
+                     UIBezierPath(roundedRect: CGRect(x: qrOrigin.x + 12 + CGFloat(col) * 12, y: qrOrigin.y + 12 + CGFloat(row) * 12, width: 8, height: 8), cornerRadius: 2).fill()
+                 }
+             }
+-            drawSampleWatermark(in: context.cgContext, center: CGPoint(x: 522, y: 442), color: ink.withAlphaComponent(0.08), size: 48, rotation: -.pi / 12)
++
++            let details = [
++                ("ROOM", "King demo suite"),
++                ("ADDRESS", "18 Sample Ave"),
++                ("CHECK-IN", "After 3 PM")
++            ]
++            for (index, detail) in details.enumerated() {
++                let y = 444 + CGFloat(index) * 44
++                UIColor(red: 0.78, green: 0.74, blue: 0.84, alpha: 0.18).setFill()
++                UIBezierPath(roundedRect: CGRect(x: 116, y: y, width: 488, height: 32), cornerRadius: 16).fill()
++                drawText(detail.0, in: CGRect(x: 136, y: y + 8, width: 90, height: 17), font: .monospacedSystemFont(ofSize: 12, weight: .black), color: muted)
++                drawText(detail.1, in: CGRect(x: 244, y: y + 6, width: 318, height: 20), font: .systemFont(ofSize: 17, weight: .bold), color: ink, lineBreakMode: .byTruncatingTail)
++            }
++
++            drawSampleWatermark(in: context.cgContext, center: CGPoint(x: 470, y: 252), color: ink.withAlphaComponent(0.08), size: 52, rotation: -.pi / 12)
+         }
++
++        guard let data = image.pngData() else {
++            return picsumThumb("savi-sample-hotel-booking", width: 720, height: 720)
++        }
++        return "data:image/png;base64,\(data.base64EncodedString())"
+     }
+
+     private enum SampleEditorialScene {
+@@ -848,23 +833,14 @@
+     }
+
+     private static func sampleFullBleedStayThumb() -> String {
+-        samplePhotoThumb(imageName: "sample-door-access", fallbackAccentHex: "#FFD15C") { context, bounds in
+-            let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
+-            let muted = UIColor(red: 0.36, green: 0.30, blue: 0.48, alpha: 1)
+-            let gold = UIColor(hex: "#FFD15C")
+-            drawPhotoBottomShade(context.cgContext, bounds: bounds, opacity: 0.62)
+-
+-            UIColor.white.withAlphaComponent(0.92).setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 56, y: 424, width: 608, height: 198), cornerRadius: 38).fill()
+-            gold.setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 88, y: 456, width: 132, height: 34), cornerRadius: 17).fill()
+-            drawText("STAY ACCESS", in: CGRect(x: 106, y: 463, width: 100, height: 20), font: .systemFont(ofSize: 13, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
+-            drawText("Door 2486", in: CGRect(x: 88, y: 506, width: 260, height: 48), font: .systemFont(ofSize: 38, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
+-            drawText("Wi-Fi: Pinehouse Guest", in: CGRect(x: 88, y: 560, width: 330, height: 28), font: .systemFont(ofSize: 20, weight: .semibold), color: muted, lineBreakMode: .byTruncatingTail)
+-            if let icon = UIImage(systemName: "key.fill")?.withTintColor(ink, renderingMode: .alwaysOriginal) {
+-                icon.draw(in: CGRect(x: 560, y: 492, width: 42, height: 42))
+-            }
+-        }
++        sampleEditorialThumb(
++            title: "Door code + Wi-Fi",
++            kicker: "Stay access",
++            subtitle: "The tiny details you need fast.",
++            accentHex: "#FFD15C",
++            symbolName: "key.fill",
++            scene: .stay
++        )
+     }
+
+     private static func sampleFoodRecommendationThumb() -> String {
+@@ -942,71 +918,6 @@
+         return "data:image/png;base64,\(data.base64EncodedString())"
+     }
+
+-    private static func samplePhotoThumb(
+-        imageName: String,
+-        fallbackAccentHex: String,
+-        overlay: @escaping (UIGraphicsImageRendererContext, CGRect) -> Void
+-    ) -> String {
+-        let size = CGSize(width: 720, height: 720)
+-        let format = UIGraphicsImageRendererFormat()
+-        format.scale = 2
+-        format.opaque = true
+-
+-        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
+-            let bounds = CGRect(origin: .zero, size: size)
+-            if let source = UIImage(named: imageName) {
+-                let imageSize = source.size
+-                let scale = max(bounds.width / imageSize.width, bounds.height / imageSize.height)
+-                let drawSize = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+-                let drawRect = CGRect(
+-                    x: (bounds.width - drawSize.width) / 2,
+-                    y: (bounds.height - drawSize.height) / 2,
+-                    width: drawSize.width,
+-                    height: drawSize.height
+-                )
+-                source.draw(in: drawRect)
+-            } else {
+-                let colors = [
+-                    UIColor(hex: fallbackAccentHex).cgColor,
+-                    UIColor(hex: "#2A1745").cgColor
+-                ] as CFArray
+-                if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 1]) {
+-                    context.cgContext.drawLinearGradient(
+-                        gradient,
+-                        start: CGPoint(x: 0, y: 0),
+-                        end: CGPoint(x: bounds.maxX, y: bounds.maxY),
+-                        options: []
+-                    )
+-                } else {
+-                    UIColor(hex: fallbackAccentHex).setFill()
+-                    context.fill(bounds)
+-                }
+-            }
+-
+-            overlay(context, bounds)
+-        }
+-
+-        guard let data = image.jpegData(compressionQuality: 0.82) else {
+-            return picsumThumb("savi-sample-\(imageName)", width: 720, height: 720)
+-        }
+-        return "data:image/jpeg;base64,\(data.base64EncodedString())"
+-    }
+-
+-    private static func drawPhotoBottomShade(_ context: CGContext, bounds: CGRect, opacity: CGFloat = 0.58) {
+-        let colors = [
+-            UIColor.black.withAlphaComponent(0.0).cgColor,
+-            UIColor.black.withAlphaComponent(opacity).cgColor
+-        ] as CFArray
+-        if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.28, 1]) {
+-            context.drawLinearGradient(
+-                gradient,
+-                start: CGPoint(x: bounds.midX, y: bounds.minY),
+-                end: CGPoint(x: bounds.midX, y: bounds.maxY),
+-                options: []
+-            )
+-        }
+-    }
+-
+     private static func sampleHealthResearchThumb() -> String {
+         sampleEditorialThumb(
+             title: "Fasting research",
+@@ -1018,17 +929,6 @@
+         )
+     }
+
+-    private static func sampleMebendazoleResearchThumb() -> String {
+-        sampleEditorialThumb(
+-            title: "Mebendazole?",
+-            kicker: "Case report",
+-            subtitle: "Saved for doctor questions.",
+-            accentHex: "#70D59B",
+-            symbolName: "cross.case.fill",
+-            scene: .health
+-        )
+-    }
+-
+     private static func sampleAIAgentVideoThumb() -> String {
+         sampleEditorialThumb(
+             title: "Use your AI agent better",
+@@ -1073,11 +973,11 @@
+
+     private static func sampleAIPromptThumb() -> String {
+         sampleGraphicThumb(
+-            title: "Next actions",
+-            subtitle: "AI prompt",
++            title: "Chaos -> plan",
++            subtitle: "Prompt template",
+             accentHex: "#F47A3B",
+             symbolName: "sparkles",
+-            rows: ["Ask 3 sharp questions", "Sort facts from guesses", "Name the first move", "List risks + next actions"]
++            rows: ["Goal -> Context -> Output", "Ask 3 sharp questions", "Return a clean plan", "Keep assumptions visible"]
+         )
+     }
+
+@@ -1092,31 +992,88 @@
+     }
+
+     private static func sampleAudioRecipeThumb() -> String {
+-        samplePhotoThumb(imageName: "sample-lasagna", fallbackAccentHex: "#FFB978") { context, bounds in
++        let size = CGSize(width: 720, height: 720)
++        let format = UIGraphicsImageRendererFormat()
++        format.scale = 2
++        format.opaque = true
++
++        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
++            let bounds = CGRect(origin: .zero, size: size)
+             let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
+             let muted = UIColor(red: 0.38, green: 0.31, blue: 0.48, alpha: 1)
+-            drawPhotoBottomShade(context.cgContext, bounds: bounds, opacity: 0.54)
++            let sauce = UIColor(hex: "#F47A3B")
++            let pasta = UIColor(hex: "#FFD15C")
++            let basil = UIColor(hex: "#70D59B")
+
++            UIColor(hex: "#FFB978").setFill()
++            context.fill(bounds)
++
++            UIColor.white.withAlphaComponent(0.20).setFill()
++            for y in stride(from: -40, through: 720, by: 96) {
++                UIBezierPath(roundedRect: CGRect(x: -40, y: CGFloat(y), width: 800, height: 44), cornerRadius: 22).fill()
++            }
++
++            UIColor(hex: "#2A1745").withAlphaComponent(0.16).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 98, y: 126, width: 524, height: 386), cornerRadius: 54).fill()
++            UIColor.white.withAlphaComponent(0.82).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 82, y: 104, width: 524, height: 386), cornerRadius: 54).fill()
++            sauce.withAlphaComponent(0.92).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 116, y: 138, width: 456, height: 316), cornerRadius: 40).fill()
++
++            pasta.withAlphaComponent(0.92).setStroke()
++            for index in 0..<8 {
++                let x = 146 + CGFloat(index) * 48
++                let path = UIBezierPath()
++                path.move(to: CGPoint(x: x, y: 164))
++                path.addCurve(
++                    to: CGPoint(x: x + 24, y: 426),
++                    controlPoint1: CGPoint(x: x - 42, y: 244),
++                    controlPoint2: CGPoint(x: x + 74, y: 340)
++                )
++                path.lineWidth = 18
++                path.lineCapStyle = .round
++                path.stroke()
++            }
++
++            UIColor.white.withAlphaComponent(0.78).setFill()
++            UIBezierPath(ovalIn: CGRect(x: 402, y: 188, width: 92, height: 70)).fill()
++            pasta.setFill()
++            UIBezierPath(ovalIn: CGRect(x: 428, y: 206, width: 40, height: 34)).fill()
++            basil.setFill()
++            for point in [
++                CGPoint(x: 184, y: 214),
++                CGPoint(x: 278, y: 298),
++                CGPoint(x: 500, y: 344),
++                CGPoint(x: 342, y: 392)
++            ] {
++                UIBezierPath(ovalIn: CGRect(x: point.x, y: point.y, width: 48, height: 28)).fill()
++            }
++
+             UIColor.white.withAlphaComponent(0.92).setFill()
+-            UIBezierPath(roundedRect: CGRect(x: 54, y: 516, width: 612, height: 120), cornerRadius: 38).fill()
+-            drawText("Mom's lasagna sauce", in: CGRect(x: 86, y: 538, width: 390, height: 36), font: .systemFont(ofSize: 30, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
+-            drawText("Voice note recipe", in: CGRect(x: 86, y: 582, width: 320, height: 26), font: .systemFont(ofSize: 18, weight: .semibold), color: muted, lineBreakMode: .byTruncatingTail)
++            UIBezierPath(roundedRect: CGRect(x: 56, y: 520, width: 608, height: 116), cornerRadius: 38).fill()
++            drawText("Mom's lasagna sauce", in: CGRect(x: 88, y: 542, width: 388, height: 36), font: .systemFont(ofSize: 30, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
++            drawText("Voice note recipe", in: CGRect(x: 88, y: 584, width: 320, height: 26), font: .systemFont(ofSize: 18, weight: .semibold), color: muted, lineBreakMode: .byTruncatingTail)
+
+             UIColor(hex: "#2A1745").withAlphaComponent(0.84).setFill()
+-            UIBezierPath(ovalIn: CGRect(x: 510, y: 526, width: 92, height: 92)).fill()
++            UIBezierPath(ovalIn: CGRect(x: 524, y: 536, width: 82, height: 82)).fill()
+             UIColor.white.setStroke()
+             for index in 0..<5 {
+-                let height = CGFloat([30, 50, 68, 48, 28][index])
+-                let x = CGFloat(532 + index * 13)
+-                let y = CGFloat(572) - height / 2
++                let height = CGFloat([28, 44, 62, 40, 24][index])
++                let x = CGFloat(544 + index * 12)
++                let y = CGFloat(577) - height / 2
+                 let path = UIBezierPath()
+                 path.move(to: CGPoint(x: x, y: y))
+                 path.addLine(to: CGPoint(x: x, y: y + height))
+-                path.lineWidth = 7
++                path.lineWidth = 6
+                 path.lineCapStyle = .round
+                 path.stroke()
+             }
++        }
++
++        guard let data = image.pngData() else {
++            return picsumThumb("savi-sample-lasagna-audio", width: 720, height: 720)
+         }
++        return "data:image/png;base64,\(data.base64EncodedString())"
+     }
+
+     private static func sampleTalentPromptThumb() -> String {
+@@ -1270,15 +1227,15 @@
+         // First-run utility saves, ordered to prove SAVI's practical value immediately.
+         item(id: "sample-food-mom-lasagna-audio", title: "Mom's lasagna sauce voice note", description: "Audio note sample: brown the garlic slowly, simmer the sauce, and add the basil at the end.", source: "Voice Memo", type: .file, folderId: "f-recipes", tags: ["audio", "recipe", "mom", "sauce", "lasagna"], thumbnail: sampleAudioRecipeThumb(), hoursAgo: 1, assetName: "moms-lasagna-sauce.m4a", assetMime: "audio/mp4", assetSize: 824_000),
+         item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi", description: "SAMPLE stay note: front door 2486, Wi-Fi Pinehouse Guest, checkout 11 AM.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "airbnb", "door-code", "wifi", "travel"], thumbnail: sampleFullBleedStayThumb(), hoursAgo: 2),
+-        item(id: "sample-research-mebendazole", title: "Mebendazole and cancer remission?", description: "PubMed case-report save about mebendazole and tumor remission. Kept as a research note for doctor questions, not as medical advice.", url: "https://pubmed.ncbi.nlm.nih.gov/24160353/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "mebendazole", "case-report", "cancer", "questions-for-doctor", "clinical-trial"], thumbnail: sampleMebendazoleResearchThumb(), hoursAgo: 3),
++        item(id: "sample-health-fasting-autophagy", title: "Intermittent fasting in the prevention and treatment of cancer - PubMed", description: "Chronic caloric restriction has powerful anticarcinogenic actions in both preclinical and clinical studies but may be difficult to sustain.", url: "https://pubmed.ncbi.nlm.nih.gov/34383300/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "questions-for-doctor"], thumbnail: "https://cdn.ncbi.nlm.nih.gov/pubmed/persistent/pubmed-meta-image-v2.jpg", hoursAgo: 3, metadataPolicy: .liveMetadata),
+         item(id: "sample-place-ramen", title: "Jennifer's ramen recommendation", description: "Jennifer said to order the spicy miso, sit at the counter, and save the pin before the group chat buries it.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Jennifer", type: .place, folderId: "f-travel", tags: ["maps", "restaurant", "friend-rec", "tokyo", "food"], thumbnail: sampleFoodRecommendationThumb(), hoursAgo: 4),
+-        item(id: "sample-life-driver-license", title: "Driver's license copy", description: "Watermarked fake ID copy with invented demo data for testing document saves.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 5, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
+-        item(id: "sample-life-insurance-card", title: "Insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 6, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
+-        item(id: "sample-watch-ted-procrastination", title: "Inside the Mind of a Master Procrastinator | Tim Urban | TED", description: "Tim Urban via YouTube", url: "https://www.youtube.com/watch?v=arj7oStGLkU", source: "YouTube", type: .video, folderId: "f-must-see", tags: ["youtube", "video", "productivity", "life-hack"], thumbnail: youtubeThumb("arj7oStGLkU"), hoursAgo: 7, metadataPolicy: .liveMetadata),
+-        item(id: "sample-ai-chaos-plan", title: "Prompt: turn chaos into next actions", description: "Reusable AI prompt: Act as my planning chief of staff. Ask three sharp questions, separate facts from guesses, then give me the first three next actions, risks, and the smallest useful first move.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "planning", "productivity"], thumbnail: sampleAIPromptThumb(), hoursAgo: 8),
+-        item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 9),
+-        item(id: "sample-health-sugar-cancer-myths", title: "Common Cancer Myths and Misconceptions", description: "The latest science-based information concerning some common misconceptions about cancer.", url: "https://www.cancer.gov/about-cancer/causes-prevention/risk/myths", source: "NCI", type: .article, folderId: "f-health", tags: ["research", "cancer-myths", "nutrition", "questions-for-doctor"], thumbnail: "https://www.cancer.gov/sites/www/files/cgov_image/social_media/900/700/files/pensive-woman-blue-background-social-media.jpg", hoursAgo: 10, metadataPolicy: .liveMetadata),
+-        item(id: "sample-health-fasting-autophagy", title: "Intermittent fasting research", description: "PubMed research save about intermittent fasting, autophagy, and cancer prevention/treatment questions to discuss with a clinician.", url: "https://pubmed.ncbi.nlm.nih.gov/34383300/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "questions-for-doctor"], thumbnail: "https://cdn.ncbi.nlm.nih.gov/pubmed/persistent/pubmed-meta-image-v2.jpg", hoursAgo: 11),
++        item(id: "sample-life-driver-license", title: "Sample driver license copy", description: "Watermarked fake ID copy with invented demo data for testing document saves.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 5, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
++        item(id: "sample-life-insurance-card", title: "Sample insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 6, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
++        item(id: "sample-research-mebendazole", title: "Tumor remission case report: mebendazole research", description: "PubMed case-report save about mebendazole and tumor remission. Saved for questions to ask a doctor, not as medical advice.", url: "https://pubmed.ncbi.nlm.nih.gov/24160353/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "mebendazole", "case-report", "questions-for-doctor", "clinical-trial"], thumbnail: sampleHealthResearchThumb(), hoursAgo: 7),
++        item(id: "sample-watch-ted-procrastination", title: "Inside the Mind of a Master Procrastinator | Tim Urban | TED", description: "Tim Urban via YouTube", url: "https://www.youtube.com/watch?v=arj7oStGLkU", source: "YouTube", type: .video, folderId: "f-must-see", tags: ["youtube", "video", "productivity", "life-hack"], thumbnail: youtubeThumb("arj7oStGLkU"), hoursAgo: 8, metadataPolicy: .liveMetadata),
++        item(id: "sample-ai-chaos-plan", title: "Prompt: turn chaos into a plan", description: "Reusable AI prompt: Here is the messy situation, the goal, and the constraints. Ask me three sharp questions, then turn it into a prioritized plan with next actions, risks, and what to do first.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "planning", "productivity"], thumbnail: sampleAIPromptThumb(), hoursAgo: 9),
++        item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 10),
++        item(id: "sample-health-sugar-cancer-myths", title: "Common Cancer Myths and Misconceptions", description: "The latest science-based information concerning some common misconceptions about cancer.", url: "https://www.cancer.gov/about-cancer/causes-prevention/risk/myths", source: "NCI", type: .article, folderId: "f-health", tags: ["research", "cancer-myths", "nutrition", "questions-for-doctor"], thumbnail: "https://www.cancer.gov/sites/www/files/cgov_image/social_media/900/700/files/pensive-woman-blue-background-social-media.jpg", hoursAgo: 11, metadataPolicy: .liveMetadata),
+         item(id: "sample-meme-goyo", title: "Goyo goyo with lyrics", description: "A funny video save that shows how memes land in SAVI.", url: "https://www.youtube.com/results?search_query=goyo+goyo+with+lyrics", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "youtube"], thumbnail: sampleVideoThumb(title: "Goyo goyo with lyrics"), hoursAgo: 12),
+         item(id: "sample-science-webb", title: "James Webb Space Telescope - NASA Science", description: "Webb is the premier observatory of the next decade, serving thousands of astronomers worldwide.", url: "https://science.nasa.gov/mission/webb/", source: "NASA", type: .article, folderId: "f-wtf-favorites", tags: ["space", "nasa", "science"], thumbnail: "https://science.nasa.gov/wp-content/uploads/2024/05/jwst_artist_concept_0.png", hoursAgo: 13, metadataPolicy: .liveMetadata),
+         item(id: "sample-life-contract-template", title: "Contract template to reuse", description: "A reusable service agreement template saved where life admin documents live.", source: "Files", type: .file, folderId: "f-life-admin", tags: ["contract", "template", "docx", "important"], thumbnail: sampleContractThumb(), hoursAgo: 14, assetName: "sample-service-contract-template.docx", assetMime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", assetSize: 312_000),
+--- SAVI/Core/SaviCore.swift	2026-05-04 20:03:37
++++ /Users/guest1/Documents/SAVI-iOS/Docs/Design/SampleLibraryArchive/2026-05-04-before-v12-thumbnail-order-polish/files/SaviCore.swift	2026-05-04 19:55:34
+@@ -1735,7 +1735,7 @@
+     private static let shareSetupSecondReminderDelay: TimeInterval = 3 * 86_400
+     private static let shareSetupLaterReminderDelay: TimeInterval = 7 * 86_400
+     private static let sampleFriendTargetLinkCount = 24
+-    private static let currentLegacySeedVersion = 15
++    private static let currentLegacySeedVersion = 14
+     private static let currentFolderRepairVersion = 2
+     private static let currentSearchTagRepairVersion = 1
+     private static let currentFolderLayoutVersion = 3
+--- Docs/ChangeLog/2026-05-04.md	2026-05-04 20:14:36
++++ /Users/guest1/Documents/SAVI-iOS/Docs/Design/SampleLibraryArchive/2026-05-04-before-v12-thumbnail-order-polish/files/2026-05-04.md	2026-05-04 19:55:34
+@@ -268,34 +268,6 @@
+   `/Users/guest1/Desktop/SAVI_QA/savi_v11_utility_home_2026-05-04.png`
+   and
+   `/Users/guest1/Desktop/SAVI_QA/savi_v11_utility_home_mid_2026-05-04.png`.
+-
+-## Sample Library V12 Thumbnail And Home Order Polish
+-
+-- Created rollback archive:
+-  `Docs/Design/SampleLibraryArchive/2026-05-04-before-v12-thumbnail-order-polish/`.
+-- Added bundled sample thumbnail sources for lasagna, door/access, and hotel
+-  booking saves, recorded in `Docs/Design/SampleLibrarySources.md`.
+-- Reworked the first Home sample order so it opens with Mom's lasagna voice
+-  note, Airbnb access, `Mebendazole and cancer remission?`, Jennifer's ramen
+-  recommendation, driver's license, insurance, TED/YouTube, AI prompt, hotel
+-  booking, NCI myths, intermittent fasting research, and Goyo.
+-- Upgraded the Mom voice note, Airbnb access, and hotel booking thumbnails to
+-  photo-backed full-bleed cards with small, useful overlays.
+-- Replaced the driver license and insurance thumbnails with fuller fake
+-  document cards using invented data and visible sample treatment instead of
+-  generic note art.
+-- Added a dedicated mebendazole research thumbnail and kept the copy medically
+-  neutral as a PubMed case-report save for doctor questions.
+-- Tightened the main AI prompt copy to `Prompt: turn chaos into next actions`
+-  with a stronger reusable prompt body.
+-- Bumped native sample seed version to `15`; main `SAVI` refreshed to 74 sample
+-  saves and was cloned into `SAVI Test`.
+-- Built and installed both simulator channels:
+-  `com.savi.app` and `com.altatecrd.savi.personaldebug`.
+-- Captured QA screenshots:
+-  `/Users/guest1/Desktop/SAVI_QA/savi_v12_thumbnail_home_2026-05-04.jpg`
+-  and
+-  `/Users/guest1/Desktop/SAVI_QA/savi_v12_thumbnail_home_mid_2026-05-04.jpg`.
+
+ ## Social Teaser And Profile Cleanup
+
+--- Docs/Design/SampleLibrarySources.md	2026-05-04 19:56:19
++++ /dev/null	2026-05-04 20:15:23
+@@ -1,16 +0,0 @@
+-# SAVI Sample Library Sources
+-
+-## Pexels Sample Thumbnails
+-
+-SAVI uses these stock-safe images only for removable sample-library thumbnails. They are bundled, cropped, and overlaid in-app as demonstration artwork.
+-
+-- Lasagna sample: [Close-up Photo of Cheesy Lasagna](https://www.pexels.com/photo/close-up-photo-of-cheesy-lasagna-5949900/)
+-- Door/access sample: [Close-up Photo of Door Handle](https://www.pexels.com/photo/close-up-photo-of-door-handle-3276079/)
+-- Hotel booking sample: [Bed in Hotel Room](https://www.pexels.com/photo/bed-in-hotel-room-8089081/)
+-- License terms: [Pexels License](https://www.pexels.com/license/)
+-
+-## Safety Notes
+-
+-- Real stock photos are used only for food, door/access, and hotel room samples.
+-- Driver license, insurance card, passport, birth certificate, medical, receipt, and other sensitive/admin examples are generated fake sample art with invented data and visible `SAMPLE` marking.
+-- Health examples are saved as research/questions-for-doctor material, not medical advice.

@@ -1,0 +1,49 @@
+--- SAVI/Views/Components/AppComponents.swift	2026-05-03 16:29:03
++++ Docs/Design/DarkModePolishArchive/2026-05-03-before-dark-legibility-pass/AppComponents.swift	2026-05-03 16:20:39
+@@ -915,18 +915,18 @@
+
+ struct SaviTheme {
+     static let background = adaptive(dark: "#100B1C", light: "#F6F2FA")
+-    static let surface = adaptive(dark: "#211833", light: "#FFFFFF")
+-    static let surfaceRaised = adaptive(dark: "#302649", light: "#ECE5F4")
+-    static let subtleSurface = adaptive(dark: "#2A203F", light: "#F0EAF7")
+-    static let inputSurface = adaptive(dark: "#261C3B", light: "#FFFFFF")
++    static let surface = adaptive(dark: "#1C1530", light: "#FFFFFF")
++    static let surfaceRaised = adaptive(dark: "#2A2144", light: "#ECE5F4")
++    static let subtleSurface = adaptive(dark: "#231A3A", light: "#F0EAF7")
++    static let inputSurface = adaptive(dark: "#211735", light: "#FFFFFF")
+     static let text = adaptive(dark: "#F5F0FF", light: "#160F22")
+-    static let textMuted = adaptive(dark: "#CBC0EA", light: "#51475E")
+-    static let metadataText = adaptive(dark: "#BEB1DD", light: "#766986")
++    static let textMuted = adaptive(dark: "#B7A9D6", light: "#51475E")
++    static let metadataText = adaptive(dark: "#A99BCC", light: "#766986")
+     static let chartreuse = adaptive(dark: "#D8FF3C", light: "#9BD80F")
+     static let softAccent = adaptive(dark: "#D8FF3C", light: "#DDF6A1")
+     static let accentText = adaptive(dark: "#D8FF3C", light: "#4F246F")
+-    static let cardStroke = adaptive(dark: "#4A3A67", light: "#C9BDD8")
+-    static let folderCardStroke = adaptive(dark: "#5A4778", light: "#BDA9CF")
++    static let cardStroke = adaptive(dark: "#2F244C", light: "#C9BDD8")
++    static let folderCardStroke = adaptive(dark: "#40315F", light: "#BDA9CF")
+     static let cardShadow = adaptive(dark: "#000000", light: "#5E4A73")
+
+     private static func adaptive(dark: String, light: String) -> Color {
+@@ -1232,8 +1232,8 @@
+
+     private static func darkBackgroundColors(baseHex hex: String) -> [Color] {
+         [
+-            blendedFolderColor(hex: hex, with: "#12091F", amount: 0.62),
+-            blendedFolderColor(hex: hex, with: "#12091F", amount: 0.40)
++            blendedFolderColor(hex: hex, with: "#12091F", amount: 0.52),
++            blendedFolderColor(hex: hex, with: "#12091F", amount: 0.30)
+         ]
+     }
+
+@@ -1417,7 +1417,7 @@
+         content
+             .background(SaviTheme.surface)
+             .clipShape(shape)
+-            .overlay(shape.stroke(SaviTheme.cardStroke.opacity(colorScheme == .dark ? 0.7 : 0.78), lineWidth: 1))
++            .overlay(shape.stroke(SaviTheme.cardStroke.opacity(colorScheme == .dark ? 0.92 : 0.78), lineWidth: 1))
+             .shadow(
+                 color: shadow ? SaviTheme.cardShadow.opacity(SaviShadow.cardOpacity(colorScheme)) : Color.clear,
+                 radius: shadow ? SaviShadow.cardRadius(colorScheme) : 0,

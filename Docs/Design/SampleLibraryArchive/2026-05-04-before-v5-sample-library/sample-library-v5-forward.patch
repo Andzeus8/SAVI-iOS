@@ -1,0 +1,365 @@
+--- before/SAVI/Core/SaviCore.swift
++++ after/SAVI/Core/SaviCore.swift
+@@ -1725,7 +1725,7 @@
+     private static let shareSetupSecondReminderDelay: TimeInterval = 3 * 86_400
+     private static let shareSetupLaterReminderDelay: TimeInterval = 7 * 86_400
+     private static let sampleFriendTargetLinkCount = 24
+-    private static let currentLegacySeedVersion = 7
++    private static let currentLegacySeedVersion = 8
+     private static let currentFolderRepairVersion = 2
+     private static let currentSearchTagRepairVersion = 1
+     private static let currentFolderLayoutVersion = 3
+--- before/SAVI/Services/LegacyAndUtilities.swift
++++ after/SAVI/Services/LegacyAndUtilities.swift
+@@ -395,30 +395,281 @@
+                 withAttributes: attrs
+             )
+             context.cgContext.restoreGState()
++        }
++
++        guard let data = image.pngData() else {
++            return picsumThumb("savi-sample-\(title)", width: 720, height: 720)
++        }
++        return "data:image/png;base64,\(data.base64EncodedString())"
++    }
++
++    private static func sampleGraphicThumb(
++        title: String,
++        subtitle: String,
++        accentHex: String,
++        symbolName: String,
++        rows: [String],
++        dark: Bool = false
++    ) -> String {
++        let size = CGSize(width: 720, height: 720)
++        let format = UIGraphicsImageRendererFormat()
++        format.scale = 2
++        format.opaque = true
++
++        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
++            let bounds = CGRect(origin: .zero, size: size)
++            let accent = UIColor(hex: accentHex)
++            let ink = dark
++                ? UIColor(red: 0.96, green: 0.93, blue: 1.0, alpha: 1)
++                : UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
++            let muted = dark
++                ? UIColor(red: 0.78, green: 0.72, blue: 0.88, alpha: 1)
++                : UIColor(red: 0.37, green: 0.32, blue: 0.48, alpha: 1)
++
++            (dark
++                ? UIColor(red: 0.07, green: 0.04, blue: 0.12, alpha: 1)
++                : UIColor(red: 0.985, green: 0.978, blue: 0.996, alpha: 1)
++            ).setFill()
++            context.fill(bounds)
++
++            accent.withAlphaComponent(dark ? 0.36 : 0.18).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 48, y: 48, width: 624, height: 624), cornerRadius: 52).fill()
++
++            (dark
++                ? UIColor(red: 0.11, green: 0.07, blue: 0.18, alpha: 0.96)
++                : UIColor.white.withAlphaComponent(0.96)
++            ).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 82, y: 82, width: 556, height: 556), cornerRadius: 34).fill()
++
++            accent.withAlphaComponent(dark ? 0.28 : 0.18).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 116, y: 116, width: 112, height: 112), cornerRadius: 26).fill()
++            if let icon = UIImage(systemName: symbolName)?.withTintColor(accent, renderingMode: .alwaysOriginal) {
++                icon.draw(in: CGRect(x: 146, y: 146, width: 52, height: 52))
++            }
++
++            drawText(
++                title,
++                in: CGRect(x: 116, y: 260, width: 456, height: 92),
++                font: .systemFont(ofSize: 38, weight: .black),
++                color: ink
++            )
++            drawText(
++                subtitle,
++                in: CGRect(x: 116, y: 358, width: 448, height: 56),
++                font: .systemFont(ofSize: 22, weight: .semibold),
++                color: muted
++            )
++
++            for (index, row) in rows.prefix(4).enumerated() {
++                let y = 446 + CGFloat(index) * 42
++                accent.withAlphaComponent(index == 0 ? 0.22 : 0.11).setFill()
++                UIBezierPath(roundedRect: CGRect(x: 116, y: y, width: 452, height: 30), cornerRadius: 15).fill()
++                drawText(
++                    row,
++                    in: CGRect(x: 136, y: y + 4, width: 410, height: 24),
++                    font: .monospacedSystemFont(ofSize: 17, weight: .semibold),
++                    color: index == 0 ? ink : muted,
++                    lineBreakMode: .byTruncatingTail
++                )
++            }
++
++            drawSampleWatermark(in: context.cgContext, center: CGPoint(x: 466, y: 188), color: ink.withAlphaComponent(dark ? 0.12 : 0.10), size: 54, rotation: -.pi / 12)
+         }
+
+         guard let data = image.pngData() else {
+             return picsumThumb("savi-sample-\(title)", width: 720, height: 720)
+         }
+         return "data:image/png;base64,\(data.base64EncodedString())"
++    }
++
++    private static func sampleLicenseThumb() -> String {
++        let size = CGSize(width: 720, height: 720)
++        let format = UIGraphicsImageRendererFormat()
++        format.scale = 2
++        format.opaque = true
++
++        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
++            let bounds = CGRect(origin: .zero, size: size)
++            let accent = UIColor(hex: "#FFD15C")
++            let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
++            let muted = UIColor(red: 0.37, green: 0.32, blue: 0.48, alpha: 1)
++
++            UIColor(red: 0.985, green: 0.978, blue: 0.996, alpha: 1).setFill()
++            context.fill(bounds)
++            accent.withAlphaComponent(0.24).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 54, y: 112, width: 612, height: 432), cornerRadius: 46).fill()
++            UIColor.white.withAlphaComponent(0.97).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 82, y: 142, width: 556, height: 374), cornerRadius: 34).fill()
++
++            accent.setFill()
++            UIBezierPath(roundedRect: CGRect(x: 116, y: 174, width: 488, height: 34), cornerRadius: 17).fill()
++            drawText("SAMPLE DRIVER LICENSE", in: CGRect(x: 136, y: 181, width: 420, height: 24), font: .systemFont(ofSize: 17, weight: .black), color: ink)
++
++            UIColor(hex: "#D9EEF8").setFill()
++            UIBezierPath(roundedRect: CGRect(x: 116, y: 246, width: 152, height: 174), cornerRadius: 22).fill()
++            UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 0.18).setFill()
++            UIBezierPath(ovalIn: CGRect(x: 162, y: 278, width: 60, height: 60)).fill()
++            UIBezierPath(roundedRect: CGRect(x: 142, y: 354, width: 100, height: 42), cornerRadius: 21).fill()
++
++            drawText("Alex Sample", in: CGRect(x: 300, y: 250, width: 260, height: 42), font: .systemFont(ofSize: 30, weight: .black), color: ink)
++            drawText("ID D123-456-789", in: CGRect(x: 300, y: 310, width: 260, height: 28), font: .monospacedSystemFont(ofSize: 20, weight: .bold), color: muted)
++            drawText("DOB 05/04/1990", in: CGRect(x: 300, y: 350, width: 260, height: 28), font: .monospacedSystemFont(ofSize: 18, weight: .semibold), color: muted)
++            drawText("EXP 05/04/2030", in: CGRect(x: 300, y: 390, width: 260, height: 28), font: .monospacedSystemFont(ofSize: 18, weight: .semibold), color: muted)
++
++            for index in 0..<3 {
++                UIColor(red: 0.78, green: 0.74, blue: 0.84, alpha: 0.65).setFill()
++                UIBezierPath(roundedRect: CGRect(x: 116, y: 452 + CGFloat(index) * 18, width: 414, height: 8), cornerRadius: 4).fill()
++            }
++            drawSampleWatermark(in: context.cgContext, center: CGPoint(x: 442, y: 456), color: ink.withAlphaComponent(0.10), size: 62, rotation: -.pi / 10)
++        }
++
++        guard let data = image.pngData() else {
++            return picsumThumb("savi-sample-license", width: 720, height: 720)
++        }
++        return "data:image/png;base64,\(data.base64EncodedString())"
++    }
++
++    private static func sampleInsuranceThumb() -> String {
++        sampleGraphicThumb(
++            title: "Insurance card",
++            subtitle: "Fake policy details",
++            accentHex: "#70D59B",
++            symbolName: "cross.case.fill",
++            rows: ["Plan DEMO PPO", "Member SAVI-2048", "Group SAMPLE", "Copay $00"]
++        )
++    }
++
++    private static func sampleAccessThumb() -> String {
++        sampleGraphicThumb(
++            title: "Airbnb access",
++            subtitle: "Door code, Wi-Fi, checkout",
++            accentHex: "#FFD15C",
++            symbolName: "key.fill",
++            rows: ["Door 2486", "Wi-Fi Pinehouse Guest", "Checkout 11 AM", "Lockbox under planter"]
++        )
++    }
++
++    private static func sampleBookingThumb() -> String {
++        sampleGraphicThumb(
++            title: "Hotel booking",
++            subtitle: "Confirmation and check-in",
++            accentHex: "#68C6E8",
++            symbolName: "bed.double.fill",
++            rows: ["Hotel Nube Demo", "May 14-17", "CONF SVI-48291", "Late check-in noted"]
++        )
+     }
+
++    private static func sampleContractThumb() -> String {
++        sampleGraphicThumb(
++            title: "Contract template",
++            subtitle: "Reusable admin file",
++            accentHex: "#F47A3B",
++            symbolName: "doc.text.fill",
++            rows: ["Scope of work", "Payment terms", "Timeline", "Signature lines"]
++        )
++    }
++
++    private static func sampleRecoveryThumb() -> String {
++        sampleGraphicThumb(
++            title: "Recovery code",
++            subtitle: "Exact text worth finding",
++            accentHex: "#FFD15C",
++            symbolName: "key.horizontal.fill",
++            rows: ["RK8F-Q44P", "29LM-7DZQ", "J2X9-P0RA", "Saved for emergencies"]
++        )
++    }
++
++    private static func sampleAIPromptThumb() -> String {
++        sampleGraphicThumb(
++            title: "AI prompt",
++            subtitle: "Reusable thinking setup",
++            accentHex: "#F47A3B",
++            symbolName: "sparkles",
++            rows: ["Goal -> Context -> Output", "Ask 3 sharp questions", "Return a clean plan", "Keep assumptions visible"]
++        )
++    }
++
++    private static func sampleVaultThumb(title: String, subtitle: String, symbolName: String = "lock.fill") -> String {
++        sampleGraphicThumb(
++            title: title,
++            subtitle: subtitle,
++            accentHex: "#7A35E8",
++            symbolName: symbolName,
++            rows: ["Private sample", "Invented demo data", "Protected by vault", "SAMPLE only"],
++            dark: true
++        )
++    }
++
++    private static func sampleSpreadsheetThumb() -> String {
++        sampleGraphicThumb(
++            title: "Market sizing",
++            subtitle: "Sample spreadsheet",
++            accentHex: "#5ADDCB",
++            symbolName: "tablecells.fill",
++            rows: ["TAM / SAM / SOM", "Assumptions", "Revenue model", "Sensitivity"]
++        )
++    }
++
++    private static func drawText(
++        _ value: String,
++        in rect: CGRect,
++        font: UIFont,
++        color: UIColor,
++        alignment: NSTextAlignment = .left,
++        lineBreakMode: NSLineBreakMode = .byWordWrapping
++    ) {
++        let style = NSMutableParagraphStyle()
++        style.alignment = alignment
++        style.lineBreakMode = lineBreakMode
++        NSString(string: value).draw(
++            in: rect,
++            withAttributes: [
++                .font: font,
++                .foregroundColor: color,
++                .paragraphStyle: style
++            ]
++        )
++    }
++
++    private static func drawSampleWatermark(
++        in context: CGContext,
++        center: CGPoint,
++        color: UIColor,
++        size: CGFloat,
++        rotation: CGFloat
++    ) {
++        let attrs: [NSAttributedString.Key: Any] = [
++            .font: UIFont.systemFont(ofSize: size, weight: .black),
++            .foregroundColor: color
++        ]
++        context.saveGState()
++        context.translateBy(x: center.x, y: center.y)
++        context.rotate(by: rotation)
++        let sampleSize = NSString(string: "SAMPLE").size(withAttributes: attrs)
++        NSString(string: "SAMPLE").draw(
++            at: CGPoint(x: -sampleSize.width / 2, y: -sampleSize.height / 2),
++            withAttributes: attrs
++        )
++        context.restoreGState()
++    }
++
+     static let items: [SaviItem] = [
+         // First-run utility saves, ordered to prove SAVI's practical value immediately.
+-        item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi", description: "SAMPLE stay note: front door 2486, Wi-Fi Pinehouse Guest, checkout 11 AM.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "airbnb", "door-code", "wifi", "travel"], thumbnail: sampleDocumentThumb(title: "Airbnb access", subtitle: "Door code, Wi-Fi, checkout"), hoursAgo: 1),
+-        item(id: "sample-life-driver-license", title: "Sample driver license copy", description: "Watermarked fake ID copy with invented demo data for testing document saves.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "driver-license", "id", "document"], thumbnail: sampleDocumentThumb(title: "Driver license", subtitle: "SAMPLE demo copy"), hoursAgo: 2, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
+-        item(id: "sample-life-insurance-card", title: "Sample insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "insurance", "card", "document"], thumbnail: sampleDocumentThumb(title: "Insurance card", subtitle: "Invented policy details"), hoursAgo: 3, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
+-        item(id: "sample-life-contract-template", title: "Contract template to reuse", description: "A reusable service agreement template saved where life admin documents live.", source: "Files", type: .file, folderId: "f-life-admin", tags: ["contract", "template", "docx", "important"], thumbnail: sampleDocumentThumb(title: "Contract template", subtitle: "Reusable admin file"), hoursAgo: 4, assetName: "sample-service-contract-template.docx", assetMime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", assetSize: 312_000),
+-        item(id: "sample-life-recovery-code", title: "Emergency recovery code", description: "SAMPLE long code: RK8F-Q44P-29LM-7DZQ. Shows how SAVI keeps exact text findable.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "recovery-code", "important", "admin"], thumbnail: sampleDocumentThumb(title: "Recovery code", subtitle: "Exact text worth finding"), hoursAgo: 5),
+-        item(id: "sample-health-parasites-gut", title: "Parasites and gut health: evidence notes", description: "Neutral reading list from CDC and PubMed on parasite risk, prevention, and the gut parasitome.", url: "https://www.cdc.gov/parasites/causes/index.html", source: "CDC", type: .article, folderId: "f-health", tags: ["research", "gut-health", "parasites", "questions-for-doctor"], thumbnailSeed: "savi-cdc-parasite-notes", hoursAgo: 6),
+-        item(id: "sample-health-fasting-autophagy", title: "Fasting and autophagy research", description: "A research save about fasting mechanisms and autophagy, kept as notes to discuss with a clinician.", url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5411330/", source: "PMC", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "questions-for-doctor"], thumbnailSeed: "savi-fasting-autophagy", hoursAgo: 7),
+-        item(id: "sample-research-mebendazole", title: "Anti-parasitic drugs in cancer trials", description: "Clinical-trial and phase 1 research links about mebendazole. Saved as research, not medical advice.", url: "https://www.clinicaltrials.gov/study/NCT03628079", source: "ClinicalTrials.gov", type: .article, folderId: "f-research", tags: ["clinical-trial", "research", "mebendazole", "questions-for-doctor"], thumbnailSeed: "savi-mebendazole-trials", hoursAgo: 8),
+-        item(id: "sample-place-ramen", title: "Tokyo ramen map pin", description: "A restaurant idea saved from Maps for a future trip.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Maps", type: .place, folderId: "f-travel", tags: ["maps", "tokyo", "food"], thumbnailSeed: "savi-tokyo-ramen", hoursAgo: 9),
+-        item(id: "sample-ai-prompts", title: "Prompt checklist for messy projects", description: "A quick note for turning vague ideas into useful instructions.", source: "Paste", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "checklist"], hoursAgo: 10),
+-        item(id: "sample-meme-goyo", title: "Goyo goyo with lyrics", description: "A funny video save that shows how memes land in SAVI.", url: "https://www.youtube.com/results?search_query=goyo+goyo+with+lyrics", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "youtube"], thumbnailSeed: "savi-goyo-lyrics", hoursAgo: 11),
++        item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi", description: "SAMPLE stay note: front door 2486, Wi-Fi Pinehouse Guest, checkout 11 AM.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "airbnb", "door-code", "wifi", "travel"], thumbnail: sampleAccessThumb(), hoursAgo: 1),
++        item(id: "sample-health-parasites-gut", title: "Parasites and gut health: evidence notes", description: "Neutral reading list from CDC and PubMed on parasite risk, prevention, and the gut parasitome.", url: "https://www.cdc.gov/parasites/causes/index.html", source: "CDC", type: .article, folderId: "f-health", tags: ["research", "gut-health", "parasites", "questions-for-doctor"], thumbnailSeed: "savi-cdc-parasite-notes", hoursAgo: 2),
++        item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 3),
++        item(id: "sample-ai-prompts", title: "Prompt: turn chaos into a plan", description: "Reusable AI prompt: clarify the goal, ask three sharp questions, list assumptions, then return a clean step-by-step plan.", source: "Paste", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "ai-prompt", "workflow", "template"], thumbnail: sampleAIPromptThumb(), hoursAgo: 4),
++        item(id: "sample-life-driver-license", title: "Sample driver license copy", description: "Watermarked fake ID copy with invented demo data for testing document saves.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 5, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
++        item(id: "sample-health-fasting-autophagy", title: "Fasting and autophagy research", description: "A research save about fasting mechanisms and autophagy, kept as notes to discuss with a clinician.", url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5411330/", source: "PMC", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "questions-for-doctor"], thumbnailSeed: "savi-fasting-autophagy", hoursAgo: 6),
++        item(id: "sample-place-ramen", title: "Tokyo ramen map pin", description: "A restaurant idea saved from Maps for a future trip.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Maps", type: .place, folderId: "f-travel", tags: ["maps", "tokyo", "food"], thumbnailSeed: "savi-tokyo-ramen", hoursAgo: 7),
++        item(id: "sample-life-insurance-card", title: "Sample insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 8, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
++        item(id: "sample-research-mebendazole", title: "Anti-parasitic drugs in cancer trials", description: "Clinical-trial and phase 1 research links about mebendazole. Saved as research, not medical advice.", url: "https://www.clinicaltrials.gov/study/NCT03628079", source: "ClinicalTrials.gov", type: .article, folderId: "f-research", tags: ["clinical-trial", "research", "mebendazole", "questions-for-doctor"], thumbnailSeed: "savi-mebendazole-trials", hoursAgo: 9),
++        item(id: "sample-meme-goyo", title: "Goyo goyo with lyrics", description: "A funny video save that shows how memes land in SAVI.", url: "https://www.youtube.com/results?search_query=goyo+goyo+with+lyrics", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "youtube"], thumbnailSeed: "savi-goyo-lyrics", hoursAgo: 10),
++        item(id: "sample-life-contract-template", title: "Contract template to reuse", description: "A reusable service agreement template saved where life admin documents live.", source: "Files", type: .file, folderId: "f-life-admin", tags: ["contract", "template", "docx", "important"], thumbnail: sampleContractThumb(), hoursAgo: 11, assetName: "sample-service-contract-template.docx", assetMime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", assetSize: 312_000),
+         item(id: "sample-science-webb", title: "NASA Webb image explainer", description: "A space discovery save for the science things worth revisiting.", url: "https://science.nasa.gov/mission/webb/", source: "NASA", type: .article, folderId: "f-wtf-favorites", tags: ["space", "nasa", "science"], thumbnailSeed: "savi-webb-space", hoursAgo: 12),
++        item(id: "sample-life-recovery-code", title: "Emergency recovery code", description: "SAMPLE long code: RK8F-Q44P-29LM-7DZQ. Shows how SAVI keeps exact text findable.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "recovery-code", "important", "admin"], thumbnail: sampleRecoveryThumb(), hoursAgo: 13),
+
+-        item(id: "sample-watch-claude", title: "How to use Claude like a thinking partner", description: "A practical setup for long-context productivity and better saved research.", url: "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview", source: "Anthropic", type: .article, folderId: "f-must-see", tags: ["read-later", "ai", "productivity"], thumbnailSeed: "savi-claude-thinking", hoursAgo: 13),
++        item(id: "sample-watch-claude", title: "How to use Claude like a thinking partner", description: "A practical setup for long-context productivity and better saved research.", url: "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview", source: "Anthropic", type: .article, folderId: "f-must-see", tags: ["read-later", "ai", "productivity"], thumbnailSeed: "savi-claude-thinking", hoursAgo: 16),
+         item(id: "sample-watch-wwdc", title: "Apple WWDC recap", description: "A conference video page to watch when you have ten quiet minutes.", url: "https://developer.apple.com/videos/wwdc2024/", source: "Apple", type: .video, folderId: "f-must-see", tags: ["video", "apple", "tech"], thumbnailSeed: "savi-wwdc-recap", hoursAgo: 18),
+         item(id: "sample-watch-extension", title: "The browser extension I keep using", description: "A practical link about extensions and tiny tools that keep saving time.", url: "https://support.apple.com/guide/safari/get-extensions-sfri32508/mac", source: "Apple Support", type: .article, folderId: "f-must-see", tags: ["read-later", "tools", "browser"], thumbnailSeed: "savi-browser-extension", hoursAgo: 26),
+         item(id: "sample-watch-coffee-tech", title: "Japan's quiet coffee tech", description: "A calm travel read about cafe culture and delightful little systems.", url: "https://www.japan-guide.com/e/e2343.html", source: "Japan Guide", type: .article, folderId: "f-must-see", tags: ["read-later", "japan", "coffee"], thumbnailSeed: "savi-coffee-tech", hoursAgo: 35),
+@@ -436,7 +687,6 @@
+
+         item(id: "sample-place-airport-coffee", title: "Best airport coffee backup", description: "A useful pin for the next time your gate changes twice.", url: "https://maps.apple.com/?q=airport%20coffee", source: "Maps", type: .place, folderId: "f-travel", tags: ["maps", "coffee", "travel"], thumbnailSeed: "savi-airport-coffee", hoursAgo: 152),
+         item(id: "sample-place-museum", title: "Weekend museum idea", description: "A place save for the kind of Saturday that starts with coffee.", url: "https://maps.apple.com/?q=museum", source: "Maps", type: .place, folderId: "f-travel", tags: ["maps", "museum", "weekend"], thumbnailSeed: "savi-museum", hoursAgo: 164),
+-        item(id: "sample-place-hotel", title: "Tiny hotel with great reviews", description: "A stay idea saved before it disappears into browser tabs.", url: "https://maps.apple.com/?q=boutique%20hotel", source: "Maps", type: .place, folderId: "f-travel", tags: ["hotel", "trip", "travel"], thumbnailSeed: "savi-tiny-hotel", hoursAgo: 176),
+         item(id: "sample-place-walk", title: "Walking route for a lazy Sunday", description: "A route save with snacks, shade, and one perfect bookstore stop.", url: "https://maps.apple.com/?q=walking%20route", source: "Maps", type: .place, folderId: "f-travel", tags: ["route", "maps", "weekend"], thumbnailSeed: "savi-sunday-walk", hoursAgo: 188),
+
+         item(id: "sample-food-pasta", title: "Late-night pasta formula", description: "A fast dinner idea you would otherwise lose in a scroll.", url: "https://www.bbcgoodfood.com/recipes/collection/pasta-recipes", source: "BBC Good Food", type: .article, folderId: "f-recipes", tags: ["recipe", "dinner", "pasta"], thumbnailSeed: "savi-late-pasta", hoursAgo: 200),
+@@ -451,16 +701,16 @@
+         item(id: "sample-note-quote", title: "Random quote to keep", description: "A line that made sense at 1:12 AM and may make sense again later.", source: "Clipboard", type: .text, folderId: "f-paste-bin", tags: ["quote", "note"], hoursAgo: 296),
+         item(id: "sample-note-before-disappears", title: "Save this before it disappears", description: "The kind of tiny copied detail that gets lost unless you park it somewhere.", source: "Clipboard", type: .text, folderId: "f-paste-bin", tags: ["note", "clipboard", "temporary"], hoursAgo: 308),
+
+-        item(id: "sample-private-passport", title: "Sample passport checklist", description: "SAMPLE only: invented renewal reminder, scan checklist, and travel document note.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "passport"], thumbnail: sampleDocumentThumb(title: "Passport list", subtitle: "SAMPLE private note", accentHex: "#7A35E8"), hoursAgo: 320),
+-        item(id: "sample-private-birth-certificate", title: "Sample birth certificate copy", description: "Fake birth certificate record with invented demo data and SAMPLE watermark.", source: "Files", type: .file, folderId: "f-private-vault", tags: ["sample", "birth-certificate", "private", "pdf"], thumbnail: sampleDocumentThumb(title: "Birth certificate", subtitle: "Invented sample copy", accentHex: "#7A35E8"), hoursAgo: 332, assetName: "sample-birth-certificate.pdf", assetMime: "application/pdf", assetSize: 205_000),
+-        item(id: "sample-private-medical-note", title: "Sample medical appointment note", description: "SAMPLE only: invented appointment time, questions to ask, and follow-up reminder.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "medical", "private"], thumbnail: sampleDocumentThumb(title: "Medical note", subtitle: "SAMPLE questions", accentHex: "#7A35E8"), hoursAgo: 344),
+-        item(id: "sample-private-wifi", title: "Sample Wi-Fi password note", description: "SAMPLE password note: network Pinehouse, guest code placeholder, router location.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "password"], thumbnail: sampleDocumentThumb(title: "Wi-Fi password", subtitle: "SAMPLE credentials", accentHex: "#7A35E8"), hoursAgo: 356),
+-        item(id: "sample-private-receipt", title: "Sample return receipt PDF", description: "Fake receipt sample that demonstrates protected document saves.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "receipt", "pdf"], thumbnail: sampleDocumentThumb(title: "Return receipt", subtitle: "SAMPLE protected PDF", accentHex: "#7A35E8"), hoursAgo: 368, assetName: "sample-return-receipt.pdf", assetMime: "application/pdf", assetSize: 142_000),
++        item(id: "sample-private-passport", title: "Sample passport checklist", description: "SAMPLE only: invented renewal reminder, scan checklist, and travel document note.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "passport"], thumbnail: sampleVaultThumb(title: "Passport list", subtitle: "Renewal checklist", symbolName: "airplane"), hoursAgo: 320),
++        item(id: "sample-private-birth-certificate", title: "Sample birth certificate copy", description: "Fake birth certificate record with invented demo data and SAMPLE watermark.", source: "Files", type: .file, folderId: "f-private-vault", tags: ["sample", "birth-certificate", "private", "pdf"], thumbnail: sampleVaultThumb(title: "Birth record", subtitle: "Invented sample copy", symbolName: "doc.richtext.fill"), hoursAgo: 332, assetName: "sample-birth-certificate.pdf", assetMime: "application/pdf", assetSize: 205_000),
++        item(id: "sample-private-medical-note", title: "Sample medical appointment note", description: "SAMPLE only: invented appointment time, questions to ask, and follow-up reminder.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "medical", "private"], thumbnail: sampleVaultThumb(title: "Medical note", subtitle: "Questions to ask", symbolName: "cross.case.fill"), hoursAgo: 344),
++        item(id: "sample-private-wifi", title: "Sample Wi-Fi password note", description: "SAMPLE password note: network Pinehouse, guest code placeholder, router location.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "password", "wifi"], thumbnail: sampleVaultThumb(title: "Wi-Fi password", subtitle: "Sample credentials", symbolName: "wifi"), hoursAgo: 356),
++        item(id: "sample-private-receipt", title: "Sample return receipt PDF", description: "Fake receipt sample that demonstrates protected document saves.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "receipt", "pdf"], thumbnail: sampleVaultThumb(title: "Return receipt", subtitle: "Protected PDF", symbolName: "receipt.fill"), hoursAgo: 368, assetName: "sample-return-receipt.pdf", assetMime: "application/pdf", assetSize: 142_000),
+
+-        item(id: "sample-research-climate", title: "Climate report PDF", description: "A public PDF report for testing document search and filters.", url: "https://www.ipcc.ch/report/ar6/wg1/downloads/report/IPCC_AR6_WGI_SPM.pdf", source: "IPCC", type: .file, folderId: "f-research", tags: ["pdf", "report", "climate"], thumbnail: sampleDocumentThumb(title: "Climate report", subtitle: "Public PDF sample", accentHex: "#5ADDCB"), hoursAgo: 380, assetName: "ipcc-ar6-summary.pdf", assetMime: "application/pdf", assetSize: 920_000),
++        item(id: "sample-research-climate", title: "Climate report PDF", description: "A public PDF report for testing document search and filters.", url: "https://www.ipcc.ch/report/ar6/wg1/downloads/report/IPCC_AR6_WGI_SPM.pdf", source: "IPCC", type: .file, folderId: "f-research", tags: ["pdf", "report", "climate"], thumbnail: sampleGraphicThumb(title: "Climate report", subtitle: "Public PDF sample", accentHex: "#5ADDCB", symbolName: "leaf.fill", rows: ["IPCC summary", "Charts + findings", "PDF document", "Saved for research"]), hoursAgo: 380, assetName: "ipcc-ar6-summary.pdf", assetMime: "application/pdf", assetSize: 920_000),
+         item(id: "sample-research-microbiome", title: "Gut parasitome review", description: "PubMed review save about parasites, microbiome interactions, and research questions.", url: "https://pubmed.ncbi.nlm.nih.gov/35509426/", source: "PubMed", type: .article, folderId: "f-research", tags: ["pubmed", "microbiome", "parasites", "research"], thumbnailSeed: "savi-parasitome-review", hoursAgo: 392),
+         item(id: "sample-research-paper", title: "Academic paper to revisit", description: "Attention Is All You Need, saved as a classic research reference.", url: "https://arxiv.org/abs/1706.03762", source: "arXiv", type: .article, folderId: "f-research", tags: ["paper", "arxiv", "pdf"], thumbnailSeed: "savi-academic-paper", hoursAgo: 404),
+-        item(id: "sample-research-market", title: "Market sizing spreadsheet", description: "A spreadsheet save for testing docs, work research, and file search.", source: "Device", type: .file, folderId: "f-research", tags: ["spreadsheet", "market", "research"], thumbnail: sampleDocumentThumb(title: "Market sizing", subtitle: "SAMPLE spreadsheet", accentHex: "#5ADDCB"), hoursAgo: 416, assetName: "sample-market-sizing.xlsx", assetMime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", assetSize: 286_000),
++        item(id: "sample-research-market", title: "Market sizing spreadsheet", description: "A spreadsheet save for testing docs, work research, and file search.", source: "Device", type: .file, folderId: "f-research", tags: ["spreadsheet", "market", "research"], thumbnail: sampleSpreadsheetThumb(), hoursAgo: 416, assetName: "sample-market-sizing.xlsx", assetMime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", assetSize: 286_000),
+
+         item(id: "sample-design-palette", title: "Color palette screenshot", description: "A screenshot save for the next time a project needs a mood fast.", source: "Photos", type: .image, folderId: "f-design", tags: ["color", "screenshot", "design"], thumbnailSeed: "savi-color-palette", hoursAgo: 428),
+         item(id: "sample-design-mobile-nav", title: "Mobile nav reference", description: "A compact visual reference for thumb-first interface ideas.", url: "https://developer.apple.com/design/human-interface-guidelines/navigation-bars", source: "Apple HIG", type: .article, folderId: "f-design", tags: ["design", "mobile", "ui"], thumbnailSeed: "savi-mobile-nav", hoursAgo: 440),
+--- before/Docs/ChangeLog/2026-05-04.md
++++ after/Docs/ChangeLog/2026-05-04.md
+@@ -95,3 +95,23 @@
+   `AI & Work`, and `Places & Trips` up front.
+ - Updated generic-folder repair so it does not reclassify curated demo saves
+   out of `Everything Else` during first launch.
++
++## Launch Sample Library V5
++
++- Created rollback archive:
++  `Docs/Design/SampleLibraryArchive/2026-05-04-before-v5-sample-library/`.
++- Kept the sample catalog at 70 saves, but reordered the first-run timeline into
++  a more fluent mix of utility, health/research, travel, AI prompt, documents,
++  maps, memes, and science saves.
++- Added `Hotel booking confirmation` to `Life Admin` and upgraded the AI prompt
++  sample to `Prompt: turn chaos into a plan` with stronger `ai-prompt`,
++  `workflow`, and `template` tags.
++- Replaced repeated generic document thumbnails with distinct generated
++  watermarked mockups for Airbnb access, hotel booking, driver license,
++  insurance card, contract template, recovery code, AI prompt, vault items,
++  climate PDF, and market spreadsheet samples.
++- Bumped native seed version to `8` so existing sample libraries can refresh to
++  the V5 catalog while preserving personal saves.
++- Built and installed both simulator channels, cloned main data into `SAVI Test`,
++  and captured QA screenshot:
++  `/Users/guest1/Desktop/SAVI_QA/savi_v5_sample_home_2026-05-04.png`.

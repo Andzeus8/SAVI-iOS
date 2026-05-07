@@ -1,0 +1,263 @@
+diff -ruN before/Docs/ChangeLog/2026-05-02.md after/Docs/ChangeLog/2026-05-02.md
+--- before/Docs/ChangeLog/2026-05-02.md	2026-05-02 21:44:04
++++ after/Docs/ChangeLog/2026-05-02.md	2026-05-02 21:44:04
+@@ -195,6 +195,15 @@
+   `/Users/guest1/Desktop/SAVI_QA/item_detail_compact_after.jpg`
+ - Item detail quick theme check screenshot:
+   `/Users/guest1/Desktop/SAVI_QA/item_detail_compact_theme_check.jpg`
++- Archived the item detail action area before the second button polish pass:
++  `/Users/guest1/Documents/SAVI-iOS/Docs/Design/ItemDetailPolishArchive/2026-05-02-before-action-panel-polish/`
++- Rebuilt the item detail action area into a clearer hierarchy: Share is now a
++  full-width primary action, Preview/Open/Edit are equal-width secondary
++  controls, and Delete is separated as a quieter destructive action in the same
++  tidy panel.
++- Item detail action panel QA screenshots:
++  `/Users/guest1/Desktop/SAVI_QA/item_detail_action_panel_after.jpg`,
++  `/Users/guest1/Desktop/SAVI_QA/item_detail_action_panel_theme_check.jpg`
+
+ ## Affected Areas
+
+diff -ruN before/SAVI/Views/Save/SaveAndEditSheets.swift after/SAVI/Views/Save/SaveAndEditSheets.swift
+--- before/SAVI/Views/Save/SaveAndEditSheets.swift	2026-05-02 21:44:04
++++ after/SAVI/Views/Save/SaveAndEditSheets.swift	2026-05-02 21:44:04
+@@ -746,59 +746,20 @@
+                         bodyText: SaviItemDisplay.detailBody(for: item)
+                     )
+
+-                    VStack(alignment: .leading, spacing: 8) {
+-                        if let urlString = item.url,
+-                           let url = URL(string: urlString) {
+-                            HStack(spacing: 10) {
+-                                Button {
+-                                    webPreview = WebPreviewURL(url: url)
+-                                } label: {
+-                                    Label("Preview", systemImage: "eye.fill")
+-                                        .frame(maxWidth: .infinity)
+-                                }
+-                                .buttonStyle(ItemDetailActionButtonStyle())
+-
+-                                Link(destination: url) {
+-                                    Label("Open", systemImage: "safari.fill")
+-                                        .frame(maxWidth: .infinity)
+-                                }
+-                                .buttonStyle(ItemDetailActionButtonStyle())
+-                            }
+-                        } else if let previewURL = store.quickLookURL(for: item) {
+-                            Button {
+-                                assetPreview = AssetPreviewURL(url: previewURL)
+-                            } label: {
+-                                Label("Preview file", systemImage: "eye.fill")
+-                                    .frame(maxWidth: .infinity)
+-                            }
+-                            .buttonStyle(ItemDetailActionButtonStyle())
++                    ItemDetailActionPanel(
++                        item: item,
++                        itemURL: itemURL,
++                        quickLookURL: store.quickLookURL(for: item),
++                        shareURL: shareURL,
++                        shareText: shareText,
++                        onPreviewURL: { webPreview = WebPreviewURL(url: $0) },
++                        onPreviewAsset: { assetPreview = AssetPreviewURL(url: $0) },
++                        onEdit: { store.editItem(item) },
++                        onDelete: {
++                            store.deleteItem(item)
++                            dismiss()
+                         }
+-
+-                        HStack(spacing: 10) {
+-                            primaryShareAction
+-
+-                            Button {
+-                                store.editItem(item)
+-                            } label: {
+-                                Label("Edit", systemImage: "pencil")
+-                                    .labelStyle(.iconOnly)
+-                                    .frame(width: 54)
+-                            }
+-                            .buttonStyle(ItemDetailActionButtonStyle())
+-                            .accessibilityLabel("Edit save")
+-                        }
+-                    }
+-                    .padding(10)
+-                    .saviCard(cornerRadius: 16, shadow: false)
+-
+-                    Button(role: .destructive) {
+-                        store.deleteItem(item)
+-                        dismiss()
+-                    } label: {
+-                        Label("Delete save", systemImage: "trash.fill")
+-                            .frame(maxWidth: .infinity)
+-                    }
+-                    .buttonStyle(SaviDangerButtonStyle())
++                    )
+                 }
+                 .padding(.horizontal, 16)
+                 .padding(.top, 10)
+@@ -826,25 +787,6 @@
+     }
+
+     @ViewBuilder
+-    private var primaryShareAction: some View {
+-        if let shareURL {
+-            ShareLink(item: shareURL) {
+-                Label("Share", systemImage: "square.and.arrow.up.fill")
+-                    .frame(maxWidth: .infinity)
+-            }
+-            .buttonStyle(ItemDetailShareButtonStyle())
+-            .accessibilityLabel("Share \(SaviItemDisplay.rowTitle(for: item))")
+-        } else {
+-            ShareLink(item: shareText) {
+-                Label("Share", systemImage: "square.and.arrow.up.fill")
+-                    .frame(maxWidth: .infinity)
+-            }
+-            .buttonStyle(ItemDetailShareButtonStyle())
+-            .accessibilityLabel("Share \(SaviItemDisplay.rowTitle(for: item))")
+-        }
+-    }
+-
+-    @ViewBuilder
+     private var toolbarShareAction: some View {
+         if let shareURL {
+             ShareLink(item: shareURL) {
+@@ -859,7 +801,7 @@
+         }
+     }
+
+-    private var shareURL: URL? {
++    private var itemURL: URL? {
+         guard let rawURL = item.url?.nilIfBlank else { return nil }
+         if let url = URL(string: rawURL), url.scheme != nil {
+             return url
+@@ -867,6 +809,10 @@
+         return URL(string: "https://\(rawURL)")
+     }
+
++    private var shareURL: URL? {
++        itemURL
++    }
++
+     private var shareText: String {
+         let title = SaviItemDisplay.rowTitle(for: item)
+         if let description = item.itemDescription.nilIfBlank,
+@@ -877,6 +823,85 @@
+     }
+ }
+
++struct ItemDetailActionPanel: View {
++    let item: SaviItem
++    let itemURL: URL?
++    let quickLookURL: URL?
++    let shareURL: URL?
++    let shareText: String
++    let onPreviewURL: (URL) -> Void
++    let onPreviewAsset: (URL) -> Void
++    let onEdit: () -> Void
++    let onDelete: () -> Void
++
++    var body: some View {
++        VStack(alignment: .leading, spacing: 9) {
++            shareAction
++
++            HStack(spacing: 8) {
++                if let itemURL {
++                    Button {
++                        onPreviewURL(itemURL)
++                    } label: {
++                        Label("Preview", systemImage: "eye.fill")
++                            .frame(maxWidth: .infinity)
++                    }
++                    .buttonStyle(ItemDetailActionButtonStyle())
++
++                    Link(destination: itemURL) {
++                        Label("Open", systemImage: "safari.fill")
++                            .frame(maxWidth: .infinity)
++                    }
++                    .buttonStyle(ItemDetailActionButtonStyle())
++                } else if let quickLookURL {
++                    Button {
++                        onPreviewAsset(quickLookURL)
++                    } label: {
++                        Label("Preview", systemImage: "eye.fill")
++                            .frame(maxWidth: .infinity)
++                    }
++                    .buttonStyle(ItemDetailActionButtonStyle())
++                }
++
++                Button(action: onEdit) {
++                    Label("Edit", systemImage: "pencil")
++                        .frame(maxWidth: .infinity)
++                }
++                .buttonStyle(ItemDetailActionButtonStyle())
++                .accessibilityLabel("Edit save")
++            }
++
++            Button(role: .destructive, action: onDelete) {
++                Label("Delete", systemImage: "trash")
++                    .frame(maxWidth: .infinity)
++            }
++            .buttonStyle(ItemDetailDeleteButtonStyle())
++            .padding(.top, 1)
++        }
++        .padding(10)
++        .saviCard(cornerRadius: 16, shadow: false)
++    }
++
++    @ViewBuilder
++    private var shareAction: some View {
++        if let shareURL {
++            ShareLink(item: shareURL) {
++                Label("Share", systemImage: "square.and.arrow.up.fill")
++                    .frame(maxWidth: .infinity)
++            }
++            .buttonStyle(ItemDetailShareButtonStyle())
++            .accessibilityLabel("Share \(SaviItemDisplay.rowTitle(for: item))")
++        } else {
++            ShareLink(item: shareText) {
++                Label("Share", systemImage: "square.and.arrow.up.fill")
++                    .frame(maxWidth: .infinity)
++            }
++            .buttonStyle(ItemDetailShareButtonStyle())
++            .accessibilityLabel("Share \(SaviItemDisplay.rowTitle(for: item))")
++        }
++    }
++}
++
+ struct ItemDetailHeroCard: View {
+     let item: SaviItem
+     let folder: SaviFolder?
+@@ -1104,13 +1129,31 @@
+ struct ItemDetailShareButtonStyle: ButtonStyle {
+     func makeBody(configuration: Configuration) -> some View {
+         configuration.label
+-            .font(SaviType.ui(.caption, weight: .black))
+-            .padding(.vertical, 10)
+-            .padding(.horizontal, 12)
+-            .frame(minHeight: 44)
++            .font(SaviType.ui(.subheadline, weight: .black))
++            .padding(.vertical, 11)
++            .padding(.horizontal, 14)
++            .frame(minHeight: 46)
+             .background(SaviTheme.chartreuse.opacity(configuration.isPressed ? 0.78 : 1))
+             .foregroundStyle(.black)
++            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
++            .scaleEffect(configuration.isPressed ? 0.985 : 1)
++    }
++}
++
++struct ItemDetailDeleteButtonStyle: ButtonStyle {
++    func makeBody(configuration: Configuration) -> some View {
++        configuration.label
++            .font(SaviType.ui(.caption, weight: .bold))
++            .padding(.vertical, 9)
++            .padding(.horizontal, 12)
++            .frame(minHeight: 42)
++            .background(Color.red.opacity(configuration.isPressed ? 0.14 : 0.08))
++            .foregroundStyle(Color.red.opacity(0.88))
+             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
++            .overlay(
++                RoundedRectangle(cornerRadius: 14, style: .continuous)
++                    .stroke(Color.red.opacity(0.16), lineWidth: 1)
++            )
+             .scaleEffect(configuration.isPressed ? 0.985 : 1)
+     }
+ }

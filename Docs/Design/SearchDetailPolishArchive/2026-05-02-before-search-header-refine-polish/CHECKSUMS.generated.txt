@@ -1,0 +1,10 @@
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/CHECKSUMS.generated.txt
+a4fb115669754c2ed4ca13874eeffccf666ddfe25cf382d2f956465faf94e692  Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/Docs/ChangeLog/2026-05-02.md
+1cae951a7f802112b16012d8cfdf10ff30621b713afd13225d913cb4d64fbe6e  Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/MANIFEST.md
+8971c58dd90e0cd88e58a64affb0bb304f7da84dda87c847769b2c9182def0cc  Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/SAVI/Views/Search/SearchComponents.swift
+aec35eb10f2f85ae056ae8fec91f64954e81d3a3b3f7e18d5e6888c6f96f39ca  Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/SAVI/Views/Search/SearchScreen.swift
+42f625fde638a53c75d5fcff42562b803de6ea99f498360f213c9296b345d7d9  Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/screenshots/search_after_header_refine_grid_polish.jpg
+473be6af9e29c2e06d3a94aaf614d021fdd141029ca5b0ea45ca1f08e8e954b2  Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/screenshots/search_before_header_refine_polish.jpg
+c349a73d54804e55cfe229cdd19f56bc54861249183ef040f52ad5031ce072c3  Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/screenshots/search_refine_after_header_refine_grid_polish.jpg
+623fa696a7b6b7944ab54cad855b53721d43c1ed937ccd251977ed56ba275749  Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/search-header-refine-forward.patch
+de73853172ad380780446429e1986f4422708a6e041c9775b4c41ac2eb5c0c07  Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/search-header-refine-revert.patch

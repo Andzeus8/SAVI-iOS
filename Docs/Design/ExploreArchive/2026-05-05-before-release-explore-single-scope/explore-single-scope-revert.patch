@@ -1,0 +1,110 @@
+diff --git b/Docs/CHANGELOG.md a/Docs/CHANGELOG.md
+index f67b99a..23ddb08 100644
+--- b/Docs/CHANGELOG.md
++++ a/Docs/CHANGELOG.md
+@@ -9,9 +9,6 @@ targets, and QA evidence.
+ - Polished Profile/Settings around a clearer SAVI Beta explanation, a setup
+   checklist, cleaner management hierarchy, and more honest Social Beta
+   coming-soon copy.
+-- Simplified Release/TestFlight Explore into a single personal Explore view
+-  with clearer explanatory copy, while keeping Explore scopes for internal
+-  Social builds.
+ - Added a V22 sample-library and Folder Intelligence pass with an A/C warranty
+   screenshot sample, stronger audio/sample file typing, screenshot OCR in the
+   share extension, and Life Admin vs Private Vault guardrails.
+diff --git b/Docs/ChangeLog/2026-05-05.md a/Docs/ChangeLog/2026-05-05.md
+index 3c80fd2..ca70770 100644
+--- b/Docs/ChangeLog/2026-05-05.md
++++ a/Docs/ChangeLog/2026-05-05.md
+@@ -1,26 +1,5 @@
+ # SAVI Change Log - 2026-05-05
+ 
+-## Release Explore Single-Scope Cleanup
+-
+-- Created rollback archive:
+-  `Docs/Design/ExploreArchive/2026-05-05-before-release-explore-single-scope/`.
+-- Removed the `All` / `Mine` Explore scope control from Release/TestFlight
+-  builds because Social is hidden and both choices resolve to the user's own
+-  saves.
+-- Kept `All`, `Mine`, and `Friends` scopes available when
+-  `SaviReleaseGate.socialFeaturesEnabled == true` for internal `SAVI Test`
+-  social development.
+-- Normalized Release Explore scope preferences back to `All` so old `Mine` or
+-  `Friends` prefs do not leave beta users in a confusing hidden mode.
+-- Updated Release Explore copy to explain the page as a fresh shuffle of links,
+-  videos, places, memes, and rabbit holes the user saved.
+-- Release iPhoneOS no-sign build passed:
+-  `/Users/guest1/Desktop/SAVI_QA/explore-single-scope-release-iphoneos-nosign-20260505-110909.log`.
+-- Captured Release simulator Explore screenshots in light and dark mode:
+-  `/Users/guest1/Desktop/SAVI_QA/explore-single-scope-20260505-111031/explore-light.png`
+-  and
+-  `/Users/guest1/Desktop/SAVI_QA/explore-single-scope-20260505-111031/explore-dark.png`.
+-
+ ## Profile Settings Beta Flow Polish
+ 
+ - Created rollback archive:
+diff --git b/SAVI/Core/SaviCore.swift a/SAVI/Core/SaviCore.swift
+index 58cae5f..563c6f3 100644
+--- b/SAVI/Core/SaviCore.swift
++++ a/SAVI/Core/SaviCore.swift
+@@ -621,13 +621,13 @@ enum ExploreScope: String, CaseIterable, Identifiable {
+     var id: String { rawValue }
+ 
+     static var allCases: [ExploreScope] {
+-        SaviReleaseGate.socialFeaturesEnabled ? [.all, .mine, .friends] : [.all]
++        SaviReleaseGate.socialFeaturesEnabled ? [.all, .mine, .friends] : [.all, .mine]
+     }
+ 
+     static func visibleScope(for rawValue: String) -> ExploreScope {
+         let scope = ExploreScope(rawValue: rawValue) ?? .all
+-        if !SaviReleaseGate.socialFeaturesEnabled {
+-            return .all
++        if scope == .friends, !SaviReleaseGate.socialFeaturesEnabled {
++            return .mine
+         }
+         return scope
+     }
+diff --git b/SAVI/Views/Explore/ExploreLibraryView.swift a/SAVI/Views/Explore/ExploreLibraryView.swift
+index 278d708..da2e0cd 100644
+--- b/SAVI/Views/Explore/ExploreLibraryView.swift
++++ a/SAVI/Views/Explore/ExploreLibraryView.swift
+@@ -19,9 +19,6 @@ struct ExploreLibraryView: View {
+     @Binding var seed: Int
+ 
+     private var emptyTitle: String {
+-        if !SaviReleaseGate.socialFeaturesEnabled {
+-            return "Nothing to explore yet"
+-        }
+         switch store.exploreScope {
+         case .all, .mine: return "No browseable saves yet"
+         case .friends: return "No friend links yet"
+@@ -29,9 +26,6 @@ struct ExploreLibraryView: View {
+     }
+ 
+     private var emptyMessage: String {
+-        if !SaviReleaseGate.socialFeaturesEnabled {
+-            return "Save links, videos, images, and places, and SAVI will turn them into a fresh mix worth revisiting."
+-        }
+         switch store.exploreScope {
+         case .all:
+             return "Links, videos, images, and places will show up here when they are not private or paste-bin material."
+@@ -48,9 +42,7 @@ struct ExploreLibraryView: View {
+         VStack(alignment: .leading, spacing: 12) {
+             ExploreCompactHeader(snapshot: snapshot)
+ 
+-            if SaviReleaseGate.socialFeaturesEnabled {
+-                ExploreScopeControl()
+-            }
++            ExploreScopeControl()
+ 
+             if snapshot.items.isEmpty {
+                 EmptyStateView(
+@@ -85,7 +77,7 @@ private struct ExploreCompactHeader: View {
+ 
+                 Text(SaviReleaseGate.socialFeaturesEnabled
+                     ? "A fresh mix from you and your friends."
+-                    : "A fresh shuffle of links, videos, places, memes, and rabbit holes you saved.")
++                    : "A fresh mix of what you saved.")
+                     .font(SaviType.reading(.subheadline, weight: .semibold))
+                     .foregroundStyle(SaviTheme.textMuted)
+                     .fixedSize(horizontal: false, vertical: true)

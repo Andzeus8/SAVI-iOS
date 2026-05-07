@@ -1,0 +1,4 @@
+08893bdba53e4fad8376b19334a5b7852c78ee07d6bcf17f65480eb46058ad37  /Users/guest1/Documents/SAVI-iOS/Docs/Design/ItemDetailPolishArchive/2026-05-02-before-compact-item-detail/compact-item-detail-forward.patch
+ffb1a58e890fddf3edd35ec943e160fa20b139ac9f3c8ad2e06eca8a9fbee18f  /Users/guest1/Documents/SAVI-iOS/Docs/Design/ItemDetailPolishArchive/2026-05-02-before-compact-item-detail/compact-item-detail-revert.patch
+6e5f2996514e0ab48fc14aebe3e18a5aee07e9dd7553472001c3aea0eb7e3c84  /Users/guest1/Documents/SAVI-iOS/Docs/Design/ItemDetailPolishArchive/2026-05-02-before-compact-item-detail/screenshots/item_detail_compact_after.jpg
+2c21dd9d8154cb9a70f66425cc23d4a49c335494c6f8052fa1888ed9e8a28638  /Users/guest1/Documents/SAVI-iOS/Docs/Design/ItemDetailPolishArchive/2026-05-02-before-compact-item-detail/screenshots/item_detail_compact_theme_check.jpg
