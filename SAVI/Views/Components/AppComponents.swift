@@ -454,35 +454,19 @@ struct OnboardingView: View {
                 VStack(spacing: 10) {
                     Button {
                         if isLastPage {
-                            withAnimation { store.finishOnboarding(startTour: false) }
+                            withAnimation { store.finishOnboardingAndOpenShareSetupGuide() }
                         } else {
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
                                 pageIndex = min(pageIndex + 1, pages.count - 1)
                             }
                         }
                     } label: {
-                        Label(isLastPage ? "Start using SAVI" : "Next", systemImage: isLastPage ? "checkmark" : "arrow.right")
+                        Label(isLastPage ? "Set up Share Sheet" : "Next", systemImage: isLastPage ? "square.and.arrow.up.fill" : "arrow.right")
                             .lineLimit(1)
                             .minimumScaleFactor(0.86)
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(SaviPrimaryButtonStyle())
-
-                    Button {
-                        withAnimation {
-                            if isLastPage {
-                                store.finishOnboardingAndOpenShareSetupGuide()
-                            } else {
-                                store.finishOnboarding(startTour: false)
-                            }
-                        }
-                    } label: {
-                        Text(isLastPage ? "Try Share Sheet setup" : "Start using SAVI")
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.82)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(SaviSecondaryButtonStyle())
                 }
             }
             .padding(.horizontal, 16)
@@ -509,34 +493,34 @@ private struct OnboardingPage: Identifiable {
             id: 0,
             eyebrow: "Welcome to SAVI",
             title: "Save it now. Find it later.",
-            message: "SAVI keeps the links, videos, screenshots, files, notes, and little finds you do not want to lose.",
+            message: "That link you swore you'd find again. The screenshot. The PDF. The Airbnb Wi-Fi code. Scattered across 20 apps, finally calm in one place.",
             symbolName: "tray.and.arrow.down.fill",
             accent: SaviTheme.chartreuse,
-            visual: .library
+            visual: .appScreenshot("onboarding-home-real")
         ),
         OnboardingPage(
             id: 1,
-            eyebrow: "One library",
-            title: "One place for favorites.",
-            message: "Bookmarks, recipes, recommendations, posts, PDFs, screenshots, and ideas can finally live together.",
-            symbolName: "square.stack.3d.up.fill",
-            accent: Color(hex: "#7EC8FF"),
-            visual: .everything
+            eyebrow: "SAVI Brain",
+            title: "Give your brain a break.",
+            message: "SAVI suggests the title, folder, and tags before you save.",
+            symbolName: "brain.head.profile",
+            accent: Color(hex: "#FFDA6B"),
+            visual: .appScreenshot("onboarding-share-extension-real")
         ),
         OnboardingPage(
             id: 2,
-            eyebrow: "Browse and search",
-            title: "Browse what you love.",
-            message: "Explore turns your saved favorites into a fun mix. Later, friends can curate favorites for each other.",
-            symbolName: "sparkles",
-            accent: Color(hex: "#FFDA6B"),
-            visual: .explore
+            eyebrow: "Your folders",
+            title: "Folders with personality.",
+            message: "Private Vault, Memes & LOLs, trips, recipes, life admin, and the weird stuff all get their own place.",
+            symbolName: "folder.fill",
+            accent: Color(hex: "#7EC8FF"),
+            visual: .appScreenshot("onboarding-folders-real")
         ),
         OnboardingPage(
             id: 3,
             eyebrow: "Save from anywhere",
-            title: "Save from any app.",
-            message: "Pin SAVI in the iOS Share Sheet once. Then saving from Safari, YouTube, Photos, Files, and Messages is quick.",
+            title: "SAVI lives in your Share Sheet.",
+            message: "Take a moment, pin SAVI once, and every link, screenshot, PDF, video, and image can land here fast.",
             symbolName: "square.and.arrow.up.fill",
             accent: SaviTheme.chartreuse,
             visual: .share
@@ -545,11 +529,15 @@ private struct OnboardingPage: Identifiable {
 }
 
 private enum OnboardingVisualKind {
-    case library
-    case everything
-    case explore
-    case search
+    case appScreenshot(String)
     case share
+
+    var preferredHeight: CGFloat {
+        switch self {
+        case .appScreenshot: return 292
+        case .share: return 300
+        }
+    }
 }
 
 private struct OnboardingPageView: View {
@@ -584,14 +572,14 @@ private struct OnboardingPageView: View {
                         .foregroundStyle(SaviTheme.text)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(page.message)
-                        .font(SaviType.ui(.title3, weight: .semibold))
+                        .font(SaviType.ui(.body, weight: .semibold))
                         .foregroundStyle(SaviTheme.textMuted)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
                 OnboardingVisual(kind: page.visual, accent: page.accent)
-                    .frame(height: page.visual == .share ? 300 : 282)
+                    .frame(height: page.visual.preferredHeight)
                     .padding(.top, 4)
             }
             .padding(18)
@@ -627,64 +615,14 @@ private struct OnboardingVisual: View {
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
-                )
+            )
 
             switch kind {
-            case .library:
-                VStack(spacing: 10) {
-                    OnboardingMockCard(symbolName: "play.rectangle.fill", title: "YouTube travel tip", subtitle: "#travel  #later", accent: accent)
-                    OnboardingMockCard(symbolName: "doc.richtext.fill", title: "Warranty PDF", subtitle: "#home  #important", accent: Color(hex: "#7EC8FF"))
-                    OnboardingMockCard(symbolName: "camera.fill", title: "Recipe screenshot", subtitle: "#dinner  #family", accent: Color(hex: "#FFDA6B"))
-                }
-                .padding(16)
-            case .everything:
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 10) {
-                        OnboardingBubble(title: "Links", symbolName: "link", accent: accent)
-                        OnboardingBubble(title: "Photos", symbolName: "photo.fill", accent: Color(hex: "#FF8AA3"))
-                    }
-                    HStack(spacing: 10) {
-                        OnboardingBubble(title: "PDFs", symbolName: "doc.fill", accent: Color(hex: "#7EC8FF"))
-                        OnboardingBubble(title: "Notes", symbolName: "text.alignleft", accent: Color(hex: "#FFDA6B"))
-                    }
-                    HStack(spacing: 10) {
-                        OnboardingBubble(title: "Videos", symbolName: "play.fill", accent: Color(hex: "#8A5CFF"))
-                        OnboardingBubble(title: "Ideas", symbolName: "sparkles", accent: SaviTheme.chartreuse)
-                    }
-                }
-                .padding(16)
-            case .search:
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 9) {
-                        Image(systemName: "magnifyingglass")
-                            .font(SaviType.ui(.headline, weight: .black))
-                            .foregroundStyle(SaviTheme.textMuted)
-                        Text("door code")
-                            .font(SaviType.ui(.headline, weight: .black))
-                            .foregroundStyle(SaviTheme.text)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 13)
-                    .background(SaviTheme.background.opacity(0.64))
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                    OnboardingMockCard(symbolName: "key.fill", title: "Airbnb door code", subtitle: "Photos · Travel", accent: accent)
-                    OnboardingMockCard(symbolName: "folder.fill", title: "Travel folder", subtitle: "8 saved things", accent: Color(hex: "#7EC8FF"))
-                }
-                .padding(16)
-            case .explore:
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 10) {
-                        OnboardingBubble(title: "Links", symbolName: "link", accent: Color(hex: "#7EC8FF"))
-                        OnboardingBubble(title: "Videos", symbolName: "play.fill", accent: accent)
-                    }
-                    OnboardingMockCard(symbolName: "sparkles", title: "Tonight's favorites", subtitle: "Explore · Fresh mix", accent: accent)
-                    OnboardingMockCard(symbolName: "person.2.fill", title: "Friends' favorites", subtitle: "Curated by friends · Later", accent: Color(hex: "#FF8AA3"))
-                }
-                .padding(16)
+            case .appScreenshot(let imageName):
+                OnboardingAppScreenshotVisual(imageName: imageName, accent: accent)
+                    .padding(16)
             case .share:
-                OnboardingShareScreenshotStack()
+                OnboardingShareHeroVisual()
                     .padding(16)
             }
         }
@@ -696,94 +634,133 @@ private struct OnboardingVisual: View {
     }
 }
 
-private struct OnboardingMockCard: View {
-    let symbolName: String
-    let title: String
-    let subtitle: String
+private struct OnboardingAppScreenshotVisual: View {
+    let imageName: String
     let accent: Color
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: symbolName)
-                .font(SaviType.ui(.headline, weight: .black))
-                .frame(width: 42, height: 42)
-                .background(accent)
-                .foregroundStyle(Color.black)
-                .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        GeometryReader { proxy in
+            let phoneWidth = min(proxy.size.width * 0.62, 188)
+            let phoneHeight = min(proxy.size.height * 0.98, phoneWidth * 2.16)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(SaviType.ui(.headline, weight: .black))
-                    .foregroundStyle(SaviTheme.text)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-                Text(subtitle)
-                    .font(SaviType.ui(.caption, weight: .bold))
-                    .foregroundStyle(SaviTheme.textMuted)
-                    .lineLimit(1)
+            ZStack(alignment: .trailing) {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(accent.opacity(0.18))
+                    .frame(width: proxy.size.width * 0.72, height: proxy.size.height * 0.82)
+                    .offset(x: proxy.size.width * 0.10, y: proxy.size.height * 0.04)
+
+                Image(imageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: phoneWidth, height: phoneHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .stroke(Color.white.opacity(0.70), lineWidth: 1)
+                    )
+                    .shadow(color: SaviTheme.cardShadow.opacity(0.24), radius: 18, x: 0, y: 12)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    OnboardingMiniCallout(title: "Real app", symbolName: "iphone", accent: accent)
+                    OnboardingMiniCallout(title: "Ready to save", symbolName: "checkmark", accent: SaviTheme.chartreuse)
+                }
+                .frame(width: min(proxy.size.width * 0.42, 150), alignment: .leading)
+                .offset(x: -4, y: proxy.size.height * 0.18)
             }
-            Spacer(minLength: 0)
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .padding(12)
-        .background(SaviTheme.background.opacity(0.48))
-        .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
     }
 }
 
-private struct OnboardingBubble: View {
+private struct OnboardingMiniCallout: View {
     let title: String
     let symbolName: String
     let accent: Color
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 7) {
             Image(systemName: symbolName)
-                .font(SaviType.ui(.caption, weight: .black))
-                .frame(width: 28, height: 28)
-                .background(accent)
+                .font(SaviType.ui(.caption2, weight: .black))
+                .frame(width: 22, height: 22)
+                .background(accent, in: Circle())
                 .foregroundStyle(Color.black)
-                .clipShape(Circle())
             Text(title)
-                .font(SaviType.ui(.headline, weight: .black))
+                .font(SaviType.ui(.caption, weight: .black))
                 .foregroundStyle(SaviTheme.text)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 13)
-        .frame(maxWidth: .infinity)
-        .background(SaviTheme.background.opacity(0.48))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .background(SaviTheme.surface.opacity(0.72), in: Capsule())
+        .overlay(Capsule().stroke(Color.white.opacity(0.48), lineWidth: 1))
     }
 }
 
-private struct OnboardingShareScreenshotStack: View {
-    private let images = [
-        "share-setup-step-share",
-        "share-setup-step-more",
-        "share-setup-step-favorite"
-    ]
+private struct OnboardingShareHeroVisual: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer(minLength: 0)
+
+            ZStack {
+                Circle()
+                    .fill(SaviTheme.chartreuse.opacity(0.22))
+                    .frame(width: 164, height: 164)
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 126, height: 126)
+                    .overlay(Circle().stroke(Color.white.opacity(0.62), lineWidth: 1))
+                Image(systemName: "square.and.arrow.up.fill")
+                    .font(SaviType.display(size: 58, weight: .black))
+                    .foregroundStyle(SaviTheme.text)
+            }
+
+            VStack(spacing: 5) {
+                Text("Your new best friend")
+                    .font(SaviType.display(size: 24, weight: .black))
+                    .foregroundStyle(SaviTheme.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                Text("Share to SAVI and forget about it.")
+                    .font(SaviType.ui(.subheadline, weight: .bold))
+                    .foregroundStyle(SaviTheme.textMuted)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
+
+            HStack(spacing: 8) {
+                ShareSetupMiniStep(title: "Tap Share", symbolName: "square.and.arrow.up")
+                ShareSetupMiniStep(title: "Pick SAVI", symbolName: "app.fill")
+                ShareSetupMiniStep(title: "Done", symbolName: "checkmark")
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct ShareSetupMiniStep: View {
+    let title: String
+    let symbolName: String
 
     var body: some View {
-        GeometryReader { proxy in
-            HStack(spacing: -max(42, proxy.size.width * 0.14)) {
-                ForEach(Array(images.enumerated()), id: \.element) { index, imageName in
-                    Image(imageName)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: proxy.size.width * 0.43, height: proxy.size.height * 0.92)
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(Color.white.opacity(0.62), lineWidth: 1)
-                        )
-                        .shadow(color: SaviTheme.cardShadow.opacity(0.18), radius: 12, x: 0, y: 8)
-                        .rotationEffect(.degrees(index == 0 ? -5 : index == 2 ? 5 : 0))
-                        .zIndex(index == 1 ? 2 : 1)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        VStack(spacing: 6) {
+            Image(systemName: symbolName)
+                .font(SaviType.ui(.caption, weight: .black))
+                .frame(width: 30, height: 30)
+                .background(SaviTheme.surfaceRaised, in: Circle())
+                .foregroundStyle(SaviTheme.accentText)
+            Text(title)
+                .font(SaviType.ui(.caption2, weight: .black))
+                .foregroundStyle(SaviTheme.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.70)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 9)
+        .background(SaviTheme.background.opacity(0.52), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -876,290 +853,6 @@ struct SaviTabTipOverlay: View {
     }
 }
 
-struct OnboardingFeatureCard: View {
-    let symbolName: String
-    let title: String
-    let message: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: symbolName)
-                .font(SaviType.ui(.subheadline, weight: .black))
-                .frame(width: 34, height: 34)
-                .background(SaviTheme.surfaceRaised.opacity(0.82))
-                .foregroundStyle(SaviTheme.accentText)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(SaviType.ui(.subheadline, weight: .black))
-                    .foregroundStyle(SaviTheme.text)
-                Text(message)
-                    .font(SaviType.ui(.caption, weight: .semibold))
-                    .foregroundStyle(SaviTheme.textMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(11)
-        .background(SaviTheme.surfaceRaised.opacity(0.50))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(SaviTheme.cardStroke, lineWidth: 1)
-        )
-    }
-}
-
-private struct OnboardingPreviewStrip: View {
-    private let chips: [(String, String, Color)] = [
-        ("Share", "square.and.arrow.up.fill", SaviTheme.chartreuse),
-        ("Search", "magnifyingglass", Color(hex: "#6D7CFF")),
-        ("Folders", "folder.fill", Color(hex: "#8A5CFF"))
-    ]
-
-    var body: some View {
-        HStack(spacing: 8) {
-            ForEach(chips, id: \.0) { chip in
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(chip.2)
-                        .frame(width: 9, height: 9)
-                    Image(systemName: chip.1)
-                        .font(SaviType.ui(.caption2, weight: .black))
-                    Text(chip.0)
-                        .font(SaviType.ui(.caption2, weight: .black))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                }
-                .foregroundStyle(SaviTheme.text)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity)
-                .background(SaviTheme.surfaceRaised.opacity(0.56))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(SaviTheme.cardStroke, lineWidth: 1)
-                )
-            }
-        }
-    }
-}
-
-private struct ShareSetupAnimatedDemo: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var phase = 0
-
-    private let phaseLabels = [
-        "Link",
-        "Share",
-        "More",
-        "Pin SAVI"
-    ]
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            SaviTheme.surfaceRaised.opacity(0.92),
-                            SaviTheme.surface.opacity(0.72)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            VStack(spacing: 10) {
-                HStack {
-                    HStack(spacing: 6) {
-                        Circle().fill(Color.red.opacity(0.65)).frame(width: 8, height: 8)
-                        Circle().fill(Color.yellow.opacity(0.75)).frame(width: 8, height: 8)
-                        Circle().fill(Color.green.opacity(0.70)).frame(width: 8, height: 8)
-                    }
-                    Spacer()
-                    Text("Safari")
-                        .font(SaviType.ui(.caption2, weight: .black))
-                        .foregroundStyle(SaviTheme.textMuted)
-                    Spacer()
-                    Image(systemName: "lock.fill")
-                        .font(SaviType.ui(.caption2, weight: .bold))
-                        .foregroundStyle(SaviTheme.textMuted)
-                }
-
-                VStack(alignment: .leading, spacing: 7) {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(SaviTheme.text.opacity(0.18))
-                        .frame(width: 122, height: 12)
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(SaviTheme.textMuted.opacity(0.16))
-                        .frame(height: 9)
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(SaviTheme.textMuted.opacity(0.13))
-                        .frame(width: 182, height: 9)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .background(SaviTheme.background.opacity(0.34))
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                HStack {
-                    ShareSetupDemoToolbarButton(symbolName: "chevron.left")
-                    ShareSetupDemoToolbarButton(symbolName: "chevron.right")
-                    Spacer()
-                    ShareSetupDemoToolbarButton(symbolName: "square.and.arrow.up", active: phase >= 1)
-                    Spacer()
-                    ShareSetupDemoToolbarButton(symbolName: "book")
-                    ShareSetupDemoToolbarButton(symbolName: "square.on.square")
-                }
-                .padding(.top, 2)
-            }
-            .padding(15)
-
-            ShareSetupDemoSheet(phase: phase)
-                .padding(.horizontal, 14)
-                .offset(y: phase >= 1 ? 78 : 130)
-                .opacity(phase >= 1 ? 1 : 0)
-                .animation(.spring(response: 0.45, dampingFraction: 0.86), value: phase)
-
-            if !SaviPerformancePolicy.current.usesStaticShareSetupDemo {
-                VStack {
-                    HStack {
-                        ForEach(Array(phaseLabels.enumerated()), id: \.offset) { index, label in
-                            Text(label)
-                                .font(SaviType.ui(.caption2, weight: .black))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.65)
-                                .foregroundStyle(index == phase ? Color.black : SaviTheme.textMuted)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 6)
-                                .frame(maxWidth: .infinity)
-                                .background(index == phase ? SaviTheme.chartreuse : SaviTheme.surfaceRaised.opacity(0.72))
-                                .clipShape(Capsule())
-                        }
-                    }
-                    Spacer()
-                }
-                .padding(10)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(SaviTheme.cardStroke, lineWidth: 1)
-        )
-        .task {
-            guard !SaviPerformancePolicy.current.usesStaticShareSetupDemo else {
-                phase = 3
-                return
-            }
-            guard !reduceMotion else {
-                phase = 3
-                return
-            }
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 1_250_000_000)
-                guard !Task.isCancelled else { break }
-                await MainActor.run {
-                    withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
-                        phase = (phase + 1) % phaseLabels.count
-                    }
-                }
-            }
-        }
-    }
-}
-
-private struct ShareSetupDemoToolbarButton: View {
-    let symbolName: String
-    var active = false
-
-    var body: some View {
-        Image(systemName: symbolName)
-            .font(SaviType.ui(.caption, weight: .black))
-            .frame(width: 32, height: 32)
-            .background(active ? SaviTheme.chartreuse : SaviTheme.surfaceRaised.opacity(0.82))
-            .foregroundStyle(active ? Color.black : SaviTheme.textMuted)
-            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-    }
-}
-
-private struct ShareSetupDemoSheet: View {
-    let phase: Int
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Capsule()
-                    .fill(SaviTheme.textMuted.opacity(0.28))
-                    .frame(width: 42, height: 5)
-                Spacer()
-                Text(phase >= 3 ? "Favorites" : "Share")
-                    .font(SaviType.ui(.caption, weight: .black))
-                    .foregroundStyle(SaviTheme.textMuted)
-            }
-
-            HStack(spacing: 8) {
-                ShareSetupDemoAppPill(title: "Messages", symbolName: "message.fill")
-                ShareSetupDemoAppPill(title: "Mail", symbolName: "envelope.fill")
-                ShareSetupDemoAppPill(title: phase >= 3 ? "SAVI" : "More", symbolName: phase >= 3 ? "sparkles" : "ellipsis", active: phase >= 2)
-            }
-
-            if phase >= 2 {
-                HStack(spacing: 8) {
-                    Image(systemName: phase >= 3 ? "checkmark.circle.fill" : "plus.circle.fill")
-                        .font(SaviType.ui(.caption, weight: .black))
-                        .foregroundStyle(phase >= 3 ? SaviTheme.chartreuse : SaviTheme.accentText)
-                    Text(phase >= 3 ? "SAVI is near the front" : "Add SAVI to Favorites")
-                        .font(SaviType.ui(.caption, weight: .black))
-                        .foregroundStyle(SaviTheme.text)
-                    Spacer(minLength: 0)
-                    Image(systemName: "line.3.horizontal")
-                        .font(SaviType.ui(.caption2, weight: .black))
-                        .foregroundStyle(SaviTheme.textMuted)
-                }
-                .padding(9)
-                .background(SaviTheme.surfaceRaised.opacity(0.72))
-                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-            }
-        }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .background(SaviTheme.surface.opacity(0.80), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(SaviTheme.cardStroke, lineWidth: 1)
-        )
-        .shadow(color: SaviTheme.cardShadow.opacity(0.22), radius: 18, x: 0, y: 10)
-    }
-}
-
-private struct ShareSetupDemoAppPill: View {
-    let title: String
-    let symbolName: String
-    var active = false
-
-    var body: some View {
-        VStack(spacing: 5) {
-            Image(systemName: symbolName)
-                .font(SaviType.ui(.caption, weight: .black))
-                .frame(width: 34, height: 34)
-                .background(active ? SaviTheme.chartreuse : SaviTheme.surfaceRaised)
-                .foregroundStyle(active ? Color.black : SaviTheme.accentText)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            Text(title)
-                .font(SaviType.ui(.caption2, weight: .black))
-                .lineLimit(1)
-                .minimumScaleFactor(0.68)
-                .foregroundStyle(SaviTheme.text)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
 struct ShareSetupGuideSheet: View {
     @EnvironmentObject private var store: SaviStore
     @Environment(\.dismiss) private var dismiss
@@ -1169,51 +862,39 @@ struct ShareSetupGuideSheet: View {
         ShareSetupGuideStep(
             imageName: "share-setup-step-share",
             title: "Tap Share",
-            message: "Tap the Share button on anything you want to keep."
+            message: "Use the square arrow button in any app."
         ),
         ShareSetupGuideStep(
             imageName: "share-setup-step-more",
-            title: "Tap More",
-            message: "If SAVI is hidden, open More at the end of the app row."
+            title: "Scroll to More",
+            message: "Swipe the app row and tap More."
         ),
         ShareSetupGuideStep(
             imageName: "share-setup-step-favorite",
-            title: "Add SAVI to Favorites",
-            message: "Favorite SAVI and drag it near the front."
+            title: "Add SAVI",
+            message: "Favorite SAVI and move it near the front."
         )
     ]
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("SHARE SHEET SETUP")
-                            .font(SaviType.ui(.caption2, weight: .black))
-                            .foregroundStyle(SaviTheme.accentText)
-                            .textCase(.uppercase)
-                        Text("Save from anywhere")
-                            .font(SaviType.display(size: 34, weight: .black))
-                            .foregroundStyle(SaviTheme.text)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("Try one example now. Then pin SAVI so every app can save this fast.")
-                            .font(SaviType.ui(.subheadline, weight: .semibold))
-                            .foregroundStyle(SaviTheme.textMuted)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    ShareSetupPracticeCard {
+                VStack(alignment: .leading, spacing: 18) {
+                    ShareSetupHeroCard {
                         if let url = store.makeShareSetupPracticeShareURL() {
                             practiceShareFile = ShareSetupPracticeShareFile(url: url)
                         }
                     }
 
-                    ShareSetupStatusCard()
-
-                    Text("Pin SAVI once")
-                        .font(SaviType.display(size: 24, weight: .black))
-                        .foregroundStyle(SaviTheme.text)
-                        .padding(.top, 2)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("PIN SAVI ONCE")
+                            .font(SaviType.ui(.caption2, weight: .black))
+                            .foregroundStyle(SaviTheme.accentText)
+                            .textCase(.uppercase)
+                        Text("Two-tap setup")
+                            .font(SaviType.display(size: 25, weight: .black))
+                            .foregroundStyle(SaviTheme.text)
+                    }
 
                     VStack(spacing: 12) {
                         ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
@@ -1221,11 +902,21 @@ struct ShareSetupGuideSheet: View {
                         }
                     }
 
-                    Text("iOS does not let SAVI turn this on automatically. Once you save through the extension, SAVI will know setup worked and stop reminding you.")
-                        .font(SaviType.ui(.footnote, weight: .semibold))
+                    Text("iOS makes you add SAVI once. After that, saving is fast.")
+                        .font(SaviType.ui(.footnote, weight: .bold))
                         .foregroundStyle(SaviTheme.textMuted)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 2)
+
+                    if store.isShareExtensionSetupComplete {
+                        ShareSetupStatusCard()
+                    }
+
+                    ShareSetupPracticeCard {
+                        if let url = store.makeShareSetupPracticeShareURL() {
+                            practiceShareFile = ShareSetupPracticeShareFile(url: url)
+                        }
+                    }
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 18)
@@ -1257,6 +948,65 @@ struct ShareSetupGuideSheet: View {
 private struct ShareSetupPracticeShareFile: Identifiable {
     let id = UUID()
     let url: URL
+}
+
+private struct ShareSetupHeroCard: View {
+    let shareAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(SaviTheme.chartreuse.opacity(0.24))
+                        .frame(width: 110, height: 110)
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 82, height: 82)
+                        .overlay(Circle().stroke(Color.white.opacity(0.66), lineWidth: 1))
+                    Image(systemName: "square.and.arrow.up.fill")
+                        .font(SaviType.display(size: 37, weight: .black))
+                        .foregroundStyle(SaviTheme.text)
+                }
+                .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    Text("SAVE FROM ANYWHERE")
+                        .font(SaviType.ui(.caption2, weight: .black))
+                        .foregroundStyle(SaviTheme.accentText)
+                        .textCase(.uppercase)
+                    Text("Directly from your Share Sheet.")
+                        .font(SaviType.display(size: 31, weight: .black))
+                        .foregroundStyle(SaviTheme.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("This button is your new best friend.")
+                        .font(SaviType.ui(.subheadline, weight: .bold))
+                        .foregroundStyle(SaviTheme.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Button(action: shareAction) {
+                Label("Open Share Sheet", systemImage: "square.and.arrow.up")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(SaviPrimaryButtonStyle())
+
+            HStack(spacing: 8) {
+                ShareSetupMiniStep(title: "Tap Share", symbolName: "square.and.arrow.up")
+                ShareSetupMiniStep(title: "Tap More", symbolName: "ellipsis.circle")
+                ShareSetupMiniStep(title: "Add SAVI", symbolName: "plus")
+            }
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+        .background(SaviTheme.surface.opacity(0.86), in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(Color.white.opacity(0.52), lineWidth: 1)
+        )
+        .shadow(color: SaviTheme.cardShadow.opacity(0.18), radius: 22, x: 0, y: 14)
+    }
 }
 
 private struct ShareSetupPracticeCard: View {
@@ -1302,27 +1052,27 @@ private struct ShareSetupPracticeCard: View {
                 }
                 .buttonStyle(.plain)
                 .padding(14)
-                .accessibilityLabel("Open iOS Share Sheet")
+                .accessibilityLabel("Share practice image")
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("TRY A SAVE")
+                Text("PRACTICE IMAGE")
                     .font(SaviType.ui(.caption2, weight: .black))
                     .foregroundStyle(SaviTheme.accentText)
                     .textCase(.uppercase)
-                Text("SAVI's first card")
+                Text("Share this image to SAVI")
                     .font(SaviType.display(size: 27, weight: .black))
                     .foregroundStyle(SaviTheme.text)
-                Text("Open the real iOS Share Sheet with this card, or save it directly so you can see how previews, folders, and search feel.")
+                Text("This is just a fun sample from your camera roll. Tap Share, choose SAVI, and make sure it lands in your library.")
                     .font(SaviType.ui(.subheadline, weight: .semibold))
                     .foregroundStyle(SaviTheme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack(spacing: 8) {
-                ShareSetupPracticePill(title: "SAVI", color: SaviTheme.chartreuse)
+                ShareSetupPracticePill(title: "Practice", color: SaviTheme.chartreuse)
                 ShareSetupPracticePill(title: "Image", color: Color(hex: "#7EC8FF"))
-                ShareSetupPracticePill(title: "Getting Started", color: Color(hex: "#FFB978"))
+                ShareSetupPracticePill(title: "Offline", color: Color(hex: "#FFB978"))
             }
 
             if store.hasShareSetupPracticeSave {
@@ -1347,24 +1097,16 @@ private struct ShareSetupPracticeCard: View {
                 .buttonStyle(SaviPrimaryButtonStyle())
 
                 Button(action: shareAction) {
-                    Label("Share this card", systemImage: "square.and.arrow.up")
+                    Label("Share practice image", systemImage: "square.and.arrow.up")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(SaviSecondaryButtonStyle())
             } else {
                 Button(action: shareAction) {
-                    Label("Share this card", systemImage: "square.and.arrow.up")
+                    Label("Share practice image", systemImage: "square.and.arrow.up")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(SaviPrimaryButtonStyle())
-
-                Button {
-                    store.addShareSetupPracticeSave()
-                } label: {
-                    Label("Save directly to SAVI", systemImage: "tray.and.arrow.down.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(SaviSecondaryButtonStyle())
             }
         }
         .padding(14)

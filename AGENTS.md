@@ -30,3 +30,14 @@ The old web folders are legacy prototypes:
 Do not edit or sync those for normal iOS app work. `SAVI/Resources/index.html` is a frozen legacy migration/recovery asset only; it is not the visible app shell.
 
 The native app launches from `SAVIApp.swift -> ContentView -> NativeSaviRootView`.
+
+## Concurrent Work Rule
+
+Multiple Codex chats may work in this repo at the same time. Before editing:
+
+- Run `git status --short`.
+- Read `/Users/guest1/Documents/SAVI-iOS/Docs/Handoffs/SAVI_ACTIVE_WORK_LOG.md`.
+- Add a short work-log entry listing the files you expect to touch.
+- Avoid files another active chat has claimed unless the change is necessary.
+- Never revert unrelated changes from another chat.
+- After verification, update the work-log entry with status and test notes.

@@ -1497,12 +1497,19 @@ struct FolderEditorSheet: View {
     @State private var selectedCoverPhoto: PhotosPickerItem?
     @State private var artworkMessage: String?
     @State private var showFolderImageSearch = false
+    @State private var showFolderImageFallback = false
     @State private var colorExpanded = true
     @State private var artworkExpanded = true
     @State private var iconsExpanded = false
     @State private var privacyExpanded = false
 
-    private let colors = ["#D8FF3C", "#C4B5FD", "#A78BFA", "#B8D4F5", "#F4C6A5", "#C4E8D4", "#FFE066", "#8A7CA8", "#FF7A90", "#67E8F9", "#F0ABFC", "#86EFAC"]
+    private let colors = [
+        "#D8FF3C", "#FFD15C", "#FFE066", "#F4C6A5",
+        "#FF7A90", "#F47A3B", "#DE5B98", "#F0ABFC",
+        "#C4B5FD", "#A78BFA", "#8A7CA8", "#7B3FE4",
+        "#B8D4F5", "#67E8F9", "#5ADDCB", "#C4E8D4",
+        "#86EFAC", "#70D59B", "#171026", "#9286A8"
+    ]
     private let symbols = [
         "folder.fill", "archivebox.fill", "tray.full.fill", "shippingbox.fill", "bookmark.fill", "tag.fill",
         "star.fill", "heart.fill", "bolt.fill", "sparkles", "wand.and.stars", "lock.fill",
@@ -1568,7 +1575,7 @@ struct FolderEditorSheet: View {
                     } label: {
                         FolderEditorSectionLabel(
                             title: "Color",
-                            subtitle: "Choose the Folder color shown on Home, Search, and the share sheet.",
+                            subtitle: "The solid Folder color. It shows when there is no cover image.",
                             systemImage: "paintpalette.fill"
                         )
                     }
@@ -1601,9 +1608,13 @@ struct FolderEditorSheet: View {
                                 .buttonStyle(.plain)
 
                                 Button {
-                                    showFolderImageSearch = true
+                                    if SaviImageSearchService.isConfigured {
+                                        showFolderImageSearch = true
+                                    } else {
+                                        showFolderImageFallback = true
+                                    }
                                 } label: {
-                                    Label("Find image", systemImage: "magnifyingglass")
+                                    Label("Find image online", systemImage: "magnifyingglass")
                                         .font(SaviType.ui(.subheadline, weight: .black))
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 11)
@@ -1613,7 +1624,7 @@ struct FolderEditorSheet: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 }
                                 .buttonStyle(SaviPressScaleButtonStyle())
-                                .disabled(!SaviImageSearchService.isConfigured)
+                                .accessibilityHint("Find a cover image for this Folder.")
 
                                 if folderImage != nil {
                                     Button {
@@ -1648,7 +1659,7 @@ struct FolderEditorSheet: View {
                             }
 
                             if !SaviImageSearchService.isConfigured {
-                                Text("Web image search is not set up on this build. Choose a cover from Photos for now.")
+                                Text("Online search opens a helper until SAVI's image proxy is connected. Photos work now.")
                                     .font(.caption2.weight(.semibold))
                                     .foregroundStyle(SaviTheme.textMuted)
                             }
@@ -1662,7 +1673,7 @@ struct FolderEditorSheet: View {
                     } label: {
                         FolderEditorSectionLabel(
                             title: "Cover image",
-                            subtitle: "Use a photo as the Folder background. The symbol stays separate.",
+                            subtitle: "Use a photo as the full Folder background. The symbol stays separate.",
                             systemImage: "photo.on.rectangle.angled"
                         )
                     }
@@ -1803,6 +1814,12 @@ struct FolderEditorSheet: View {
                     usesImageBackground = true
                     artworkMessage = "Cover image selected from Pexels."
                 }
+            }
+            .sheet(isPresented: $showFolderImageFallback) {
+                FolderImageOnlineFallbackSheet(
+                    query: folderImageSearchQuery,
+                    selectedCoverPhoto: $selectedCoverPhoto
+                )
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -2010,6 +2027,147 @@ private struct FolderEditorMiniChip: View {
             .frame(height: 24)
             .background(SaviTheme.subtleSurface)
             .clipShape(Capsule())
+    }
+}
+
+private struct FolderImageOnlineFallbackSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    let query: String
+    @Binding var selectedCoverPhoto: PhotosPickerItem?
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(SaviType.ui(.title2, weight: .black))
+                            .frame(width: 48, height: 48)
+                            .background(SaviTheme.chartreuse, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .foregroundStyle(.black)
+
+                        Text("Find a Folder cover")
+                            .font(SaviType.display(size: 28, weight: .black))
+                            .foregroundStyle(SaviTheme.text)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.82)
+
+                        Text("In-app image search needs SAVI's image proxy. Until that is connected, open a stock or web search, save an image to Photos, then choose it here.")
+                            .font(SaviType.ui(.callout, weight: .semibold))
+                            .foregroundStyle(SaviTheme.textMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(16)
+                    .saviCard(cornerRadius: 20, shadow: false)
+
+                    VStack(spacing: 10) {
+                        PhotosPicker(selection: $selectedCoverPhoto, matching: .images) {
+                            actionLabel(
+                                title: "Choose from Photos",
+                                subtitle: "Use an image already saved on this iPhone.",
+                                systemImage: "photo.fill",
+                                accent: SaviTheme.chartreuse
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            openURL(pexelsURL)
+                        } label: {
+                            actionLabel(
+                                title: "Find on Pexels",
+                                subtitle: "Free stock images that work well as covers.",
+                                systemImage: "sparkles",
+                                accent: Color(hex: "#67E8F9")
+                            )
+                        }
+                        .buttonStyle(SaviPressScaleButtonStyle())
+
+                        Button {
+                            openURL(webImageSearchURL)
+                        } label: {
+                            actionLabel(
+                                title: "Search the web",
+                                subtitle: "Look wider, then save the image to Photos.",
+                                systemImage: "globe",
+                                accent: Color(hex: "#C4B5FD")
+                            )
+                        }
+                        .buttonStyle(SaviPressScaleButtonStyle())
+                    }
+
+                    Text("SAVI will crop the image square, use it as a full Folder background, and keep the symbol separate so the name stays readable.")
+                        .font(SaviType.ui(.caption, weight: .semibold))
+                        .foregroundStyle(SaviTheme.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 2)
+                }
+                .padding(16)
+            }
+            .background(SaviTheme.background.ignoresSafeArea())
+            .navigationTitle("Find image online")
+            .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: selectedCoverPhoto) { _ in
+                dismiss()
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func actionLabel(title: String, subtitle: String, systemImage: String, accent: Color) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(SaviType.ui(.headline, weight: .black))
+                .frame(width: 44, height: 44)
+                .background(accent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .foregroundStyle(.black)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(SaviType.ui(.headline, weight: .black))
+                    .foregroundStyle(SaviTheme.text)
+                Text(subtitle)
+                    .font(SaviType.ui(.caption, weight: .semibold))
+                    .foregroundStyle(SaviTheme.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "chevron.right")
+                .font(SaviType.ui(.caption, weight: .black))
+                .foregroundStyle(SaviTheme.textMuted)
+        }
+        .padding(13)
+        .background(SaviTheme.surfaceRaised)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(SaviTheme.cardStroke.opacity(0.8), lineWidth: 1)
+        )
+    }
+
+    private var searchTerm: String {
+        query.nilIfBlank ?? "folder cover"
+    }
+
+    private var pexelsURL: URL {
+        let encoded = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? "folder%20cover"
+        return URL(string: "https://www.pexels.com/search/\(encoded)/") ?? URL(string: "https://www.pexels.com")!
+    }
+
+    private var webImageSearchURL: URL {
+        var components = URLComponents(string: "https://www.google.com/search")
+        components?.queryItems = [
+            URLQueryItem(name: "tbm", value: "isch"),
+            URLQueryItem(name: "q", value: "\(searchTerm) folder cover")
+        ]
+        return components?.url ?? URL(string: "https://www.google.com/imghp")!
     }
 }
 

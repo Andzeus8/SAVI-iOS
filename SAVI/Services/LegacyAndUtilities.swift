@@ -266,10 +266,14 @@ struct SaviActivityView: UIViewControllerRepresentable {
 // MARK: - Seeds
 
 enum SaviSeeds {
+    private static var defaultMemesFolderCover: String {
+        samplePhotoThumb(imageName: "folder-cover-memes-laughing-kid", fallbackAccentHex: "#D6F83A") { _, _ in }
+    }
+
     static let folders: [SaviFolder] = [
         .init(id: "f-private-vault", name: "Private Vault", color: "#171026", image: nil, system: false, symbolName: "lock.open.fill", order: 0),
         .init(id: "f-health", name: "Health Hacks", color: "#70D59B", image: nil, system: false, symbolName: "heart.fill", order: 1),
-        .init(id: "f-lmao", name: "Memes & LOLs", color: "#D6F83A", image: nil, system: false, symbolName: "theatermasks.fill", order: 2),
+        .init(id: "f-lmao", name: "Memes & LOLs", color: "#D6F83A", image: defaultMemesFolderCover, system: false, symbolName: "theatermasks.fill", order: 2, usesImageBackground: true),
         .init(id: "f-must-see", name: "Watch / Read Later", color: "#7A35E8", image: nil, system: false, symbolName: "bookmark.fill", order: 3),
         .init(id: "f-life-admin", name: "Life Admin", color: "#FFD15C", image: nil, system: false, symbolName: "key.fill", order: 4),
         .init(id: "f-travel", name: "Places & Trips", color: "#68C6E8", image: nil, system: false, symbolName: "mappin.and.ellipse", order: 5),
@@ -1668,6 +1672,10 @@ enum SaviSeeds {
             if folder.color.caseInsensitiveCompare(seed.color) == .orderedSame ||
                 legacyFolderColors[folder.id].map({ folder.color.caseInsensitiveCompare($0) == .orderedSame }) == true {
                 next.color = seed.color
+            }
+            if next.image?.nilIfBlank == nil, let seedImage = seed.image?.nilIfBlank {
+                next.image = seedImage
+                next.usesImageBackground = seed.usesImageBackground
             }
             return next
         }

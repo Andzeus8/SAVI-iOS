@@ -115,6 +115,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     private let previewMetaLabel = UILabel()
     private let previewSubtitleLabel = UILabel()
     private let spinner = UIActivityIndicatorView(style: .medium)
+    private let editTitleButton = UIButton(type: .system)
 
     private let folderSummaryCard = UIView()
     private let folderSummaryIconWrap = UIView()
@@ -125,6 +126,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     private let folderGridStack = UIStackView()
 
     private let titleField = UITextField()
+    private var titleEditorExpanded = false
 
     private let tagWrapStack = UIStackView()
     private let tagInputRow = UIStackView()
@@ -451,15 +453,15 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
         let cardStack = UIStackView()
         cardStack.axis = .vertical
-        cardStack.spacing = 12
+        cardStack.spacing = 10
         cardStack.translatesAutoresizingMaskIntoConstraints = false
         previewCard.addSubview(cardStack)
 
         NSLayoutConstraint.activate([
-            cardStack.leadingAnchor.constraint(equalTo: previewCard.leadingAnchor, constant: 14),
-            cardStack.trailingAnchor.constraint(equalTo: previewCard.trailingAnchor, constant: -14),
-            cardStack.topAnchor.constraint(equalTo: previewCard.topAnchor, constant: 14),
-            cardStack.bottomAnchor.constraint(equalTo: previewCard.bottomAnchor, constant: -14),
+            cardStack.leadingAnchor.constraint(equalTo: previewCard.leadingAnchor, constant: 12),
+            cardStack.trailingAnchor.constraint(equalTo: previewCard.trailingAnchor, constant: -12),
+            cardStack.topAnchor.constraint(equalTo: previewCard.topAnchor, constant: 12),
+            cardStack.bottomAnchor.constraint(equalTo: previewCard.bottomAnchor, constant: -12),
         ])
 
         let innerStack = UIStackView()
@@ -469,9 +471,9 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
         let mediaWrap = UIView()
         mediaWrap.translatesAutoresizingMaskIntoConstraints = false
-        mediaWrap.widthAnchor.constraint(equalToConstant: 72).isActive = true
-        mediaWrap.heightAnchor.constraint(equalToConstant: 72).isActive = true
-        mediaWrap.layer.cornerRadius = 18
+        mediaWrap.widthAnchor.constraint(equalToConstant: 58).isActive = true
+        mediaWrap.heightAnchor.constraint(equalToConstant: 58).isActive = true
+        mediaWrap.layer.cornerRadius = 16
         mediaWrap.layer.masksToBounds = true
         mediaWrap.backgroundColor = ShareTheme.accentText.withAlphaComponent(isLightAppearance ? 0.10 : 0.16)
 
@@ -507,10 +509,11 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         statusBadge.text = "Fast save"
         statusBadge.heightAnchor.constraint(equalToConstant: 24).isActive = true
         statusBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 92).isActive = true
+        statusBadge.isHidden = true
 
         detectedTitleLabel.font = .preferredFont(forTextStyle: .headline).bold()
-        detectedTitleLabel.textColor = ShareTheme.muted
-        detectedTitleLabel.numberOfLines = 3
+        detectedTitleLabel.textColor = ShareTheme.text
+        detectedTitleLabel.numberOfLines = 2
         detectedTitleLabel.text = "Preparing your save..."
 
         previewMetaLabel.font = .preferredFont(forTextStyle: .caption1).bold()
@@ -524,26 +527,49 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
         spinner.startAnimating()
 
-        let topRow = UIStackView(arrangedSubviews: [statusBadge, UIView(), spinner])
+        var editConfig = UIButton.Configuration.plain()
+        editConfig.title = "Edit title"
+        editConfig.image = UIImage(systemName: "pencil")
+        editConfig.imagePadding = 4
+        editConfig.baseForegroundColor = ShareTheme.accentText
+        editConfig.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 8, bottom: 5, trailing: 8)
+        editConfig.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = .systemFont(ofSize: 12, weight: .bold)
+            return outgoing
+        }
+        editTitleButton.configuration = editConfig
+        editTitleButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+        editTitleButton.addTarget(self, action: #selector(toggleTitleEditor), for: .touchUpInside)
+
+        let topRow = UIStackView(arrangedSubviews: [previewMetaLabel, UIView(), spinner])
         topRow.axis = .horizontal
         topRow.alignment = .center
 
-        let textStack = UIStackView(arrangedSubviews: [topRow, detectedTitleLabel, previewMetaLabel, previewSubtitleLabel])
+        let titleRow = UIStackView(arrangedSubviews: [detectedTitleLabel, editTitleButton])
+        titleRow.axis = .horizontal
+        titleRow.alignment = .firstBaseline
+        titleRow.spacing = 8
+
+        let textStack = UIStackView(arrangedSubviews: [topRow, titleRow, previewSubtitleLabel])
         textStack.axis = .vertical
-        textStack.spacing = 4
+        textStack.spacing = 3
 
         innerStack.addArrangedSubview(mediaWrap)
         innerStack.addArrangedSubview(textStack)
 
-        configureTextField(titleField, placeholder: "Clean title (optional)")
-        titleField.font = .preferredFont(forTextStyle: .body).bold()
+        configureTextField(titleField, placeholder: "Edit title")
+        titleField.font = .preferredFont(forTextStyle: .subheadline).bold()
         titleField.clearButtonMode = .always
         titleField.returnKeyType = .done
         titleField.inputAccessoryView = makeKeyboardAccessoryToolbar()
         titleField.addTarget(self, action: #selector(titleFieldChanged), for: .editingChanged)
+        titleField.isHidden = true
 
         configureTagWrapStack()
-        configureTextField(tagsField, placeholder: "Add tag")
+        configureTextField(tagsField, placeholder: "Add a tag...")
+        tagsField.leftView = makeTagPrefixView()
+        tagsField.leftViewMode = .always
         tagsField.autocapitalizationType = .none
         tagsField.autocorrectionType = .no
         tagsField.returnKeyType = .send
@@ -631,7 +657,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         textStack.spacing = 3
 
         var changeConfig = UIButton.Configuration.plain()
-        changeConfig.title = "Hide"
+        changeConfig.title = "All"
         changeConfig.image = UIImage(systemName: "chevron.up")
         changeConfig.imagePlacement = .trailing
         changeConfig.imagePadding = 5
@@ -640,7 +666,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         folderChangeButton.configuration = changeConfig
         folderChangeButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         folderChangeButton.addTarget(self, action: #selector(toggleFolderGrid), for: .touchUpInside)
-        folderChangeButton.accessibilityLabel = "Hide folder choices"
+        folderChangeButton.accessibilityLabel = "Show folder choices"
 
         let row = UIStackView(arrangedSubviews: [iconHolder, textStack, folderChangeButton])
         row.axis = .horizontal
@@ -678,20 +704,15 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         tagInputRow.translatesAutoresizingMaskIntoConstraints = false
 
         var config = UIButton.Configuration.filled()
-        config.title = "Send"
-        config.image = UIImage(systemName: "paperplane.fill")
-        config.imagePadding = 4
+        config.image = UIImage(systemName: "plus")
         config.cornerStyle = .capsule
-        config.contentInsets = NSDirectionalEdgeInsets(top: 7, leading: 11, bottom: 7, trailing: 11)
-        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
-            var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 12, weight: .bold)
-            return outgoing
-        }
+        config.contentInsets = NSDirectionalEdgeInsets(top: 9, leading: 9, bottom: 9, trailing: 9)
         addTagButton.configuration = config
+        addTagButton.accessibilityLabel = "Add tag"
         addTagButton.addTarget(self, action: #selector(addTagButtonTapped), for: .touchUpInside)
         addTagButton.setContentCompressionResistancePriority(.required, for: .horizontal)
-        addTagButton.heightAnchor.constraint(equalToConstant: 36).isActive = true
+        addTagButton.widthAnchor.constraint(equalToConstant: 40).isActive = true
+        addTagButton.heightAnchor.constraint(equalToConstant: 40).isActive = true
         updateAddTagButtonState()
 
         tagInputRow.addArrangedSubview(tagsField)
@@ -711,10 +732,22 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
             attributes: [.foregroundColor: ShareTheme.muted.withAlphaComponent(0.72)]
         )
         textField.clearButtonMode = .whileEditing
-        textField.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        textField.heightAnchor.constraint(equalToConstant: 40).isActive = true
         textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 1))
         textField.leftViewMode = .always
         textField.delegate = self
+    }
+
+    private func makeTagPrefixView() -> UIView {
+        let container = UIView(frame: CGRect(x: 0, y: 0, width: 34, height: 1))
+        let label = UILabel(frame: CGRect(x: 12, y: 0, width: 18, height: 1))
+        label.text = "#"
+        label.font = .systemFont(ofSize: 16, weight: .black)
+        label.textColor = ShareTheme.accentText
+        label.textAlignment = .center
+        label.autoresizingMask = [.flexibleHeight]
+        container.addSubview(label)
+        return container
     }
 
     private func makeKeyboardAccessoryToolbar(doneTitle: String = "Done") -> UIToolbar {
@@ -958,6 +991,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         if !didEditTitleManually {
             titleField.text = share.title
         }
+        updateTitleEditorPresentation(animated: false)
         if !didEditNotesManually {
             notesTextView.text = summary
         }
@@ -1061,25 +1095,26 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         folderSummaryCard.backgroundColor = theme.color.withAlphaComponent(0.10)
         folderSummaryCard.layer.borderColor = theme.color.withAlphaComponent(0.40).cgColor
         folderSummaryIconWrap.backgroundColor = theme.color
-        folderSummaryIconView.image = UIImage(systemName: selectedIsPublic ? "person.2.fill" : selectedPreset.symbolName)
+        let isSmartSelection = folderSelectionSource != .manual
+        folderSummaryIconView.image = UIImage(systemName: isSmartSelection ? "brain.head.profile" : selectedIsPublic ? "person.2.fill" : selectedPreset.symbolName)
         folderSummaryIconView.tintColor = theme.color.saviUsesLightForeground ? .white : .black
         folderSummaryTitleLabel.text = selectedPreset.name
         let hint: String
         if folderSelectionSource == .intelligence {
-            hint = "Smart folder · Apple Intelligence"
+            hint = "Suggested Folder · SAVI Brain"
         } else if folderSelectionSource == .metadata {
-            hint = "Smart folder · \(friendlyFolderReason(pendingShare?.folderReason) ?? "Metadata")"
+            hint = "Suggested Folder · \(friendlyFolderReason(pendingShare?.folderReason) ?? "SAVI Brain")"
         } else if folderSelectionSource == .rules {
-            hint = "Smart folder · \(friendlyFolderReason(pendingShare?.folderReason) ?? "Quick rules")"
+            hint = "Suggested Folder · \(friendlyFolderReason(pendingShare?.folderReason) ?? "SAVI Brain")"
         } else if ShareFolderSelection.isAuto(selectedFolderId) {
-            hint = "Auto-selects when you save"
+            hint = "Smart Selection · chooses when you save"
         } else {
             hint = "You picked this"
         }
         folderSummaryHintLabel.text = selectedIsPublic ? "\(hint) • Public" : hint
 
         var changeConfig = folderChangeButton.configuration ?? UIButton.Configuration.plain()
-        changeConfig.title = folderGridExpanded ? "Hide" : "Show"
+        changeConfig.title = folderGridExpanded ? "All" : "Show"
         changeConfig.image = UIImage(systemName: folderGridExpanded ? "chevron.up" : "square.grid.2x2")
         folderChangeButton.configuration = changeConfig
         folderChangeButton.accessibilityLabel = folderGridExpanded ? "Hide folder choices" : "Show folder choices"
@@ -1504,9 +1539,9 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         }
 
         for view in views {
-            view.widthAnchor.constraint(lessThanOrEqualToConstant: maxWidth).isActive = true
+            view.widthAnchor.constraint(lessThanOrEqualToConstant: min(maxWidth, 132)).isActive = true
             let measuredSize = view.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
-            let measuredWidth = min(ceil(measuredSize.width), maxWidth)
+            let measuredWidth = min(ceil(measuredSize.width), maxWidth, 132)
             let spacing = row.arrangedSubviews.isEmpty ? 0 : row.spacing
             if currentWidth + spacing + measuredWidth > maxWidth, !row.arrangedSubviews.isEmpty {
                 finishRowIfNeeded()
@@ -1523,7 +1558,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         row.axis = .horizontal
         row.alignment = .center
         row.distribution = .fill
-        row.spacing = 6
+        row.spacing = 7
         return row
     }
 
@@ -1543,9 +1578,9 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     private func makeInlineHint(_ text: String) -> UILabel {
         let label = UILabel()
-        label.font = .preferredFont(forTextStyle: .caption1)
-        label.textColor = ShareTheme.muted
-        label.text = text
+        label.font = .systemFont(ofSize: 11, weight: .black)
+        label.textColor = ShareTheme.accentText
+        label.text = text.uppercased()
         label.setContentCompressionResistancePriority(.required, for: .horizontal)
         return label
     }
@@ -1561,10 +1596,11 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         config.cornerStyle = .capsule
         config.baseBackgroundColor = selected ? ShareTheme.accentText.withAlphaComponent(isLightAppearance ? 0.10 : 0.16) : ShareTheme.surfaceRaised
         config.baseForegroundColor = selected ? ShareTheme.accentText : ShareTheme.text
-        config.contentInsets = NSDirectionalEdgeInsets(top: 3, leading: 8, bottom: 3, trailing: selected ? 7 : 8)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 9, bottom: 4, trailing: selected ? 7 : 9)
+        config.titleLineBreakMode = .byTruncatingTail
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 11.5, weight: .bold)
+            outgoing.font = .systemFont(ofSize: 12, weight: .bold)
             return outgoing
         }
 
@@ -1572,12 +1608,13 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         button.configuration = config
         button.titleLabel?.numberOfLines = 1
         button.titleLabel?.lineBreakMode = .byTruncatingTail
+        button.titleLabel?.allowsDefaultTighteningForTruncation = true
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.78
-        button.layer.cornerRadius = 13
+        button.layer.cornerRadius = 14
         button.layer.borderWidth = 1
         button.layer.borderColor = selected ? ShareTheme.accentText.withAlphaComponent(0.26).cgColor : ShareTheme.stroke.cgColor
-        button.heightAnchor.constraint(equalToConstant: 26).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 28).isActive = true
         button.accessibilityLabel = selected ? "Remove tag \(value)" : "Add tag \(value)"
         button.addAction(UIAction(handler: { [weak self] _ in
             self?.toggleTag(value, forceSelection: !selected)
@@ -1587,16 +1624,17 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     private func makeTagEditorButton(hiddenCount: Int) -> UIButton {
         var config = UIButton.Configuration.filled()
-        config.title = tagsExpanded ? "Done" : "More tags"
+        config.title = tagsExpanded ? "Done" : "More"
         config.image = UIImage(systemName: tagsExpanded ? "checkmark.circle.fill" : "ellipsis.circle")
         config.imagePadding = 4
         config.cornerStyle = .capsule
         config.baseBackgroundColor = ShareTheme.surfaceRaised
         config.baseForegroundColor = ShareTheme.accentText
-        config.contentInsets = NSDirectionalEdgeInsets(top: 3, leading: 8, bottom: 3, trailing: 8)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 9, bottom: 4, trailing: 9)
+        config.titleLineBreakMode = .byTruncatingTail
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 11.5, weight: .bold)
+            outgoing.font = .systemFont(ofSize: 12, weight: .bold)
             return outgoing
         }
 
@@ -1607,7 +1645,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.78
         button.addTarget(self, action: #selector(toggleTagsEditor), for: .touchUpInside)
-        button.heightAnchor.constraint(equalToConstant: 26).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 28).isActive = true
         if tagsExpanded {
             button.accessibilityLabel = "Done editing tags"
         } else if hiddenCount > 0 {
@@ -1860,6 +1898,43 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         loadingSaveNowButton.isEnabled = isReady
     }
 
+    @objc private func toggleTitleEditor() {
+        titleEditorExpanded.toggle()
+        updateTitleEditorPresentation(animated: true)
+        if titleEditorExpanded {
+            titleField.becomeFirstResponder()
+            titleField.selectAll(nil)
+        } else {
+            titleField.resignFirstResponder()
+        }
+    }
+
+    private func updateTitleEditorPresentation(animated: Bool) {
+        let titleText = (titleField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !titleText.isEmpty {
+            detectedTitleLabel.text = titleText
+        } else if let pendingTitle = pendingShare?.title.trimmingCharacters(in: .whitespacesAndNewlines), !pendingTitle.isEmpty {
+            detectedTitleLabel.text = pendingTitle
+        }
+
+        var config = editTitleButton.configuration ?? UIButton.Configuration.plain()
+        config.title = titleEditorExpanded ? "Done" : "Edit title"
+        config.image = UIImage(systemName: titleEditorExpanded ? "checkmark.circle.fill" : "pencil")
+        editTitleButton.configuration = config
+
+        let changes = {
+            self.titleField.isHidden = !self.titleEditorExpanded
+            self.titleField.alpha = self.titleEditorExpanded ? 1 : 0
+            self.view.layoutIfNeeded()
+        }
+
+        if animated {
+            UIView.animate(withDuration: 0.18, animations: changes)
+        } else {
+            changes()
+        }
+    }
+
     @objc private func toggleNotes() {
         let shouldExpand = !notesExpanded
         if shouldExpand {
@@ -1895,7 +1970,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
             self.notesTextView.alpha = self.notesExpanded ? 1 : 0
             self.notesPreviewLabel.isHidden = self.notesExpanded || !hasNotes
             self.notesPreviewLabel.alpha = (!self.notesExpanded && hasNotes) ? 1 : 0
-            self.notesClearButton.isHidden = !self.notesExpanded && !hasNotes
+            self.notesClearButton.isHidden = !self.notesExpanded || !hasNotes
             self.notesClearButton.isEnabled = hasNotes
             self.notesClearButton.alpha = hasNotes ? 1 : 0.42
             self.view.layoutIfNeeded()
@@ -1948,6 +2023,12 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         if textField === tagsField {
             commitTagInput(dismissKeyboard: false)
+            return false
+        }
+        if textField === titleField {
+            titleEditorExpanded = false
+            updateTitleEditorPresentation(animated: true)
+            textField.resignFirstResponder()
             return false
         }
         textField.resignFirstResponder()
@@ -2071,6 +2152,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     @objc private func titleFieldChanged() {
         didEditTitleManually = true
+        updateTitleEditorPresentation(animated: false)
     }
 
     @objc private func tagsFieldChanged() {
@@ -2093,6 +2175,10 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     @objc private func keyboardDoneTapped() {
         if tagsField.isFirstResponder {
             commitTagInput(dismissKeyboard: true)
+        } else if titleField.isFirstResponder {
+            titleEditorExpanded = false
+            updateTitleEditorPresentation(animated: true)
+            titleField.resignFirstResponder()
         } else {
             view.endEditing(true)
         }

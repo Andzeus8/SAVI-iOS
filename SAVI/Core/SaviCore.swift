@@ -2320,12 +2320,15 @@ final class SaviStore: ObservableObject {
     private static let shareSetupPracticeItemId = "practice-share-setup-savi-first-card"
     private static let shareSetupPracticeAssetId = "asset-practice-share-setup-savi-first-card"
     private static let shareSetupPracticeImageName = "share-setup-practice-savi-first-card"
-    private static let shareSetupPracticeFileName = "Your new best friend - tap Share to SAVI.png"
+    private static let shareSetupPracticeFileName = "I love SAVI - practice image.png"
+    private static let shareSetupPracticeTitle = "I love SAVI - practice image"
+    private static let shareSetupPracticeDescription = "A sample image for testing the iOS Share Sheet. No personal data, just a quick way to confirm SAVI is pinned and saving."
+    private static let shareSetupPracticeTags = ["practice", "share-sheet", "image", "getting-started", "sample"]
     private static let sampleFriendTargetLinkCount = 24
     private static let currentLegacySeedVersion = 29
     private static let currentFolderRepairVersion = 2
     private static let currentSearchTagRepairVersion = 1
-    private static let currentFolderLayoutVersion = 4
+    private static let currentFolderLayoutVersion = 5
     private static let currentCoachMarksVersion = 1
     private static let currentHomePresentationVersion = SaviPrefs.currentHomePresentationVersion
 
@@ -2842,7 +2845,7 @@ final class SaviStore: ObservableObject {
     }
 
     var shareSetupPracticeItem: SaviItem? {
-        items.first { $0.id == Self.shareSetupPracticeItemId }
+        items.first(where: Self.isShareSetupPracticeItem)
     }
 
     var hasShareSetupPracticeSave: Bool {
@@ -2851,9 +2854,67 @@ final class SaviStore: ObservableObject {
 
     @discardableResult
     func addShareSetupPracticeSave(showToast: Bool = true) -> SaviItem? {
-        if let existing = shareSetupPracticeItem {
+        let targetFolderId = "f-life-admin"
+
+        if let existingIndex = items.firstIndex(where: Self.isShareSetupPracticeItem) {
+            var existing = items[existingIndex]
+            var changed = false
+            if existing.title != Self.shareSetupPracticeTitle {
+                existing.title = Self.shareSetupPracticeTitle
+                changed = true
+            }
+            if existing.itemDescription != Self.shareSetupPracticeDescription {
+                existing.itemDescription = Self.shareSetupPracticeDescription
+                changed = true
+            }
+            if existing.source != "Photos" {
+                existing.source = "Photos"
+                changed = true
+            }
+            if existing.type != .image {
+                existing.type = .image
+                changed = true
+            }
+            if existing.tags != Self.shareSetupPracticeTags {
+                existing.tags = Self.shareSetupPracticeTags
+                changed = true
+            }
+            if existing.folderId.isEmpty {
+                existing.folderId = targetFolderId
+                existing.color = folder(for: targetFolderId)?.color
+                changed = true
+            }
+
+            if let data = shareSetupPracticeImageData(),
+               existing.assetName != Self.shareSetupPracticeFileName {
+                do {
+                    let asset = try storage.writeAssetData(
+                        data,
+                        preferredName: Self.shareSetupPracticeFileName,
+                        mimeType: "image/png",
+                        id: Self.shareSetupPracticeAssetId
+                    )
+                    assets.removeAll { $0.id == asset.id }
+                    assets.append(asset)
+                    existing.thumbnail = "data:image/png;base64,\(data.base64EncodedString())"
+                    existing.assetId = asset.id
+                    existing.assetName = asset.name
+                    existing.assetMime = asset.type
+                    existing.assetSize = asset.size
+                    existing.width = 1170
+                    existing.height = 2532
+                    changed = true
+                } catch {
+                    NSLog("[SAVI Native] share setup practice asset refresh failed: \(error.localizedDescription)")
+                }
+            }
+
+            if changed {
+                items[existingIndex] = existing
+                persist()
+            }
             if showToast {
-                toast = "Example is already in SAVI."
+                toast = "Practice image is already in SAVI."
             }
             return existing
         }
@@ -2873,15 +2934,14 @@ final class SaviStore: ObservableObject {
             assets.removeAll { $0.id == asset.id }
             assets.append(asset)
 
-            let targetFolderId = "f-life-admin"
             let item = SaviItem(
                 id: Self.shareSetupPracticeItemId,
-                title: "Your new best friend - tap Share to SAVI",
-                itemDescription: "Demo SAVI card for practicing the Share Sheet. It shows how one share can keep a name, tags, folder, and preview together.",
-                source: "SAVI",
+                title: Self.shareSetupPracticeTitle,
+                itemDescription: Self.shareSetupPracticeDescription,
+                source: "Photos",
                 type: .image,
                 folderId: targetFolderId,
-                tags: ["savi", "share-sheet", "getting-started", "later", "demo"],
+                tags: Self.shareSetupPracticeTags,
                 thumbnail: "data:image/png;base64,\(data.base64EncodedString())",
                 color: folder(for: targetFolderId)?.color,
                 assetId: asset.id,
@@ -2934,6 +2994,19 @@ final class SaviStore: ObservableObject {
 
     private func shareSetupPracticeImageData() -> Data? {
         UIImage(named: Self.shareSetupPracticeImageName)?.pngData()
+    }
+
+    private static func isShareSetupPracticeItem(_ item: SaviItem) -> Bool {
+        if item.id == shareSetupPracticeItemId { return true }
+        let targetFileName = shareSetupPracticeFileName.lowercased()
+        if item.assetName?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == targetFileName {
+            return true
+        }
+        if item.title.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(shareSetupPracticeTitle) == .orderedSame,
+           item.type == .image {
+            return true
+        }
+        return false
     }
 
     func snoozeShareSetupReminder() {
