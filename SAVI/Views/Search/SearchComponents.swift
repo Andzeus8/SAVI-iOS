@@ -8,9 +8,8 @@ import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
-import CloudKit
 import AuthenticationServices
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 

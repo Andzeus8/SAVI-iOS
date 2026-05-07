@@ -1,4 +1,5 @@
 import SwiftUI
+import Darwin
 import UniformTypeIdentifiers
 import WebKit
 import QuickLook
@@ -8,24 +9,234 @@ import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
+#if DEBUG
 import CloudKit
+#endif
 import AuthenticationServices
-#if canImport(FoundationModels)
+import Security
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 
 // MARK: - Models
+
+enum SaviPerformanceTier: String {
+    case modern
+    case balanced
+    case legacy
+
+    var isLegacy: Bool { self == .legacy }
+
+    var homeInitialRecentLimit: Int {
+        switch self {
+        case .modern: return 40
+        case .balanced: return 16
+        case .legacy: return 8
+        }
+    }
+
+    var homeRecentPageSize: Int {
+        switch self {
+        case .modern: return 24
+        case .balanced: return 8
+        case .legacy: return 4
+        }
+    }
+
+    var searchInitialResultLimit: Int {
+        switch self {
+        case .modern: return 40
+        case .balanced: return 24
+        case .legacy: return 10
+        }
+    }
+
+    var searchResultPageSize: Int {
+        switch self {
+        case .modern: return 24
+        case .balanced: return 10
+        case .legacy: return 6
+        }
+    }
+
+    var exploreInitialLimit: Int {
+        switch self {
+        case .modern: return 30
+        case .balanced: return 16
+        case .legacy: return 8
+        }
+    }
+
+    var explorePageSize: Int {
+        switch self {
+        case .modern: return 12
+        case .balanced: return 8
+        case .legacy: return 4
+        }
+    }
+
+    var exploreSnapshotLimit: Int {
+        switch self {
+        case .modern: return 30
+        case .balanced: return 24
+        case .legacy: return 24
+        }
+    }
+
+    var usesCompactExploreFeed: Bool { self == .legacy }
+    var allowsLiveRelativeTimeUpdates: Bool { self == .modern }
+    var allowsSVGDataThumbnails: Bool { self != .legacy }
+    var usesStaticShareSetupDemo: Bool { self == .legacy }
+
+    var dataThumbnailMaxPixelSize: CGFloat {
+        switch self {
+        case .modern, .balanced: return 720
+        case .legacy: return 360
+        }
+    }
+
+    var remoteThumbnailMaxPixelSize: CGFloat {
+        switch self {
+        case .modern: return 960
+        case .balanced: return 720
+        case .legacy: return 480
+        }
+    }
+
+    var thumbnailConcurrentLoads: Int {
+        switch self {
+        case .modern: return 3
+        case .balanced: return 2
+        case .legacy: return 1
+        }
+    }
+
+    var thumbnailCancellationGraceNanoseconds: UInt64 {
+        switch self {
+        case .modern: return 120_000_000
+        case .balanced: return 160_000_000
+        case .legacy: return 220_000_000
+        }
+    }
+
+    var metadataConcurrentFetches: Int {
+        switch self {
+        case .modern: return 3
+        case .balanced: return 2
+        case .legacy: return 1
+        }
+    }
+
+    var metadataBootstrapRefreshLimit: Int {
+        switch self {
+        case .modern: return 10
+        case .balanced: return 5
+        case .legacy: return 2
+        }
+    }
+
+    var metadataForegroundRefreshLimit: Int {
+        switch self {
+        case .modern: return 8
+        case .balanced: return 4
+        case .legacy: return 2
+        }
+    }
+}
+
+enum SaviPerformancePolicy {
+    static let current: SaviPerformanceTier = resolveTier()
+
+    static var isLegacy: Bool { current.isLegacy }
+
+    private static func resolveTier() -> SaviPerformanceTier {
+        if let override = overrideTier() {
+            return override
+        }
+
+        let identifier = deviceIdentifier()
+        if let major = iPhoneMajorVersion(from: identifier) {
+            if major <= 12 { return .legacy }
+            if major == 13 { return .balanced }
+            return .modern
+        }
+
+        let memoryGB = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824
+        if memoryGB > 0, memoryGB <= 4.25 {
+            return .balanced
+        }
+        return .modern
+    }
+
+    private static func overrideTier() -> SaviPerformanceTier? {
+        let arguments = ProcessInfo.processInfo.arguments
+        if let explicit = arguments.first(where: { $0.hasPrefix("SAVI_PERF_TIER=") }) {
+            return tier(from: explicit.replacingOccurrences(of: "SAVI_PERF_TIER=", with: ""))
+        }
+        if let index = arguments.firstIndex(of: "-SAVI_PERF_TIER"),
+           arguments.indices.contains(arguments.index(after: index)) {
+            return tier(from: arguments[arguments.index(after: index)])
+        }
+        if let environmentValue = ProcessInfo.processInfo.environment["SAVI_PERF_TIER"],
+           let value = tier(from: environmentValue) {
+            return value
+        }
+        if let defaultsValue = UserDefaults.standard.string(forKey: "SAVI_PERF_TIER"),
+           let value = tier(from: defaultsValue) {
+            return value
+        }
+        return nil
+    }
+
+    private static func tier(from rawValue: String) -> SaviPerformanceTier? {
+        SaviPerformanceTier(rawValue: rawValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+    }
+
+    private static func deviceIdentifier() -> String {
+        if let simulated = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"],
+           !simulated.isEmpty {
+            return simulated
+        }
+
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let mirror = Mirror(reflecting: systemInfo.machine)
+        return mirror.children.reduce(into: "") { result, element in
+            guard let value = element.value as? Int8, value != 0 else { return }
+            result.append(String(UnicodeScalar(UInt8(value))))
+        }
+    }
+
+    private static func iPhoneMajorVersion(from identifier: String) -> Int? {
+        guard identifier.hasPrefix("iPhone") else { return nil }
+        let suffix = identifier.dropFirst("iPhone".count)
+        let major = suffix.split(separator: ",").first ?? ""
+        return Int(major)
+    }
+}
 
 enum SaviReleaseGate {
 #if DEBUG
     static let socialFeaturesEnabled = true
     static let seedsDemoSocialContent = true
     static let debugToolsEnabled = true
+    static let cloudKitFeaturesEnabled = true
+    static let linkPresentationMetadataEnabled = true
+    static let staleMetadataRefreshEnabled = true
+    static let legacyWebMigrationEnabled = true
 #else
     static let socialFeaturesEnabled = false
     static let seedsDemoSocialContent = false
     static let debugToolsEnabled = false
+    static let cloudKitFeaturesEnabled = false
+    static let linkPresentationMetadataEnabled = true
+    static let staleMetadataRefreshEnabled = true
+    static let legacyWebMigrationEnabled = false
 #endif
+
+    static var legacyDevicePerformanceMode: Bool {
+        SaviPerformancePolicy.current.isLegacy
+    }
 
     static var demoLibraryEnabled: Bool {
         sampleLibraryEnabled
@@ -58,6 +269,81 @@ enum SaviTab: Hashable {
     case explore
     case folders
     case profile
+}
+
+enum SaviTabTip: String, CaseIterable, Identifiable {
+    case home
+    case search
+    case explore
+    case folders
+    case profile
+
+    var id: String { rawValue }
+
+    init?(tab: SaviTab) {
+        switch tab {
+        case .home: self = .home
+        case .search: self = .search
+        case .explore: self = .explore
+        case .folders: self = .folders
+        case .profile: self = .profile
+        }
+    }
+
+    var tab: SaviTab {
+        switch self {
+        case .home: return .home
+        case .search: return .search
+        case .explore: return .explore
+        case .folders: return .folders
+        case .profile: return .profile
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .home: return "house.fill"
+        case .search: return "magnifyingglass"
+        case .explore: return "sparkles"
+        case .folders: return "folder.fill"
+        case .profile: return "person.crop.circle.fill"
+        }
+    }
+
+    var eyebrow: String {
+        switch self {
+        case .home: return "Home"
+        case .search: return "Search"
+        case .explore: return "Explore"
+        case .folders: return "Folders"
+        case .profile: return "Profile"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .home: return "Your saved things land here"
+        case .search: return "Find it when you need it"
+        case .explore: return "Browse without a search"
+        case .folders: return "Keep things tidy"
+        case .profile: return "Help, backup, and settings"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .home:
+            return "Home shows your Folders, newest saves, and examples of what SAVI can hold."
+        case .search:
+            return "Search by title, note, tag, folder, file type, or where a save came from."
+        case .explore:
+            return "Explore is for browsing when you do not know exactly what to type."
+        case .folders:
+            return "Folders organize your library. Private Vault is for sensitive saves."
+        case .profile:
+            return "Find Help & Feedback, backup, privacy, appearance, and Share Sheet setup here."
+        }
+    }
 }
 
 enum SearchFacet: String, CaseIterable, Identifiable {
@@ -299,6 +585,22 @@ enum SaviHomeFolderMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum SaviHomeFolderRows: Int, CaseIterable, Identifiable {
+    case one = 1
+    case two = 2
+    case three = 3
+
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .one: return "1 row"
+        case .two: return "2 rows"
+        case .three: return "3 rows"
+        }
+    }
+}
+
 enum SaviHomeWidgetKind: String, CaseIterable, Identifiable, Codable {
     case latestSaves
     case folders
@@ -370,15 +672,15 @@ enum SaviHomeWidgetSize: String, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .compact: return "Compact"
-        case .medium: return "Medium"
-        case .large: return "Large"
+        case .compact: return "Small"
+        case .medium: return "Standard"
+        case .large: return "Expanded"
         }
     }
 }
 
 struct SaviHomeWidgetConfig: Codable, Identifiable, Equatable {
-    static let currentVersion = 1
+    static let currentVersion = 2
 
     var id: String
     var kind: String
@@ -386,6 +688,7 @@ struct SaviHomeWidgetConfig: Codable, Identifiable, Equatable {
     var isHidden: Bool
     var folderId: String?
     var title: String?
+    var folderRows: Int?
 
     var widgetKind: SaviHomeWidgetKind {
         SaviHomeWidgetKind(rawValue: kind) ?? .recentSaves
@@ -395,13 +698,23 @@ struct SaviHomeWidgetConfig: Codable, Identifiable, Equatable {
         SaviHomeWidgetSize(rawValue: size) ?? widgetKind.defaultSize
     }
 
+    var folderRowCount: Int {
+        guard widgetKind == .folders else { return 1 }
+        return Self.clampedFolderRows(folderRows)
+    }
+
+    var folderRowsMode: SaviHomeFolderRows {
+        SaviHomeFolderRows(rawValue: folderRowCount) ?? .one
+    }
+
     init(
         id: String = UUID().uuidString,
         kind: SaviHomeWidgetKind,
         size: SaviHomeWidgetSize? = nil,
         isHidden: Bool = false,
         folderId: String? = nil,
-        title: String? = nil
+        title: String? = nil,
+        folderRows: Int? = nil
     ) {
         self.id = id
         self.kind = kind.rawValue
@@ -409,6 +722,11 @@ struct SaviHomeWidgetConfig: Codable, Identifiable, Equatable {
         self.isHidden = isHidden
         self.folderId = folderId
         self.title = title
+        self.folderRows = kind == .folders ? Self.clampedFolderRows(folderRows) : nil
+    }
+
+    static func clampedFolderRows(_ rows: Int?) -> Int {
+        min(max(rows ?? 1, 1), 3)
     }
 
     static func defaultWidgets(showLatest: Bool = false) -> [SaviHomeWidgetConfig] {
@@ -422,11 +740,11 @@ struct SaviHomeWidgetConfig: Codable, Identifiable, Equatable {
 
 enum SaviCoachStep: String, CaseIterable, Identifiable {
     case home
-    case add
-    case share
     case search
     case explore
     case folders
+    case add
+    case share
     case profile
 
     var id: String { rawValue }
@@ -459,10 +777,10 @@ enum SaviCoachStep: String, CaseIterable, Identifiable {
         switch self {
         case .home: return "Your SAVI library"
         case .add: return "Save something new"
-        case .share: return "Share into SAVI"
-        case .search: return "Find anything fast"
-        case .explore: return "Rediscover saved things"
-        case .folders: return "Folders keep it organized"
+        case .share: return "Save from other apps"
+        case .search: return "Find something again"
+        case .explore: return "Browse what you kept"
+        case .folders: return "Folders make it yours"
         case .profile: return "Settings, privacy, backup"
         }
     }
@@ -470,19 +788,19 @@ enum SaviCoachStep: String, CaseIterable, Identifiable {
     var message: String {
         switch self {
         case .home:
-            return "Home shows your recent Folders and newest saves so you can jump back into anything you kept."
+            return "Home is the library you come back to: your Folders up top, newest saves below, and the sample library already showing what SAVI can hold."
         case .add:
             return "Tap the plus to paste a link, write a note, import a file, or bring in something from the clipboard."
         case .share:
-            return "From Safari, YouTube, Photos, Files, or almost any app, tap the iOS Share button and choose SAVI. It saves immediately, then fills in details."
+            return "Once you know where saves land, pin SAVI in the iOS Share Sheet. Then Safari, YouTube, Photos, Files, and other apps can save into this same library."
         case .search:
-            return "Search titles, notes, Folders, tags, sources, file names, PDFs, videos, screenshots, and places."
+            return "Search looks across titles, notes, Folders, tags, sources, file names, PDFs, videos, screenshots, and places."
         case .explore:
             return SaviReleaseGate.socialFeaturesEnabled
-                ? "Explore is a fresh mix of your links, places, videos, and friends' saves."
-                : "Explore is a fresh mix of your links, places, videos, and favorite finds."
+                ? "Explore is a fun way to browse your links, videos, places, and the favorites curated by friends."
+                : "Explore is a fun way to browse your saved favorites. Later, it can mix in favorites curated by friends you trust."
         case .folders:
-            return "Folders are your main categories. Drag them into the order you like; that order also appears when you save from the share sheet."
+            return "Folders are your main categories. The important stuff can live in Private Vault, and your folder order follows you when you save."
         case .profile:
             return SaviReleaseGate.socialFeaturesEnabled
                 ? "Manage appearance, backups, privacy, social features, folder learning, and this quick tour."
@@ -492,12 +810,12 @@ enum SaviCoachStep: String, CaseIterable, Identifiable {
 
     var targetHint: String {
         switch self {
-        case .home: return "Start with Recent Folders and your newest saves."
+        case .home: return "Start with Your Folders and your newest saves."
         case .add: return "Look for the chartreuse + in the bottom bar."
-        case .share: return "Look for the iOS Share icon, then pick SAVI."
-        case .search: return "Use the search bar, type rail, and Refine button."
+        case .share: return "Use this after you have seen Home, Search, and Folders."
+        case .search: return "Try the search bar, type rail, and Refine button."
         case .explore: return "Tap Explore when you want SAVI to surprise you."
-        case .folders: return "Long-press a card or use reorder to arrange Folders."
+        case .folders: return "Open a Folder to see how saves are grouped."
         case .profile: return "Replay this from the Guide card any time."
         }
     }
@@ -987,6 +1305,8 @@ struct SaviItem: Codable, Identifiable, Equatable {
 
 struct SaviPrefs: Codable, Equatable {
     static let currentHomePresentationVersion = 3
+    static let currentTabTipsVersion = 1
+    static let allTabTipIds = SaviTabTip.allCases.map(\.id)
 
     var viewMode: String = "list"
     var folderViewMode: String = "grid"
@@ -998,6 +1318,8 @@ struct SaviPrefs: Codable, Equatable {
     var homeWidgetVersion: Int = SaviHomeWidgetConfig.currentVersion
     var folderLayoutVersion: Int = 0
     var coachMarksVersion: Int = 0
+    var tabTipsVersion: Int = Self.currentTabTipsVersion
+    var seenTabTipIds: [String] = []
     var themeMode: String = "system"
     var onboarded: Bool = false
     var demoSuppressed: Bool = false
@@ -1038,6 +1360,8 @@ struct SaviPrefs: Codable, Equatable {
         case homeWidgetVersion
         case folderLayoutVersion
         case coachMarksVersion
+        case tabTipsVersion
+        case seenTabTipIds
         case themeMode
         case onboarded
         case demoSuppressed
@@ -1086,8 +1410,18 @@ struct SaviPrefs: Codable, Equatable {
         homeWidgetVersion = try container.decodeIfPresent(Int.self, forKey: .homeWidgetVersion) ?? 0
         folderLayoutVersion = try container.decodeIfPresent(Int.self, forKey: .folderLayoutVersion) ?? 0
         coachMarksVersion = try container.decodeIfPresent(Int.self, forKey: .coachMarksVersion) ?? 0
+        tabTipsVersion = try container.decodeIfPresent(Int.self, forKey: .tabTipsVersion) ?? 0
+        seenTabTipIds = try container.decodeIfPresent([String].self, forKey: .seenTabTipIds) ?? []
         themeMode = try container.decodeIfPresent(String.self, forKey: .themeMode) ?? "dark"
         onboarded = try container.decodeIfPresent(Bool.self, forKey: .onboarded) ?? false
+        if onboarded,
+           !container.contains(.tabTipsVersion),
+           !container.contains(.seenTabTipIds) {
+            tabTipsVersion = Self.currentTabTipsVersion
+            seenTabTipIds = Self.allTabTipIds
+        } else if tabTipsVersion == 0 {
+            tabTipsVersion = Self.currentTabTipsVersion
+        }
         demoSuppressed = try container.decodeIfPresent(Bool.self, forKey: .demoSuppressed) ?? false
         migrationComplete = try container.decodeIfPresent(Bool.self, forKey: .migrationComplete) ?? false
         legacySeedVersion = try container.decodeIfPresent(Int.self, forKey: .legacySeedVersion)
@@ -1258,6 +1592,101 @@ enum SaviSafety {
     }
 }
 
+enum SaviSupport {
+    static let feedbackEmail = "1080solutionsA@gmail.com"
+
+    static func bugReportURL(area: String = "General") -> URL? {
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = feedbackEmail
+        components.queryItems = [
+            URLQueryItem(name: "subject", value: "SAVI beta feedback"),
+            URLQueryItem(name: "body", value: bugReportBody(area: area))
+        ]
+        return components.url
+    }
+
+    static func bugReportBody(area: String) -> String {
+        """
+        Hi SAVI team,
+
+        Area: \(area)
+        What happened:
+
+        What I expected:
+
+        Steps to reproduce:
+        1.
+        2.
+        3.
+
+        Screenshot attached? Optional.
+
+        Build context:
+        - App: \(appName)
+        - Version: \(appVersion) (\(buildNumber))
+        - Channel: \(SaviReleaseGate.buildChannel)
+        - Device: \(UIDevice.current.model)
+        - iOS: \(UIDevice.current.systemVersion)
+
+        Please do not include private saved content unless you are comfortable sharing it.
+        """
+    }
+
+    private static var appName: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String) ??
+            (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String) ??
+            "SAVI"
+    }
+
+    private static var appVersion: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "Unknown"
+    }
+
+    private static var buildNumber: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? "Unknown"
+    }
+}
+
+struct SaviArchiveExportStatus: Equatable {
+    enum Phase: Equatable {
+        case preparing
+        case openingShareSheet
+    }
+
+    var folderCount: Int
+    var itemCount: Int
+    var isAllFolders: Bool
+    var phase: Phase = .preparing
+
+    var title: String {
+        switch phase {
+        case .preparing:
+            return "Preparing your archive"
+        case .openingShareSheet:
+            return "Opening the iOS share sheet"
+        }
+    }
+
+    var message: String {
+        switch phase {
+        case .preparing:
+            return "SAVI is packing your folders, saves, files, PDFs, images, and private vault items into a ZIP. Keep SAVI open."
+        case .openingShareSheet:
+            return "Your ZIP is ready. Choose where to save, send, or AirDrop it next."
+        }
+    }
+
+    var scopeLine: String {
+        let folderLabel = "\(folderCount) folder\(folderCount == 1 ? "" : "s")"
+        let itemLabel = "\(itemCount) save\(itemCount == 1 ? "" : "s")"
+        if isAllFolders {
+            return "Exporting all folders · \(itemLabel)"
+        }
+        return "Exporting \(folderLabel) · \(itemLabel)"
+    }
+}
+
 struct SaviLibraryState: Codable {
     var version: Int
     var folders: [SaviFolder]
@@ -1337,20 +1766,57 @@ struct SaviCloudBackupSnapshot {
     var size: Int
 }
 
+#if DEBUG
 final class SaviCloudKitService {
-    static let containerIdentifier = "iCloud.com.savi.app"
+    static let containerIdentifier = "iCloud.com.altatecrd.savi"
+    private static let unavailableInThisBuildText = "iCloud backup is off in this beta"
 
-    private static var isPersonalDebugBuild: Bool {
-        Bundle.main.bundleIdentifier?.contains(".personaldebug") == true
+    private enum EntitlementStatus {
+        case ready
+        case unavailable(String)
+
+        var message: String {
+            switch self {
+            case .ready:
+                return "iCloud not checked"
+            case .unavailable(let message):
+                return message
+            }
+        }
     }
 
-    private lazy var container: CKContainer? = {
-        guard !Self.isPersonalDebugBuild else { return nil }
-        return CKContainer(identifier: Self.containerIdentifier)
+    private var cachedEntitlementStatus: EntitlementStatus?
+    private var cachedContainer: CKContainer?
+
+    private typealias SecTaskCreateFromSelfFunction = @convention(c) (CFAllocator?) -> Unmanaged<CFTypeRef>?
+    private typealias SecTaskCopyValueForEntitlementFunction = @convention(c) (
+        CFTypeRef,
+        CFString,
+        UnsafeMutablePointer<Unmanaged<CFError>?>?
+    ) -> Unmanaged<CFTypeRef>?
+
+    private struct SecTaskFunctions {
+        var createFromSelf: SecTaskCreateFromSelfFunction
+        var copyValueForEntitlement: SecTaskCopyValueForEntitlementFunction
+    }
+
+    // Swift's Security module does not expose SecTask in this SDK, so resolve the public symbols lazily.
+    private static let secTaskFunctions: SecTaskFunctions? = {
+        guard let handle = dlopen("/System/Library/Frameworks/Security.framework/Security", RTLD_LAZY),
+              let createSymbol = dlsym(handle, "SecTaskCreateFromSelf"),
+              let entitlementSymbol = dlsym(handle, "SecTaskCopyValueForEntitlement")
+        else { return nil }
+
+        return SecTaskFunctions(
+            createFromSelf: unsafeBitCast(createSymbol, to: SecTaskCreateFromSelfFunction.self),
+            copyValueForEntitlement: unsafeBitCast(entitlementSymbol, to: SecTaskCopyValueForEntitlementFunction.self)
+        )
     }()
 
     func accountStatusText() async -> String {
-        guard let container else { return "iCloud unavailable" }
+        guard let container = try? resolvedContainer() else {
+            return entitlementStatus().message
+        }
 
         return await withCheckedContinuation { continuation in
             container.accountStatus { status, _ in
@@ -1575,13 +2041,72 @@ final class SaviCloudKitService {
     }
 
     private func publicDatabase() throws -> CKDatabase {
-        guard let container else { throw CKError(.notAuthenticated) }
-        return container.publicCloudDatabase
+        try resolvedContainer().publicCloudDatabase
     }
 
     private func privateDatabase() throws -> CKDatabase {
-        guard let container else { throw CKError(.notAuthenticated) }
-        return container.privateCloudDatabase
+        try resolvedContainer().privateCloudDatabase
+    }
+
+    private func resolvedContainer() throws -> CKContainer {
+        switch entitlementStatus() {
+        case .ready:
+            if let cachedContainer { return cachedContainer }
+            let container = CKContainer(identifier: Self.containerIdentifier)
+            cachedContainer = container
+            return container
+        case .unavailable:
+            throw CKError(.notAuthenticated)
+        }
+    }
+
+    private func entitlementStatus() -> EntitlementStatus {
+        if let cachedEntitlementStatus { return cachedEntitlementStatus }
+        let nextStatus = Self.currentEntitlementStatus()
+        cachedEntitlementStatus = nextStatus
+        return nextStatus
+    }
+
+    private static func currentEntitlementStatus() -> EntitlementStatus {
+        guard SaviReleaseGate.cloudKitFeaturesEnabled else {
+            return .unavailable(unavailableInThisBuildText)
+        }
+
+        let services = Set(entitlementStrings(for: "com.apple.developer.icloud-services"))
+        guard services.contains("CloudKit") else {
+            return .unavailable(unavailableInThisBuildText)
+        }
+
+        let productionContainers = entitlementStrings(for: "com.apple.developer.icloud-container-identifiers")
+        let developmentContainers = entitlementStrings(for: "com.apple.developer.icloud-container-development-container-identifiers")
+        let containers = Set(productionContainers + developmentContainers)
+        guard containers.contains(containerIdentifier) else {
+            return .unavailable(unavailableInThisBuildText)
+        }
+
+        return .ready
+    }
+
+    private static func entitlementStrings(for key: String) -> [String] {
+        guard let functions = secTaskFunctions,
+              let task = functions.createFromSelf(kCFAllocatorDefault)?.takeRetainedValue(),
+              let value = functions.copyValueForEntitlement(task, key as CFString, nil)?.takeRetainedValue()
+        else { return [] }
+
+        let anyValue = value as Any
+        if let string = anyValue as? String {
+            return [string]
+        }
+        if let strings = anyValue as? [String] {
+            return strings
+        }
+        if let values = anyValue as? [Any] {
+            return values.compactMap { $0 as? String }
+        }
+        if let values = anyValue as? NSArray {
+            return values.compactMap { $0 as? String }
+        }
+        return []
     }
 }
 
@@ -1613,6 +2138,54 @@ extension SaviSharedLink {
         )
     }
 }
+#else
+struct SaviCloudKitDisabledError: LocalizedError {
+    var errorDescription: String? {
+        "iCloud backup is off in this beta."
+    }
+}
+
+final class SaviCloudKitService {
+    static let containerIdentifier = "iCloud.com.altatecrd.savi"
+    private static let unavailableInThisBuildText = "iCloud backup is off in this beta"
+
+    func accountStatusText() async -> String {
+        Self.unavailableInThisBuildText
+    }
+
+    func savePrivateBackup(data: Data) async throws -> Double {
+        throw SaviCloudKitDisabledError()
+    }
+
+    func fetchPrivateBackup() async throws -> SaviCloudBackupSnapshot? {
+        throw SaviCloudKitDisabledError()
+    }
+
+    func saveProfile(_ profile: SaviPublicProfile) async throws {
+        throw SaviCloudKitDisabledError()
+    }
+
+    func publishSharedLinks(_ links: [SaviSharedLink]) async throws {
+        throw SaviCloudKitDisabledError()
+    }
+
+    func deleteProfile(username: String) async throws {
+        throw SaviCloudKitDisabledError()
+    }
+
+    func deleteSharedLinks(ids: [String]) async throws {
+        throw SaviCloudKitDisabledError()
+    }
+
+    func deleteSharedLinks(ownerUsername: String) async throws {
+        throw SaviCloudKitDisabledError()
+    }
+
+    func fetchSharedLinks(friendUsernames: [String]) async throws -> [SaviSharedLink] {
+        []
+    }
+}
+#endif
 
 // MARK: - Store
 
@@ -1638,6 +2211,7 @@ final class SaviStore: ObservableObject {
     @Published var homeScrollToTopRequest = 0
     @Published var searchFocusRequest = 0
     @Published var activeCoachStep: SaviCoachStep?
+    @Published var activeTabTip: SaviTabTip?
     @Published var exploreSeed = SaviPrefs.currentExploreDay()
     @Published var exploreScope: ExploreScope = .all
     @Published var query = ""
@@ -1668,10 +2242,13 @@ final class SaviStore: ObservableObject {
     @Published var migrationMessage: String?
     @Published var backupDocument: SaviBackupDocument?
     @Published var archiveDocument: SaviArchiveDocument?
+    @Published var archiveShareFileURL: URL?
     @Published var backupExportFilename = "savi-backup-\(SaviText.backupStamp()).json"
     @Published var archiveExportFilename = "savi-full-archive-\(SaviText.backupStamp()).zip"
     @Published var isExportingBackup = false
     @Published var isExportingArchive = false
+    @Published var isPreparingArchiveExport = false
+    @Published var archiveExportStatus: SaviArchiveExportStatus?
     @Published var pendingBackupPreview: SaviArchivePreview?
     @Published var isCloudBackupRunning = false
     @Published var cloudBackupMessage: String?
@@ -1686,7 +2263,7 @@ final class SaviStore: ObservableObject {
             invalidateExploreSnapshotCache()
         }
     }
-    @Published var cloudKitStatus = "Checking iCloud"
+    @Published var cloudKitStatus = "iCloud not checked"
     @Published var appleAccountStatus = "Not linked"
     @Published var socialSyncMessage: String?
     @Published var isSocialSyncing = false
@@ -1733,18 +2310,22 @@ final class SaviStore: ObservableObject {
     private static let thumbnailRetryDelays: [TimeInterval] = [0, 30, 60, 180, 600, 1_800, 3_600]
     private static let thumbnailLogoFallbackAttempts = 3
     private static let thumbnailLogoFallbackGrace: TimeInterval = 180
-    private static let maxMetadataEnrichmentTasks = 4
+    private static let maxMetadataEnrichmentTasks = SaviPerformancePolicy.current.metadataConcurrentFetches
     private static let foregroundRefreshCooldown: TimeInterval = 6
     private static let slowFilterLogThreshold: TimeInterval = 0.05
     private static let slowRefineSnapshotLogThreshold: TimeInterval = 0.02
     private static let shareSetupInitialReminderDelay: TimeInterval = 86_400
     private static let shareSetupSecondReminderDelay: TimeInterval = 3 * 86_400
     private static let shareSetupLaterReminderDelay: TimeInterval = 7 * 86_400
+    private static let shareSetupPracticeItemId = "practice-share-setup-savi-first-card"
+    private static let shareSetupPracticeAssetId = "asset-practice-share-setup-savi-first-card"
+    private static let shareSetupPracticeImageName = "share-setup-practice-savi-first-card"
+    private static let shareSetupPracticeFileName = "Your new best friend - tap Share to SAVI.png"
     private static let sampleFriendTargetLinkCount = 24
-    private static let currentLegacySeedVersion = 23
+    private static let currentLegacySeedVersion = 29
     private static let currentFolderRepairVersion = 2
     private static let currentSearchTagRepairVersion = 1
-    private static let currentFolderLayoutVersion = 3
+    private static let currentFolderLayoutVersion = 4
     private static let currentCoachMarksVersion = 1
     private static let currentHomePresentationVersion = SaviPrefs.currentHomePresentationVersion
 
@@ -1757,7 +2338,8 @@ final class SaviStore: ObservableObject {
     }
 
     var shouldRunLegacyMigration: Bool {
-        !prefs.migrationComplete || shouldRefreshLegacySeeds
+        guard SaviReleaseGate.legacyWebMigrationEnabled else { return false }
+        return !prefs.migrationComplete || shouldRefreshLegacySeeds
     }
 
     private var shouldRefreshLegacySeeds: Bool {
@@ -1783,6 +2365,9 @@ final class SaviStore: ObservableObject {
             shouldPersistPreferenceNormalization = true
         }
         if Self.syncPairedFolderPreferences(&loadedPrefs) {
+            shouldPersistPreferenceNormalization = true
+        }
+        if Self.normalizeTabTipPreferences(&loadedPrefs) {
             shouldPersistPreferenceNormalization = true
         }
         let visibleExploreScope = ExploreScope.visibleScope(for: loadedPrefs.exploreScope)
@@ -1833,6 +2418,11 @@ final class SaviStore: ObservableObject {
             loadedPrefs.legacySeedVersion = Self.currentLegacySeedVersion
             shouldPersistPreferenceNormalization = true
             initialFolders = SaviSeeds.refreshingDefaultFolderPresentation(SaviSeeds.withSeedDefaults(initialFolders))
+        }
+        if !SaviReleaseGate.legacyWebMigrationEnabled, !loadedPrefs.migrationComplete {
+            loadedPrefs.migrationComplete = true
+            loadedPrefs.legacySeedVersion = Self.currentLegacySeedVersion
+            shouldPersistPreferenceNormalization = true
         }
         if Self.normalizePrivateVaultDemoLockState(
             folders: &initialFolders,
@@ -1915,6 +2505,25 @@ final class SaviStore: ObservableObject {
     }
 
     @discardableResult
+    private static func normalizeTabTipPreferences(_ prefs: inout SaviPrefs) -> Bool {
+        var changed = false
+        let validIds = Set(SaviPrefs.allTabTipIds)
+        var seen = Set<String>()
+        let sanitized = prefs.seenTabTipIds.filter { id in
+            validIds.contains(id) && seen.insert(id).inserted
+        }
+        if sanitized != prefs.seenTabTipIds {
+            prefs.seenTabTipIds = sanitized
+            changed = true
+        }
+        if prefs.tabTipsVersion < SaviPrefs.currentTabTipsVersion {
+            prefs.tabTipsVersion = SaviPrefs.currentTabTipsVersion
+            changed = true
+        }
+        return changed
+    }
+
+    @discardableResult
     private static func normalizePrivateVaultDemoLockState(
         folders: inout [SaviFolder],
         prefs: inout SaviPrefs,
@@ -1946,6 +2555,7 @@ final class SaviStore: ObservableObject {
             return widget.id == expected.id &&
                 widget.widgetKind == expected.kind &&
                 widget.widgetSize == expected.size &&
+                widget.folderRowCount == 1 &&
                 widget.folderId == nil &&
                 !hasCustomTitle
         }
@@ -1954,20 +2564,25 @@ final class SaviStore: ObservableObject {
     private static func sanitizedHomeWidgets(_ widgets: [SaviHomeWidgetConfig]) -> [SaviHomeWidgetConfig] {
         var seenSingleKinds = Set<String>()
         var seenIds = Set<String>()
+        var sanitizedWidgets: [SaviHomeWidgetConfig] = []
 
-        return widgets.compactMap { widget in
+        for widget in widgets {
             let kind = widget.widgetKind
             if kind == .friendActivity, !SaviReleaseGate.socialFeaturesEnabled {
-                return nil
+                continue
             }
             if !kind.allowsMultiple, seenSingleKinds.contains(kind.rawValue) {
-                return nil
+                continue
             }
             seenSingleKinds.insert(kind.rawValue)
 
             var sanitized = widget
             sanitized.kind = kind.rawValue
             sanitized.size = widget.widgetSize.rawValue
+            sanitized.folderRows = kind == .folders ? SaviHomeWidgetConfig.clampedFolderRows(widget.folderRows) : nil
+            if kind == .recentSaves {
+                sanitized.isHidden = false
+            }
             if kind != .pinnedFolder {
                 sanitized.folderId = nil
             }
@@ -1975,22 +2590,26 @@ final class SaviStore: ObservableObject {
                 sanitized.id = UUID().uuidString
             }
             seenIds.insert(sanitized.id)
-            return sanitized
+            sanitizedWidgets.append(sanitized)
         }
+
+        if !seenSingleKinds.contains(SaviHomeWidgetKind.recentSaves.rawValue) {
+            sanitizedWidgets.append(SaviHomeWidgetConfig(id: "home-widget-recent", kind: .recentSaves, size: .large))
+        }
+
+        return sanitizedWidgets.filter { $0.widgetKind != .recentSaves } +
+            sanitizedWidgets.filter { $0.widgetKind == .recentSaves }
     }
 
     @discardableResult
     private static func syncPairedFolderPreferences(_ prefs: inout SaviPrefs) -> Bool {
         let originalFolderViewMode = prefs.folderViewMode
         let originalHomeFolderMode = prefs.homeFolderMode
-        let folderViewMode = SaviFolderViewMode(rawValue: prefs.folderViewMode) ?? .grid
-        let homeFolderMode = SaviHomeFolderMode(rawValue: prefs.homeFolderMode) ?? .fourGrid
 
-        if folderViewMode == .list || homeFolderMode == .strip {
-            prefs.folderViewMode = SaviFolderViewMode.list.rawValue
-            prefs.homeFolderMode = SaviHomeFolderMode.strip.rawValue
-        } else {
+        if SaviFolderViewMode(rawValue: prefs.folderViewMode) == nil {
             prefs.folderViewMode = SaviFolderViewMode.grid.rawValue
+        }
+        if SaviHomeFolderMode(rawValue: prefs.homeFolderMode) == nil {
             prefs.homeFolderMode = SaviHomeFolderMode.fourGrid.rawValue
         }
 
@@ -2086,8 +2705,8 @@ final class SaviStore: ObservableObject {
                 let reachable = path.status == .satisfied
                 let becameReachable = reachable && self?.isNetworkReachable == false
                 self?.isNetworkReachable = reachable
-                if becameReachable {
-                    await self?.refreshStaleMetadata()
+                if becameReachable, SaviReleaseGate.staleMetadataRefreshEnabled {
+                    await self?.refreshStaleMetadata(limit: SaviPerformancePolicy.current.metadataForegroundRefreshLimit)
                 }
             }
         }
@@ -2098,16 +2717,24 @@ final class SaviStore: ObservableObject {
         let startedAt = Date()
         guard !didBootstrap else { return }
         didBootstrap = true
+        NSLog("[SAVI Native] bootstrap started")
         mergeShareSetupStateFromAppGroup()
+        NSLog("[SAVI Native] bootstrap merged share setup")
         await importPendingShares()
+        NSLog("[SAVI Native] bootstrap imported pending shares")
         evaluateShareSetupReminder()
         refreshFolderDecisionHistory()
         repairObviousGenericFolderAssignmentsIfNeeded()
         repairSearchTagsIfNeeded()
-        await refreshStaleMetadata()
+        NSLog("[SAVI Native] bootstrap repaired local library state")
+        if SaviReleaseGate.staleMetadataRefreshEnabled {
+            await refreshStaleMetadata(limit: SaviPerformancePolicy.current.metadataBootstrapRefreshLimit)
+            NSLog("[SAVI Native] bootstrap refreshed stale metadata")
+        } else {
+            NSLog("[SAVI Native] bootstrap skipped stale metadata refresh")
+        }
         await refreshAppleIntelligenceStatus()
         await refreshAppleAccountStatus()
-        await refreshCloudKitStatus()
 #if targetEnvironment(simulator)
         if SaviReleaseGate.seedsDemoSocialContent {
             let avaLinkCount = friendLinks.filter { SaviSocialText.normalizedUsername($0.ownerUsername) == "ava" }.count
@@ -2138,7 +2765,9 @@ final class SaviStore: ObservableObject {
         mergeShareSetupStateFromAppGroup()
         await importPendingShares()
         evaluateShareSetupReminder()
-        await refreshStaleMetadata()
+        if SaviReleaseGate.staleMetadataRefreshEnabled {
+            await refreshStaleMetadata(limit: SaviPerformancePolicy.current.metadataForegroundRefreshLimit)
+        }
         NSLog("[SAVI Native] foreground refresh scheduled in %.3fs", Date().timeIntervalSince(startedAt))
     }
 
@@ -2162,13 +2791,34 @@ final class SaviStore: ObservableObject {
         }
     }
 
-    func finishOnboarding() {
+    func finishOnboarding(startTour: Bool = false) {
         prefs.onboarded = true
         if prefs.shareSetupFirstEligibleAt == nil && prefs.shareExtensionSaveCount == 0 {
             prefs.shareSetupFirstEligibleAt = Date().timeIntervalSince1970
         }
         persist()
-        startCoachTour()
+        if startTour {
+            startCoachTour()
+        } else {
+            activeCoachStep = nil
+            scheduleTabTip(for: selectedTab)
+            evaluateShareSetupReminder()
+        }
+    }
+
+    func finishOnboardingAndOpenShareSetupGuide() {
+        prefs.onboarded = true
+        if prefs.shareSetupFirstEligibleAt == nil && prefs.shareExtensionSaveCount == 0 {
+            prefs.shareSetupFirstEligibleAt = Date().timeIntervalSince1970
+        }
+        activeCoachStep = nil
+        activeTabTip = nil
+        isShareSetupReminderPresented = false
+        persist()
+
+        DispatchQueue.main.async { [weak self] in
+            self?.isShareSetupGuidePresented = true
+        }
     }
 
     var isShareExtensionSetupComplete: Bool {
@@ -2186,8 +2836,104 @@ final class SaviStore: ObservableObject {
     }
 
     func openShareSetupGuide() {
+        activeTabTip = nil
         isShareSetupReminderPresented = false
         isShareSetupGuidePresented = true
+    }
+
+    var shareSetupPracticeItem: SaviItem? {
+        items.first { $0.id == Self.shareSetupPracticeItemId }
+    }
+
+    var hasShareSetupPracticeSave: Bool {
+        shareSetupPracticeItem != nil
+    }
+
+    @discardableResult
+    func addShareSetupPracticeSave(showToast: Bool = true) -> SaviItem? {
+        if let existing = shareSetupPracticeItem {
+            if showToast {
+                toast = "Example is already in SAVI."
+            }
+            return existing
+        }
+
+        guard let data = shareSetupPracticeImageData() else {
+            toast = "Could not load the SAVI example."
+            return nil
+        }
+
+        do {
+            let asset = try storage.writeAssetData(
+                data,
+                preferredName: Self.shareSetupPracticeFileName,
+                mimeType: "image/png",
+                id: Self.shareSetupPracticeAssetId
+            )
+            assets.removeAll { $0.id == asset.id }
+            assets.append(asset)
+
+            let targetFolderId = "f-life-admin"
+            let item = SaviItem(
+                id: Self.shareSetupPracticeItemId,
+                title: "Your new best friend - tap Share to SAVI",
+                itemDescription: "Demo SAVI card for practicing the Share Sheet. It shows how one share can keep a name, tags, folder, and preview together.",
+                source: "SAVI",
+                type: .image,
+                folderId: targetFolderId,
+                tags: ["savi", "share-sheet", "getting-started", "later", "demo"],
+                thumbnail: "data:image/png;base64,\(data.base64EncodedString())",
+                color: folder(for: targetFolderId)?.color,
+                assetId: asset.id,
+                assetName: asset.name,
+                assetMime: asset.type,
+                assetSize: asset.size,
+                width: 1170,
+                height: 2532
+            )
+            items.insert(item, at: 0)
+            persist()
+            if showToast {
+                toast = "Saved to Your Folders."
+            }
+            return item
+        } catch {
+            toast = "Could not save the SAVI example."
+            NSLog("[SAVI Native] share setup practice save failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func openShareSetupPracticeSave() {
+        guard let item = addShareSetupPracticeSave(showToast: false) else { return }
+        isShareSetupGuidePresented = false
+        selectedTab = .home
+        previousTab = .home
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.36) { [weak self] in
+            self?.presentItem(item)
+        }
+    }
+
+    func makeShareSetupPracticeShareURL() -> URL? {
+        guard let data = shareSetupPracticeImageData() else {
+            toast = "Could not load the SAVI example."
+            return nil
+        }
+
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(Self.shareSetupPracticeFileName)
+        do {
+            try data.write(to: url, options: .atomic)
+            return url
+        } catch {
+            toast = "Could not prepare the SAVI example."
+            NSLog("[SAVI Native] share setup practice share file failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    private func shareSetupPracticeImageData() -> Data? {
+        UIImage(named: Self.shareSetupPracticeImageName)?.pngData()
     }
 
     func snoozeShareSetupReminder() {
@@ -2202,11 +2948,45 @@ final class SaviStore: ObservableObject {
         persist()
     }
 
+    func dismissActiveTabTip() {
+        activeTabTip = nil
+        evaluateShareSetupReminder()
+    }
+
+    func evaluateTabTipAfterPresentation() {
+        scheduleTabTip(for: selectedTab)
+    }
+
+    private func scheduleTabTip(for tab: SaviTab) {
+        guard SaviTabTip(tab: tab) != nil else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { [weak self] in
+            guard let self, self.selectedTab == tab else { return }
+            self.showTabTipIfNeeded(for: tab)
+        }
+    }
+
+    private func showTabTipIfNeeded(for tab: SaviTab) {
+        guard prefs.onboarded,
+              activeCoachStep == nil,
+              !isShareSetupReminderPresented,
+              !isShareSetupGuidePresented,
+              !hasActivePresentation,
+              let tip = SaviTabTip(tab: tab),
+              !prefs.seenTabTipIds.contains(tip.id)
+        else { return }
+
+        prefs.seenTabTipIds.append(tip.id)
+        prefs.tabTipsVersion = SaviPrefs.currentTabTipsVersion
+        activeTabTip = tip
+        persist()
+    }
+
     func evaluateShareSetupReminder() {
         guard prefs.onboarded,
               !isShareExtensionSetupComplete,
               !prefs.shareSetupDontRemindAgain,
-              activeCoachStep == nil
+              activeCoachStep == nil,
+              activeTabTip == nil
         else {
             isShareSetupReminderPresented = false
             return
@@ -2288,9 +3068,6 @@ final class SaviStore: ObservableObject {
 
     func setFolderViewMode(_ mode: SaviFolderViewMode) {
         prefs.folderViewMode = mode.rawValue
-        prefs.homeFolderMode = mode == .grid
-            ? SaviHomeFolderMode.fourGrid.rawValue
-            : SaviHomeFolderMode.strip.rawValue
         persist()
     }
 
@@ -2301,9 +3078,6 @@ final class SaviStore: ObservableObject {
 
     func setHomeFolderMode(_ mode: SaviHomeFolderMode) {
         prefs.homeFolderMode = mode.rawValue
-        prefs.folderViewMode = mode == .fourGrid
-            ? SaviFolderViewMode.grid.rawValue
-            : SaviFolderViewMode.list.rawValue
         persist()
     }
 
@@ -2348,7 +3122,13 @@ final class SaviStore: ObservableObject {
         setHomeWidgets(widgets)
     }
 
-    func addHomeWidget(kind: SaviHomeWidgetKind, size: SaviHomeWidgetSize? = nil, folderId: String? = nil, title: String? = nil) {
+    func addHomeWidget(
+        kind: SaviHomeWidgetKind,
+        size: SaviHomeWidgetSize? = nil,
+        folderId: String? = nil,
+        title: String? = nil,
+        folderRows: SaviHomeFolderRows? = nil
+    ) {
         guard SaviReleaseGate.socialFeaturesEnabled || kind != .friendActivity else {
             toast = "Social Beta is off for this TestFlight build."
             return
@@ -2358,6 +3138,9 @@ final class SaviStore: ObservableObject {
             if let index = widgets.firstIndex(where: { $0.widgetKind == kind }) {
                 widgets[index].isHidden = false
                 widgets[index].size = (size ?? kind.defaultSize).rawValue
+                if kind == .folders {
+                    widgets[index].folderRows = (folderRows ?? .one).rawValue
+                }
             }
         } else {
             widgets.append(
@@ -2365,7 +3148,8 @@ final class SaviStore: ObservableObject {
                     kind: kind,
                     size: size,
                     folderId: kind == .pinnedFolder ? folderId : nil,
-                    title: title
+                    title: title,
+                    folderRows: kind == .folders ? (folderRows ?? .one).rawValue : nil
                 )
             )
         }
@@ -2377,6 +3161,10 @@ final class SaviStore: ObservableObject {
     }
 
     func deleteHomeWidget(_ widget: SaviHomeWidgetConfig) {
+        guard widget.widgetKind != .recentSaves else {
+            toast = "Recent Saves stays pinned at the bottom of Home."
+            return
+        }
         prefs.homeWidgets.removeAll { $0.id == widget.id }
         if widget.widgetKind == .latestSaves {
             prefs.homeShowsFeaturedSave = false
@@ -2385,6 +3173,12 @@ final class SaviStore: ObservableObject {
     }
 
     func setHomeWidgetHidden(_ widget: SaviHomeWidgetConfig, hidden: Bool) {
+        guard widget.widgetKind != .recentSaves else {
+            if hidden {
+                toast = "Recent Saves stays pinned at the bottom of Home."
+            }
+            return
+        }
         var widgets = prefs.homeWidgets
         guard let index = widgets.firstIndex(where: { $0.id == widget.id }) else { return }
         widgets[index].isHidden = hidden
@@ -2399,6 +3193,16 @@ final class SaviStore: ObservableObject {
         var widgets = prefs.homeWidgets
         guard let index = widgets.firstIndex(where: { $0.id == widget.id }) else { return }
         widgets[index].size = size.rawValue
+        prefs.homeWidgets = Self.sanitizedHomeWidgets(widgets)
+        persist()
+    }
+
+    func setHomeWidgetFolderRows(_ widget: SaviHomeWidgetConfig, rows: SaviHomeFolderRows) {
+        var widgets = prefs.homeWidgets
+        guard let index = widgets.firstIndex(where: { $0.id == widget.id }),
+              widgets[index].widgetKind == .folders
+        else { return }
+        widgets[index].folderRows = rows.rawValue
         prefs.homeWidgets = Self.sanitizedHomeWidgets(widgets)
         persist()
     }
@@ -2452,6 +3256,17 @@ final class SaviStore: ObservableObject {
         presentSafely(.item(item))
     }
 
+    func openItemCard(_ item: SaviItem) {
+        guard !isItemInLockedKeeper(item) else {
+            if let folder = folder(for: item.folderId) {
+                openFolder(folder)
+            }
+            return
+        }
+        markExploreSeen(item)
+        presentItem(item)
+    }
+
     func editItem(_ item: SaviItem) {
         presentSafely(.editItem(item))
     }
@@ -2477,6 +3292,7 @@ final class SaviStore: ObservableObject {
     }
 
     private func presentSafely(_ presentation: SaviDeferredPresentation) {
+        activeTabTip = nil
         guard hasActivePresentation else {
             applyPresentation(presentation)
             return
@@ -2520,8 +3336,12 @@ final class SaviStore: ObservableObject {
         if tab == .home {
             resetFilters()
         }
+        if activeTabTip?.tab != tab {
+            activeTabTip = nil
+        }
         previousTab = tab
         selectedTab = tab
+        scheduleTabTip(for: tab)
     }
 
     func handleBottomTabTap(_ tab: SaviTab) {
@@ -2538,6 +3358,7 @@ final class SaviStore: ObservableObject {
         editingItem = nil
         quickLookAssetURL = nil
         webPreviewURL = nil
+        activeTabTip = nil
         routeForCoachStep(.home)
         activeCoachStep = .home
     }
@@ -2853,7 +3674,8 @@ final class SaviStore: ObservableObject {
             return
         }
         if let urlString = item.url?.nilIfBlank,
-           let url = URL(string: urlString) {
+           let url = URL(string: SaviText.normalizedURL(urlString)),
+           url.scheme != nil {
             previewWebURL(url)
             return
         }
@@ -3062,10 +3884,23 @@ final class SaviStore: ObservableObject {
         sampleItemCount > 0
     }
 
-    func homeFolders(limit: Int = 6) -> [SaviFolder] {
+    func homeFolders(limit: Int? = 6) -> [SaviFolder] {
         let visibleFolders = folders.filter { $0.id != "f-all" }
-        let latestByFolder = Dictionary(grouping: visibleItemsForBrowsing(), by: \.folderId)
+        let visibleBrowsingItems = visibleItemsForBrowsing()
+        let latestByFolder = Dictionary(grouping: visibleBrowsingItems, by: \.folderId)
             .mapValues { saves in saves.map(\.savedAt).max() ?? 0 }
+        let utilityStoryOrder: [String: Int] = [
+            "f-private-vault": 0,
+            "f-health": 1,
+            "f-lmao": 2,
+            "f-must-see": 3,
+            "f-life-admin": 4,
+            "f-travel": 5,
+            "f-growth": 6,
+            "f-research": 7,
+            "f-recipes": 8,
+            "f-design": 9
+        ]
 
         func sortedForHome(_ folders: [SaviFolder]) -> [SaviFolder] {
             folders.sorted { lhs, rhs in
@@ -3077,21 +3912,34 @@ final class SaviStore: ObservableObject {
             }
         }
 
-        let primary = visibleFolders.filter { folder in
-            folder.id != "f-private-vault" && folder.id != "f-paste-bin"
+        let storyFolders = visibleFolders
+            .filter { utilityStoryOrder[$0.id] != nil }
+            .sorted { lhs, rhs in
+                let leftRank = utilityStoryOrder[lhs.id] ?? Int.max
+                let rightRank = utilityStoryOrder[rhs.id] ?? Int.max
+                if leftRank != rightRank { return leftRank < rightRank }
+                return lhs.name < rhs.name
+            }
+        let storyFolderIds = Set(storyFolders.map(\.id))
+        let recentFolders = visibleFolders.filter { folder in
+            !storyFolderIds.contains(folder.id) &&
+                folder.id != "f-paste-bin" &&
+                folder.id != "f-random"
         }
-        let utility = visibleFolders.filter { folder in
-            folder.id == "f-private-vault" || folder.id == "f-paste-bin"
+        let utilityFolders = visibleFolders.filter { folder in
+            folder.id == "f-paste-bin"
+        }
+        let catchAllFolders = visibleFolders.filter { folder in
+            folder.id == "f-random"
         }
 
-        if visibleItemsForBrowsing().allSatisfy({ $0.demo == true }) {
-            return Array((primary + utility).sorted {
-                if $0.order == $1.order { return $0.name < $1.name }
-                return $0.order < $1.order
-            }.prefix(limit))
+        if visibleBrowsingItems.isEmpty || visibleBrowsingItems.allSatisfy({ $0.demo == true }) {
+            let ordered = storyFolders + sortedForHome(recentFolders) + sortedForHome(utilityFolders) + sortedForHome(catchAllFolders)
+            return limit.map { Array(ordered.prefix($0)) } ?? ordered
         }
 
-        return Array((sortedForHome(primary) + sortedForHome(utility)).prefix(limit))
+        let ordered = storyFolders + sortedForHome(recentFolders) + sortedForHome(utilityFolders) + sortedForHome(catchAllFolders)
+        return limit.map { Array(ordered.prefix($0)) } ?? ordered
     }
 
     var visibleFriends: [SaviFriend] {
@@ -4659,7 +5507,7 @@ final class SaviStore: ObservableObject {
             if left == right { return lhs.savedAt > rhs.savedAt }
             return left < right
         }
-        let items = Array(sortedItems.prefix(30))
+        let items = sortedItems
         let freshCount = candidates.filter { !seenIds.contains($0.id) }.count
         let seenCount = prefs.exploreSeenItemIds.filter { candidateIds.contains($0) }.count
         let snapshot = SaviExploreSnapshot(
@@ -5150,6 +5998,56 @@ final class SaviStore: ObservableObject {
         }
     }
 
+    func prepareFullArchiveForSharing(folderIds: Set<String>? = nil) async {
+        guard !isPreparingArchiveExport else { return }
+        let exportScope = fullArchiveScope(folderIds: folderIds)
+        let isAllFolders = folderIds == nil || exportScope.folders.count == folders.count
+        isPreparingArchiveExport = true
+        archiveExportStatus = SaviArchiveExportStatus(
+            folderCount: exportScope.folders.count,
+            itemCount: exportScope.items.count,
+            isAllFolders: isAllFolders
+        )
+        await Task.yield()
+
+        do {
+            let data = try storage.buildFullArchive(
+                folders: exportScope.folders,
+                items: exportScope.items,
+                assets: exportScope.assets,
+                prefs: prefs,
+                publicProfile: publicProfile,
+                friends: exportScope.friends,
+                friendLinks: exportScope.friendLinks,
+                folderLearning: exportScope.folderLearning
+            )
+            let filename = "\(exportScope.filePrefix)-\(SaviText.backupStamp()).zip"
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+            if FileManager.default.fileExists(atPath: url.path) {
+                try FileManager.default.removeItem(at: url)
+            }
+            try data.write(to: url, options: [.atomic])
+            archiveExportFilename = filename
+            archiveExportStatus?.phase = .openingShareSheet
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            archiveShareFileURL = url
+            archiveExportStatus = nil
+            isPreparingArchiveExport = false
+        } catch {
+            archiveExportStatus = nil
+            isPreparingArchiveExport = false
+            toast = "Could not prepare archive. Try again with fewer folders or after reopening SAVI."
+            NSLog("[SAVI Native] full archive share export failed: \(error.localizedDescription)")
+        }
+    }
+
+    func finishArchiveShare(completed: Bool) {
+        guard let url = archiveShareFileURL else { return }
+        archiveShareFileURL = nil
+        try? FileManager.default.removeItem(at: url)
+        toast = completed ? "Archive exported." : "Archive export cancelled."
+    }
+
     private func fullArchiveScope(folderIds: Set<String>?) -> (
         folders: [SaviFolder],
         items: [SaviItem],
@@ -5607,6 +6505,7 @@ final class SaviStore: ObservableObject {
     }
 
     func refreshStaleMetadata(limit: Int = 20) async {
+        guard SaviReleaseGate.staleMetadataRefreshEnabled else { return }
         let availableSlots = max(0, Self.maxMetadataEnrichmentTasks - metadataEnrichmentInFlightIds.count)
         guard availableSlots > 0 else { return }
 
@@ -5643,7 +6542,9 @@ final class SaviStore: ObservableObject {
                 self?.metadataEnrichmentInFlightIds.remove(id)
                 NSLog("[SAVI Native] metadata %@ task for %@ finished in %.3fs", reason, id, Date().timeIntervalSince(startedAt))
             }
-            await self?.refreshStaleMetadata(limit: 1)
+            if reason.hasPrefix("share") {
+                await self?.refreshStaleMetadata(limit: 1)
+            }
         }
     }
 
@@ -5794,7 +6695,7 @@ final class SaviStore: ObservableObject {
         if item != before {
             persist()
             scheduleSocialSyncIfNeeded()
-            NSLog("[SAVI Native] enriched metadata for %@ title=%@ thumbnail=%@", id, item.title, item.thumbnail?.nilIfBlank ?? "none")
+            NSLog("[SAVI Native] enriched metadata for %@ title=%@ thumbnail=%@", id, item.title, metadataThumbnailLogValue(item.thumbnail))
         }
         if item.thumbnail?.nilIfBlank == nil {
             scheduleThumbnailRetryIfNeeded(id: id, url: url)
@@ -5808,6 +6709,13 @@ final class SaviStore: ObservableObject {
               expectsRemoteThumbnail(item, url: url)
         else { return false }
         return isNetworkReachable
+    }
+
+    private func metadataThumbnailLogValue(_ value: String?) -> String {
+        guard let value = value?.nilIfBlank else { return "none" }
+        if value.hasPrefix("data:") { return "data-url" }
+        if value.count > 120 { return String(value.prefix(117)) + "..." }
+        return value
     }
 
     private func recordThumbnailAttempt(id: String) {
@@ -5908,6 +6816,7 @@ final class SaviStore: ObservableObject {
         guard item != before else { return }
         items[index] = item
         persist()
+        NSLog("[SAVI Native] applied provider metadata fallback for %@ thumbnail=%@", id, metadataThumbnailLogValue(item.thumbnail))
     }
 
     private func fallbackSource(current: String, replacement: String) -> String {
@@ -6838,7 +7747,7 @@ private struct SaviIntelligenceResponse {
 
 private struct SaviAppleIntelligenceService {
     func statusText() async -> String {
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
         if #available(iOS 26.0, *) {
             let model = SystemLanguageModel(useCase: .contentTagging)
             if case .available = model.availability {
@@ -6858,7 +7767,7 @@ private struct SaviAppleIntelligenceService {
         guard !folders.isEmpty else {
             return .init(classification: nil, outcome: .skipped, message: "No folders available.")
         }
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
         if #available(iOS 26.0, *) {
             return await classifyWithFoundationModels(item: item, folders: folders, learningSignals: learningSignals)
         }
@@ -6870,7 +7779,7 @@ private struct SaviAppleIntelligenceService {
         )
     }
 
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
     @available(iOS 26.0, *)
     private func classifyWithFoundationModels(
         item: SaviItem,
@@ -7011,7 +7920,7 @@ private struct SaviAppleIntelligenceService {
         Only choose Private Vault for genuinely private documents, credentials, IDs, receipts, medical, insurance, banking, or tax material.
         Actual private IDs, passwords, banking, medical, tax, or credential scans must stay in Private Vault, not Life Admin.
         Entertainment, trailers, news, and fandom posts are not private just because their title says secret, leaked, vault, or password.
-        Entertainment videos default to Watch / Read Later unless clearly comedy/meme, then Memes & Laughs.
+        Entertainment videos default to Watch / Read Later unless clearly comedy/meme, then Memes & LOLs.
         Never choose Science Finds unless the item has real science, space, research, or discovery intent.
         Return only JSON.
         """
@@ -7578,6 +8487,14 @@ private struct SaviOEmbedResponse: Decodable {
 }
 
 struct SaviMetadataService {
+    private var shouldUseLinkPresentationMetadata: Bool {
+        guard SaviReleaseGate.linkPresentationMetadataEnabled else { return false }
+        if #available(iOS 18, *) {
+            return true
+        }
+        return false
+    }
+
     func fetch(for url: URL, waitsForThumbnail: Bool = false) async -> SaviMetadata? {
         await withTaskGroup(of: SaviMetadataResult.self) { group in
             if SaviText.isYouTube(url) {
@@ -7599,9 +8516,11 @@ struct SaviMetadataService {
                 guard let metadata = try? await fetchHTMLMetadata(for: url) else { return .empty }
                     return .metadata(metadata)
                 }
-            group.addTask {
-                guard let metadata = try? await fetchLinkPresentationMetadata(for: url) else { return .empty }
-                return .metadata(metadata)
+            if shouldUseLinkPresentationMetadata {
+                group.addTask {
+                    guard let metadata = try? await fetchLinkPresentationMetadata(for: url) else { return .empty }
+                    return .metadata(metadata)
+                }
             }
             group.addTask {
                 try? await Task.sleep(nanoseconds: waitsForThumbnail ? 30_000_000_000 : 8_000_000_000)
@@ -7630,6 +8549,16 @@ struct SaviMetadataService {
 
     private func fetchYouTubeMetadata(for url: URL) async throws -> SaviMetadata {
         let canonical = SaviText.canonicalYouTubeURL(from: url)
+        if let metadata = try? await fetchYouTubeOEmbedMetadata(for: canonical) {
+            return SaviMetadata(
+                title: metadata.title,
+                description: metadata.description,
+                imageURL: metadata.imageURL ?? SaviText.youtubeThumbnailURL(for: canonical),
+                provider: metadata.provider ?? "YouTube",
+                tags: SaviText.dedupeTags(metadata.tags + ["youtube", "video"]),
+                type: .video
+            )
+        }
         if let metadata = try? await fetchNoembedMetadata(for: canonical) {
             return SaviMetadata(
                 title: metadata.title,
@@ -7639,9 +8568,6 @@ struct SaviMetadataService {
                 tags: SaviText.dedupeTags(metadata.tags + ["youtube", "video"]),
                 type: .video
             )
-        }
-        if let metadata = try? await fetchYouTubeOEmbedMetadata(for: canonical) {
-            return metadata
         }
         return SaviMetadata(
             title: nil,

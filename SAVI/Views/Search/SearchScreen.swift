@@ -8,9 +8,8 @@ import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
-import CloudKit
 import AuthenticationServices
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 
@@ -18,9 +17,13 @@ struct SearchScreen: View {
     @EnvironmentObject private var store: SaviStore
     @State private var draftQuery = ""
     @State private var queryDebounceTask: Task<Void, Never>?
-    @State private var visibleResultLimit = 40
+    @State private var visibleResultLimit = SearchScreen.initialVisibleResultLimit
     @State private var handledSearchFocusRequest = 0
     @FocusState private var searchFieldFocused: Bool
+
+    private static var initialVisibleResultLimit: Int {
+        SaviPerformancePolicy.current.searchInitialResultLimit
+    }
 
     var body: some View {
         let results = store.filteredItems()
@@ -59,14 +62,20 @@ struct SearchScreen: View {
                     LazyVStack(alignment: .leading, spacing: 10) {
                         if hasLiveSearch {
                             ForEach(visibleResults) { item in
-                                SearchResultRow(item: item)
+                                SearchResultRow(
+                                    item: item,
+                                    keyboardIsActive: searchFieldFocused,
+                                    dismissKeyboard: dismissSearchKeyboard
+                                )
                             }
                         } else {
                             ForEach(recentGroups) { group in
                                 SaviFluidTimelineGroup(
                                     title: group.title,
                                     items: group.items,
-                                    context: .search
+                                    context: .search,
+                                    keyboardIsActive: searchFieldFocused,
+                                    dismissKeyboard: dismissSearchKeyboard
                                 )
                                 .padding(.top, group.id == recentGroups.first?.id ? 0 : 8)
                             }
@@ -93,7 +102,23 @@ struct SearchScreen: View {
                 .padding(.bottom, 28)
             }
             .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .background(SaviTheme.background.ignoresSafeArea())
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Button("Search") {
+                        dismissSearchKeyboard()
+                    }
+                    .font(SaviType.ui(.callout, weight: .bold))
+
+                    Spacer()
+
+                    Button("Done") {
+                        dismissSearchKeyboard()
+                    }
+                    .font(SaviType.ui(.callout, weight: .bold))
+                }
+            }
             .onAppear {
                 draftQuery = store.query
                 focusSearchFieldIfNeeded()
@@ -129,11 +154,24 @@ struct SearchScreen: View {
 
     private func loadMoreSearchResults(total: Int) {
         guard visibleResultLimit < total else { return }
-        visibleResultLimit = min(visibleResultLimit + 32, total)
+        visibleResultLimit = min(visibleResultLimit + SaviPerformancePolicy.current.searchResultPageSize, total)
     }
 
     private func resetVisibleSearchResults() {
-        visibleResultLimit = 40
+        visibleResultLimit = SearchScreen.initialVisibleResultLimit
+    }
+
+    private func commitSearchValue() {
+        queryDebounceTask?.cancel()
+        if store.query != draftQuery {
+            store.query = draftQuery
+        }
+    }
+
+    private func dismissSearchKeyboard() {
+        commitSearchValue()
+        searchFieldFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     private func scheduleQueryCommit(_ value: String) {

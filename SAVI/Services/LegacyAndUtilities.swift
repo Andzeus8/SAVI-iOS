@@ -3,14 +3,14 @@ import UniformTypeIdentifiers
 import WebKit
 import QuickLook
 import UIKit
+import ImageIO
 import SafariServices
 import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
-import CloudKit
 import AuthenticationServices
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 
@@ -194,6 +194,14 @@ struct WebPreviewURL: Identifiable {
     }
 }
 
+struct SaviShareFileURL: Identifiable {
+    let url: URL
+
+    var id: String {
+        url.absoluteString
+    }
+}
+
 struct QuickLookPreview: UIViewControllerRepresentable {
     let url: URL
 
@@ -238,20 +246,37 @@ struct SafariLinkPreview: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
 
+struct SaviActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    var completion: ((Bool) -> Void)? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        controller.completionWithItemsHandler = { _, completed, _, _ in
+            DispatchQueue.main.async {
+                completion?(completed)
+            }
+        }
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
 // MARK: - Seeds
 
 enum SaviSeeds {
     static let folders: [SaviFolder] = [
         .init(id: "f-private-vault", name: "Private Vault", color: "#171026", image: nil, system: false, symbolName: "lock.open.fill", order: 0),
-        .init(id: "f-life-admin", name: "Life Admin", color: "#FFD15C", image: nil, system: false, symbolName: "key.fill", order: 1),
-        .init(id: "f-health", name: "Health", color: "#70D59B", image: nil, system: false, symbolName: "heart.fill", order: 2),
+        .init(id: "f-health", name: "Health Hacks", color: "#70D59B", image: nil, system: false, symbolName: "heart.fill", order: 1),
+        .init(id: "f-lmao", name: "Memes & LOLs", color: "#D6F83A", image: nil, system: false, symbolName: "theatermasks.fill", order: 2),
         .init(id: "f-must-see", name: "Watch / Read Later", color: "#7A35E8", image: nil, system: false, symbolName: "bookmark.fill", order: 3),
-        .init(id: "f-growth", name: "AI & Work", color: "#F47A3B", image: nil, system: false, symbolName: "bolt.fill", order: 4),
+        .init(id: "f-life-admin", name: "Life Admin", color: "#FFD15C", image: nil, system: false, symbolName: "key.fill", order: 4),
         .init(id: "f-travel", name: "Places & Trips", color: "#68C6E8", image: nil, system: false, symbolName: "mappin.and.ellipse", order: 5),
-        .init(id: "f-lmao", name: "Memes & Laughs", color: "#D6F83A", image: nil, system: false, symbolName: "theatermasks.fill", order: 6),
-        .init(id: "f-recipes", name: "Recipes & Food", color: "#FFB978", image: nil, system: false, symbolName: "fork.knife", order: 7),
-        .init(id: "f-paste-bin", name: "Notes & Clips", color: "#9286A8", image: nil, system: false, symbolName: "clipboard.fill", order: 8),
-        .init(id: "f-research", name: "Research & PDFs", color: "#5ADDCB", image: nil, system: false, symbolName: "magnifyingglass", order: 9),
+        .init(id: "f-growth", name: "AI & Work", color: "#F47A3B", image: nil, system: false, symbolName: "bolt.fill", order: 6),
+        .init(id: "f-research", name: "Research & PDFs", color: "#5ADDCB", image: nil, system: false, symbolName: "magnifyingglass", order: 7),
+        .init(id: "f-recipes", name: "Recipes & Food", color: "#FFB978", image: nil, system: false, symbolName: "fork.knife", order: 8),
+        .init(id: "f-paste-bin", name: "Notes & Clips", color: "#9286A8", image: nil, system: false, symbolName: "clipboard.fill", order: 9),
         .init(id: "f-design", name: "Design Inspo", color: "#DE5B98", image: nil, system: false, symbolName: "paintpalette.fill", order: 10),
         .init(id: "f-wtf-favorites", name: "Science Finds", color: "#73CDED", image: nil, system: false, symbolName: "atom", order: 11),
         .init(id: "f-tinfoil", name: "Rabbit Holes", color: "#7B3FE4", image: nil, system: false, symbolName: "eye.fill", order: 12),
@@ -847,24 +872,74 @@ enum SaviSeeds {
         return "data:image/png;base64,\(data.base64EncodedString())"
     }
 
-    private static func sampleFullBleedStayThumb() -> String {
-        samplePhotoThumb(imageName: "sample-door-access", fallbackAccentHex: "#FFD15C") { context, bounds in
-            let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
-            let muted = UIColor(red: 0.36, green: 0.30, blue: 0.48, alpha: 1)
-            let gold = UIColor(hex: "#FFD15C")
-            drawPhotoBottomShade(context.cgContext, bounds: bounds, opacity: 0.62)
+    private static func sampleAirbnbChatScreenshotThumb() -> String {
+        let size = CGSize(width: 720, height: 720)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 2
+        format.opaque = true
 
-            UIColor.white.withAlphaComponent(0.92).setFill()
-            UIBezierPath(roundedRect: CGRect(x: 56, y: 424, width: 608, height: 198), cornerRadius: 38).fill()
-            gold.setFill()
-            UIBezierPath(roundedRect: CGRect(x: 88, y: 456, width: 132, height: 34), cornerRadius: 17).fill()
-            drawText("STAY ACCESS", in: CGRect(x: 106, y: 463, width: 100, height: 20), font: .systemFont(ofSize: 13, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
-            drawText("Door 2486", in: CGRect(x: 88, y: 506, width: 260, height: 48), font: .systemFont(ofSize: 38, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
-            drawText("Wi-Fi: Pinehouse Guest", in: CGRect(x: 88, y: 560, width: 330, height: 28), font: .systemFont(ofSize: 20, weight: .semibold), color: muted, lineBreakMode: .byTruncatingTail)
-            if let icon = UIImage(systemName: "key.fill")?.withTintColor(ink, renderingMode: .alwaysOriginal) {
-                icon.draw(in: CGRect(x: 560, y: 492, width: 42, height: 42))
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            let bounds = CGRect(origin: .zero, size: size)
+            let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
+            let muted = UIColor(red: 0.39, green: 0.33, blue: 0.49, alpha: 1)
+            let gold = UIColor(hex: "#FFD15C")
+            let blue = UIColor(hex: "#68C6E8")
+            let green = UIColor(hex: "#70D59B")
+            let bubble = UIColor(hex: "#F1EEF7")
+
+            UIColor(hex: "#F4EFF9").setFill()
+            context.fill(bounds)
+
+            UIColor(hex: "#2A1745").withAlphaComponent(0.18).setFill()
+            UIBezierPath(roundedRect: CGRect(x: 120, y: 38, width: 484, height: 652), cornerRadius: 62).fill()
+            UIColor.white.setFill()
+            UIBezierPath(roundedRect: CGRect(x: 104, y: 22, width: 484, height: 652), cornerRadius: 62).fill()
+
+            UIColor(hex: "#1A1430").setFill()
+            UIBezierPath(roundedRect: CGRect(x: 278, y: 44, width: 136, height: 18), cornerRadius: 9).fill()
+            UIColor(hex: "#F7F4FB").setFill()
+            UIBezierPath(roundedRect: CGRect(x: 134, y: 80, width: 424, height: 550), cornerRadius: 34).fill()
+
+            UIColor.white.withAlphaComponent(0.98).setFill()
+            UIBezierPath(roundedRect: CGRect(x: 134, y: 80, width: 424, height: 88), cornerRadius: 34).fill()
+            UIBezierPath(rect: CGRect(x: 134, y: 122, width: 424, height: 46)).fill()
+            if let chevron = UIImage(systemName: "chevron.left")?.withTintColor(muted, renderingMode: .alwaysOriginal) {
+                chevron.draw(in: CGRect(x: 160, y: 112, width: 16, height: 24))
             }
+            green.setFill()
+            UIBezierPath(ovalIn: CGRect(x: 200, y: 100, width: 48, height: 48)).fill()
+            if let house = UIImage(systemName: "house.fill")?.withTintColor(ink, renderingMode: .alwaysOriginal) {
+                house.draw(in: CGRect(x: 214, y: 114, width: 20, height: 20))
+            }
+            drawText("Maya - Airbnb Host", in: CGRect(x: 262, y: 104, width: 230, height: 24), font: .systemFont(ofSize: 17, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
+            drawText("today 8:42 AM", in: CGRect(x: 262, y: 130, width: 166, height: 18), font: .systemFont(ofSize: 12, weight: .semibold), color: muted, lineBreakMode: .byTruncatingTail)
+
+            let bubbles: [(CGRect, UIColor, String, UIColor, UIFont)] = [
+                (CGRect(x: 166, y: 206, width: 328, height: 70), bubble, "Here's everything for check-in.", ink, .systemFont(ofSize: 20, weight: .semibold)),
+                (CGRect(x: 166, y: 292, width: 252, height: 64), gold.withAlphaComponent(0.96), "Door code: 2486", ink, .monospacedSystemFont(ofSize: 20, weight: .black)),
+                (CGRect(x: 166, y: 372, width: 350, height: 64), blue.withAlphaComponent(0.24), "Wi-Fi: Pinehouse Guest", ink, .systemFont(ofSize: 20, weight: .black)),
+                (CGRect(x: 166, y: 452, width: 276, height: 64), bubble, "Checkout is 11 AM.", ink, .systemFont(ofSize: 20, weight: .semibold))
+            ]
+            for item in bubbles {
+                item.1.setFill()
+                UIBezierPath(roundedRect: item.0, cornerRadius: 24).fill()
+                drawText(item.2, in: item.0.insetBy(dx: 18, dy: 16), font: item.4, color: item.3, lineBreakMode: .byWordWrapping)
+            }
+
+            UIColor.white.withAlphaComponent(0.94).setFill()
+            UIBezierPath(roundedRect: CGRect(x: 166, y: 548, width: 350, height: 42), cornerRadius: 21).fill()
+            drawText("Screenshot saved from Photos", in: CGRect(x: 190, y: 560, width: 258, height: 20), font: .systemFont(ofSize: 14, weight: .black), color: muted, lineBreakMode: .byTruncatingTail)
+            if let photo = UIImage(systemName: "photo.fill")?.withTintColor(muted, renderingMode: .alwaysOriginal) {
+                photo.draw(in: CGRect(x: 462, y: 558, width: 18, height: 18))
+            }
+
+            drawSampleWatermark(in: context.cgContext, center: CGPoint(x: 418, y: 360), color: ink.withAlphaComponent(0.08), size: 54, rotation: -.pi / 10)
         }
+
+        guard let data = image.pngData() else {
+            return picsumThumb("savi-airbnb-chat-screenshot", width: 720, height: 720)
+        }
+        return "data:image/png;base64,\(data.base64EncodedString())"
     }
 
     private static func sampleFoodRecommendationThumb() -> String {
@@ -1020,9 +1095,9 @@ enum SaviSeeds {
 
     private static func sampleMebendazoleResearchThumb() -> String {
         sampleEditorialThumb(
-            title: "Mebendazole?",
+            title: "Parasite medication?",
             kicker: "Case report",
-            subtitle: "Saved for doctor questions.",
+            subtitle: "Cancer remission research.",
             accentHex: "#70D59B",
             symbolName: "cross.case.fill",
             scene: .health
@@ -1192,31 +1267,84 @@ enum SaviSeeds {
     }
 
     private static func sampleAudioRecipeThumb() -> String {
-        samplePhotoThumb(imageName: "sample-lasagna", fallbackAccentHex: "#FFB978") { context, bounds in
-            let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
-            let muted = UIColor(red: 0.38, green: 0.31, blue: 0.48, alpha: 1)
-            drawPhotoBottomShade(context.cgContext, bounds: bounds, opacity: 0.54)
+        let size = CGSize(width: 720, height: 720)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 2
+        format.opaque = true
 
-            UIColor.white.withAlphaComponent(0.92).setFill()
-            UIBezierPath(roundedRect: CGRect(x: 54, y: 516, width: 612, height: 120), cornerRadius: 38).fill()
-            drawText("Mom's lasagna sauce", in: CGRect(x: 86, y: 538, width: 390, height: 36), font: .systemFont(ofSize: 30, weight: .black), color: ink, lineBreakMode: .byTruncatingTail)
-            drawText("Voice note recipe", in: CGRect(x: 86, y: 582, width: 320, height: 26), font: .systemFont(ofSize: 18, weight: .semibold), color: muted, lineBreakMode: .byTruncatingTail)
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            let bounds = CGRect(origin: .zero, size: size)
+            let orange = UIColor(hex: "#FFB978")
+            let plum = UIColor(hex: "#2A1745")
+            let lime = UIColor(hex: "#D6F83A")
+            let cream = UIColor(red: 0.99, green: 0.96, blue: 0.86, alpha: 1)
 
-            UIColor(hex: "#2A1745").withAlphaComponent(0.84).setFill()
-            UIBezierPath(ovalIn: CGRect(x: 510, y: 526, width: 92, height: 92)).fill()
-            UIColor.white.setStroke()
-            for index in 0..<5 {
-                let height = CGFloat([30, 50, 68, 48, 28][index])
-                let x = CGFloat(532 + index * 13)
-                let y = CGFloat(572) - height / 2
+            let colors = [
+                plum.cgColor,
+                UIColor(hex: "#7A35E8").cgColor,
+                orange.cgColor
+            ] as CFArray
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.0, 0.58, 1.0]) {
+                context.cgContext.drawLinearGradient(
+                    gradient,
+                    start: CGPoint(x: 0, y: 0),
+                    end: CGPoint(x: bounds.maxX, y: bounds.maxY),
+                    options: []
+                )
+            } else {
+                plum.setFill()
+                context.fill(bounds)
+            }
+
+            cream.withAlphaComponent(0.10).setFill()
+            UIBezierPath(ovalIn: CGRect(x: -120, y: -90, width: 380, height: 380)).fill()
+            lime.withAlphaComponent(0.22).setFill()
+            UIBezierPath(ovalIn: CGRect(x: 438, y: 420, width: 390, height: 390)).fill()
+            UIColor.white.withAlphaComponent(0.08).setFill()
+            UIBezierPath(ovalIn: CGRect(x: 138, y: 144, width: 444, height: 444)).fill()
+
+            UIColor.black.withAlphaComponent(0.22).setFill()
+            UIBezierPath(ovalIn: CGRect(x: 214, y: 182, width: 292, height: 292)).fill()
+            UIColor.white.withAlphaComponent(0.16).setFill()
+            UIBezierPath(ovalIn: CGRect(x: 224, y: 172, width: 272, height: 272)).fill()
+            plum.withAlphaComponent(0.88).setFill()
+            UIBezierPath(ovalIn: CGRect(x: 250, y: 198, width: 220, height: 220)).fill()
+
+            if let mic = UIImage(systemName: "waveform.circle.fill")?.withTintColor(lime, renderingMode: .alwaysOriginal) {
+                mic.draw(in: CGRect(x: 296, y: 244, width: 128, height: 128))
+            }
+
+            let barHeights: [CGFloat] = [42, 76, 116, 72, 150, 96, 132, 58, 104, 144, 82, 46]
+            UIColor.white.withAlphaComponent(0.86).setStroke()
+            for (index, height) in barHeights.enumerated() {
+                let x = CGFloat(146 + index * 39)
+                let y = CGFloat(536) - height / 2
                 let path = UIBezierPath()
                 path.move(to: CGPoint(x: x, y: y))
                 path.addLine(to: CGPoint(x: x, y: y + height))
-                path.lineWidth = 7
+                path.lineWidth = 13
                 path.lineCapStyle = .round
                 path.stroke()
             }
+
+            UIColor.black.withAlphaComponent(0.24).setFill()
+            UIBezierPath(ovalIn: CGRect(x: 546, y: 74, width: 104, height: 104)).fill()
+            if let play = UIImage(systemName: "play.fill")?.withTintColor(cream, renderingMode: .alwaysOriginal) {
+                play.draw(in: CGRect(x: 586, y: 110, width: 30, height: 36))
+            }
+
+            lime.setFill()
+            UIBezierPath(roundedRect: CGRect(x: 58, y: 60, width: 102, height: 48), cornerRadius: 18).fill()
+            drawText("M4A", in: CGRect(x: 58, y: 72, width: 102, height: 22), font: .monospacedSystemFont(ofSize: 20, weight: .black), color: plum, alignment: .center)
+
+            drawText("MOM", in: CGRect(x: 58, y: 620, width: 128, height: 34), font: .systemFont(ofSize: 28, weight: .black), color: cream, lineBreakMode: .byTruncatingTail)
+            drawText("VOICE NOTE", in: CGRect(x: 58, y: 654, width: 218, height: 24), font: .systemFont(ofSize: 17, weight: .black), color: cream.withAlphaComponent(0.72), lineBreakMode: .byTruncatingTail)
         }
+
+        guard let data = image.pngData() else {
+            return picsumThumb("savi-moms-lasagna-audio-file", width: 720, height: 720)
+        }
+        return "data:image/png;base64,\(data.base64EncodedString())"
     }
 
     private static func sampleTalentPromptThumb() -> String {
@@ -1362,28 +1490,30 @@ enum SaviSeeds {
     }
 
     static let items: [SaviItem] = [
-        // First-run storyboard: utility, personality, knowledge, and "save anything" breadth.
-        item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi", description: "SAMPLE stay note: front door 2486, Wi-Fi Pinehouse Guest, checkout 11 AM.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "airbnb", "door-code", "wifi", "travel"], thumbnail: sampleFullBleedStayThumb(), hoursAgo: 1),
+        // First-run storyboard: practical saves first, then search breadth and fun.
+        item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi screenshot", description: "SAMPLE screenshot: Airbnb host texted door code 2486, Wi-Fi Pinehouse Guest, and checkout at 11 AM.", source: "Photos", type: .image, folderId: "f-life-admin", tags: ["sample", "screenshot", "airbnb", "door-code", "wifi", "travel", "chat", "check-in"], thumbnail: sampleAirbnbChatScreenshotThumb(), hoursAgo: 1, assetName: "sample-airbnb-door-code-screenshot.png", assetMime: "image/png", assetSize: 176_000),
         item(id: "sample-food-mom-lasagna-audio", title: "Mom's lasagna sauce voice note", description: "Audio note sample: brown the garlic slowly, simmer the sauce, and add the basil at the end.", source: "Voice Memo", type: .file, folderId: "f-recipes", tags: ["audio", "voice-note", "recipe", "mom", "sauce", "lasagna"], thumbnail: sampleAudioRecipeThumb(), hoursAgo: 2, assetName: "moms-lasagna-sauce.m4a", assetMime: "audio/mp4", assetSize: 824_000),
-        item(id: "sample-meme-typo", title: "Rick Astley - Never Gonna Give You Up", description: "The classic bait-and-switch music video, saved because some memes are infrastructure.", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "rickroll", "youtube", "internet-history"], thumbnail: youtubeThumb("dQw4w9WgXcQ"), hoursAgo: 3, metadataPolicy: .liveMetadata),
-        item(id: "sample-place-ramen", title: "Jennifer's ramen recommendation", description: "Jennifer said to order the spicy miso, sit at the counter, and save the pin before the group chat buries it.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Jennifer", type: .place, folderId: "f-travel", tags: ["maps", "restaurant", "friend-rec", "tokyo", "food"], thumbnail: sampleFoodRecommendationThumb(), hoursAgo: 4),
-        item(id: "sample-ai-chaos-plan", title: "Prompt: solve the problem in front of me", description: "Reusable AI prompt: Act as my problem-solving partner. Restate the problem in one sentence, ask five clarifying questions, list facts, unknowns, constraints, options, and risks, then give three possible paths. Recommend one path, name what would change your mind, and end with the smallest useful next action I can take in 10 minutes.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "problem-solving", "planning", "decision"], thumbnail: sampleAIPromptThumb(), hoursAgo: 5),
-        item(id: "sample-research-mebendazole", title: "Mebendazole and cancer remission?", description: "PubMed case-report save about mebendazole and tumor remission. Kept as a research note for doctor questions, not as medical advice.", url: "https://pubmed.ncbi.nlm.nih.gov/24160353/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "mebendazole", "case-report", "cancer", "questions-for-doctor", "clinical-trial"], thumbnail: sampleMebendazoleResearchThumb(), hoursAgo: 6),
-        item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 7),
-        item(id: "sample-life-ac-warranty-screenshot", title: "A/C warranty screenshot", description: "SAMPLE iPhone screenshot of an air-conditioner warranty, serial number, support phone, receipt note, and install detail.", source: "Photos", type: .image, folderId: "f-life-admin", tags: ["sample", "screenshot", "warranty", "air-conditioner", "serial-number", "receipt", "life-admin", "appliance"], thumbnail: sampleWarrantyScreenshotThumb(), hoursAgo: 8, assetName: "sample-ac-warranty-screenshot.png", assetMime: "image/png", assetSize: 188_000),
-        item(id: "sample-life-insurance-card", title: "Insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 9, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
-        item(id: "sample-science-webb", title: "James Webb Space Telescope - NASA Science", description: "Webb is the premier observatory of the next decade, serving thousands of astronomers worldwide.", url: "https://science.nasa.gov/mission/webb/", source: "NASA", type: .article, folderId: "f-wtf-favorites", tags: ["space", "nasa", "science"], thumbnail: "https://science.nasa.gov/wp-content/uploads/2024/05/jwst_artist_concept_0.png", hoursAgo: 10, metadataPolicy: .liveMetadata),
-        item(id: "sample-health-sugar-cancer-myths", title: "Common Cancer Myths and Misconceptions", description: "The latest science-based information concerning some common misconceptions about cancer.", url: "https://www.cancer.gov/about-cancer/causes-prevention/risk/myths", source: "NCI", type: .article, folderId: "f-health", tags: ["research", "cancer-myths", "nutrition", "questions-for-doctor"], thumbnail: "https://www.cancer.gov/sites/www/files/cgov_image/social_media/900/700/files/pensive-woman-blue-background-social-media.jpg", hoursAgo: 15, metadataPolicy: .liveMetadata),
-        item(id: "sample-life-driver-license", title: "Driver's license copy", description: "Watermarked fake ID copy with invented demo data for testing protected document saves.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 11, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
-        item(id: "sample-private-membership-id", title: "Membership ID card", description: "Fake membership card with invented member numbers, kept as a private-vault example.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "membership", "id", "card"], thumbnail: sampleMembershipThumb(), hoursAgo: 12, assetName: "sample-membership-id.png", assetMime: "image/png", assetSize: 154_000),
-        item(id: "sample-private-bank-routing", title: "Bank routing number note", description: "SAMPLE banking note with invented routing/account details. Demonstrates exact private text search.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "banking", "routing-number", "account"], thumbnail: sampleRoutingThumb(), hoursAgo: 13),
-        item(id: "sample-health-fasting-autophagy", title: "Intermittent fasting and cancer: cure?", description: "PubMed research save about intermittent fasting, autophagy, and cancer questions. Kept as a reading note for clinician discussion, not medical advice or a proven treatment.", url: "https://pubmed.ncbi.nlm.nih.gov/34383300/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "cancer", "questions-for-doctor"], thumbnail: "https://cdn.ncbi.nlm.nih.gov/pubmed/persistent/pubmed-meta-image-v2.jpg", hoursAgo: 18),
-        item(id: "sample-meme-goyo", title: "Chocolate Rain", description: "Tay Zonday's viral classic, saved as a proper YouTube video instead of a generic placeholder.", url: "https://www.youtube.com/watch?v=EwTZ2xpQwpA", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "chocolate-rain", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("EwTZ2xpQwpA"), hoursAgo: 22, metadataPolicy: .liveMetadata),
-        item(id: "sample-health-stretch-core", title: "Stretching and core strength for staying mobile", description: "Harvard Health reading save about flexibility, mobility, and simple movement habits. Kept as a practical health note, not a miracle longevity claim.", url: "https://www.health.harvard.edu/healthy-aging-and-longevity/take-time-to-stretch", source: "Harvard Health", type: .article, folderId: "f-health", tags: ["stretching", "mobility", "core", "fascia", "longevity", "health"], thumbnailSeed: "savi-stretching-core", hoursAgo: 16, metadataPolicy: .liveMetadata),
-        item(id: "sample-life-contract-template", title: "Contract template to reuse", description: "A reusable service agreement template saved where life admin documents live.", source: "Files", type: .file, folderId: "f-life-admin", tags: ["contract", "template", "docx", "important"], thumbnail: sampleContractThumb(), hoursAgo: 17, assetName: "sample-service-contract-template.docx", assetMime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", assetSize: 312_000),
-        item(id: "sample-health-parasites-gut", title: "Parasites and gut health: evidence notes", description: "Neutral reading list from CDC and PubMed on parasite risk, prevention, and the gut parasitome.", url: "https://www.cdc.gov/parasites/causes/index.html", source: "CDC", type: .article, folderId: "f-health", tags: ["research", "gut-health", "parasites", "questions-for-doctor"], thumbnail: sampleHealthResearchThumb(), hoursAgo: 23, metadataPolicy: .liveMetadata),
-        item(id: "sample-life-recovery-code", title: "Emergency recovery code", description: "SAMPLE long code: RK8F-Q44P-29LM-7DZQ. Shows how SAVI keeps exact private text findable.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "recovery-code", "important", "credential"], thumbnail: sampleRecoveryThumb(), hoursAgo: 24),
-        item(id: "sample-ai-agent-guide", title: "Building Effective AI Agents", description: "Discover how Anthropic approaches the development of reliable AI agents.", url: "https://www.anthropic.com/engineering/building-effective-agents", source: "Anthropic", type: .article, folderId: "f-growth", tags: ["ai", "agent", "productivity", "life-hack"], thumbnail: "https://cdn.sanity.io/images/4zrzovbb/website/76b5733c669f0dfb9c7aa7fc512a495867cf12e6-2400x1260.png", hoursAgo: 25, metadataPolicy: .liveMetadata),
+        item(id: "sample-health-cpr", title: "Hands-only CPR: what to do before help arrives", description: "Red Cross guide saved for the kind of emergency note you hope you never need.", url: "https://www.redcross.org/take-a-class/hands-only-cpr.html", source: "Red Cross", type: .article, folderId: "f-health", tags: ["cpr", "emergency", "first-aid", "lifesaving", "health"], thumbnail: sampleGraphicThumb(title: "Hands-only CPR", subtitle: "Emergency note", accentHex: "#70D59B", symbolName: "heart.fill", rows: ["Call emergency help", "Push hard + fast", "Stay with them", "Learn before you need it"]), hoursAgo: 4, metadataPolicy: .liveMetadata),
+        item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 11),
+        item(id: "sample-life-ac-warranty-screenshot", title: "A/C warranty screenshot", description: "SAMPLE iPhone screenshot of an air-conditioner warranty, serial number, support phone, receipt note, and install detail.", source: "Photos", type: .image, folderId: "f-life-admin", tags: ["sample", "screenshot", "warranty", "air-conditioner", "serial-number", "receipt", "life-admin", "appliance"], thumbnail: sampleWarrantyScreenshotThumb(), hoursAgo: 7, assetName: "sample-ac-warranty-screenshot.png", assetMime: "image/png", assetSize: 188_000),
+        item(id: "sample-life-credit-freeze", title: "How to freeze your credit before someone steals it", description: "Official FTC guide to credit freezes and fraud alerts, saved for the admin task you want before you need it.", url: "https://consumer.ftc.gov/articles/credit-freeze-or-fraud-alert-whats-right-your-credit-report", source: "FTC", type: .article, folderId: "f-life-admin", tags: ["credit-freeze", "identity-theft", "fraud-alert", "life-admin", "security"], thumbnail: sampleGraphicThumb(title: "Credit freeze", subtitle: "Before you need it", accentHex: "#FFD15C", symbolName: "lock.shield.fill", rows: ["Freeze reports", "Fraud alerts", "Identity theft", "FTC guide"]), hoursAgo: 15, metadataPolicy: .liveMetadata),
+        item(id: "sample-place-ramen", title: "Jennifer's ramen recommendation", description: "Jennifer said to order the spicy miso, sit at the counter, and save the pin before the group chat buries it.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Jennifer", type: .place, folderId: "f-travel", tags: ["maps", "restaurant", "friend-rec", "tokyo", "food"], thumbnail: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=720&q=80", hoursAgo: 6),
+        item(id: "sample-ai-chaos-plan", title: "Prompt: make the hard decision obvious", description: "Reusable AI prompt: I'm stuck on a hard decision. Act as a clear-thinking advisor. Ask me the 5 questions that matter most, separate fear from facts, identify the option I'm avoiding, compare the paths by upside/downside/regret, then recommend the next smallest move I can take today.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "decision", "life", "planning"], thumbnail: sampleAIPromptThumb(), hoursAgo: 16),
+        item(id: "sample-life-insurance-card", title: "Insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 10, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
+        item(id: "sample-meme-typo", title: "Rick Astley - Never Gonna Give You Up", description: "The classic bait-and-switch music video, saved because some memes are infrastructure.", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "rickroll", "youtube", "internet-history"], thumbnail: youtubeThumb("dQw4w9WgXcQ"), hoursAgo: 19, metadataPolicy: .liveMetadata),
+        item(id: "sample-research-mebendazole", title: "Parasite medication and cancer remission?", description: "PubMed case-report save about an anti-parasitic medication and tumor remission. Kept as a research note for doctor questions, not as medical advice.", url: "https://pubmed.ncbi.nlm.nih.gov/24160353/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "parasite-medication", "mebendazole", "case-report", "cancer", "questions-for-doctor"], thumbnail: sampleMebendazoleResearchThumb(), hoursAgo: 3),
+        item(id: "sample-science-webb", title: "James Webb Space Telescope - NASA Science", description: "Webb is the premier observatory of the next decade, serving thousands of astronomers worldwide.", url: "https://science.nasa.gov/mission/webb/", source: "NASA", type: .article, folderId: "f-wtf-favorites", tags: ["space", "nasa", "science"], thumbnail: "https://science.nasa.gov/wp-content/uploads/2024/05/jwst_artist_concept_0.png", hoursAgo: 12, metadataPolicy: .liveMetadata),
+        item(id: "sample-health-sugar-cancer-myths", title: "Common Cancer Myths and Misconceptions", description: "The latest science-based information concerning some common misconceptions about cancer.", url: "https://www.cancer.gov/about-cancer/causes-prevention/risk/myths", source: "NCI", type: .article, folderId: "f-health", tags: ["research", "cancer-myths", "nutrition", "questions-for-doctor"], thumbnail: "https://www.cancer.gov/sites/www/files/cgov_image/social_media/900/700/files/pensive-woman-blue-background-social-media.jpg", hoursAgo: 30, metadataPolicy: .liveMetadata),
+        item(id: "sample-life-driver-license", title: "Driver's license copy", description: "Watermarked fake ID copy with invented demo data for testing protected document saves.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 20, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
+        item(id: "sample-private-membership-id", title: "Membership ID card", description: "Fake membership card with invented member numbers, kept as a private-vault example.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "membership", "id", "card"], thumbnail: sampleMembershipThumb(), hoursAgo: 46, assetName: "sample-membership-id.png", assetMime: "image/png", assetSize: 154_000),
+        item(id: "sample-private-bank-routing", title: "Bank routing number note", description: "SAMPLE banking note with invented routing/account details. Demonstrates exact private text search.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "banking", "routing-number", "account"], thumbnail: sampleRoutingThumb(), hoursAgo: 47),
+        item(id: "sample-health-fasting-autophagy", title: "Intermittent fasting and cancer: cure?", description: "PubMed research save about intermittent fasting, autophagy, and cancer questions. Kept as a reading note for clinician discussion, not medical advice or a proven treatment.", url: "https://pubmed.ncbi.nlm.nih.gov/34383300/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "cancer", "questions-for-doctor"], thumbnail: "https://cdn.ncbi.nlm.nih.gov/pubmed/persistent/pubmed-meta-image-v2.jpg", hoursAgo: 23),
+        item(id: "sample-meme-goyo", title: "Skibidi Toilet: the Shorts-era meme", description: "A newer Gen Alpha internet-history save, replacing the older Chocolate Rain sample.", url: "https://www.youtube.com/watch?v=WePNs-G7puA", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "skibidi-toilet", "gen-alpha", "youtube-shorts", "internet-history"], thumbnail: youtubeThumb("WePNs-G7puA"), hoursAgo: 14, metadataPolicy: .liveMetadata),
+        item(id: "sample-health-stretch-core", title: "Stretching and core strength for staying mobile", description: "Harvard Health reading save about flexibility, mobility, and simple movement habits. Kept as a practical health note, not a miracle longevity claim.", url: "https://www.health.harvard.edu/healthy-aging-and-longevity/take-time-to-stretch", source: "Harvard Health", type: .article, folderId: "f-health", tags: ["stretching", "mobility", "core", "fascia", "longevity", "health"], thumbnailSeed: "savi-stretching-core", hoursAgo: 32, metadataPolicy: .liveMetadata),
+        item(id: "sample-life-contract-template", title: "Contract template to reuse", description: "A reusable service agreement template saved where life admin documents live.", source: "Files", type: .file, folderId: "f-life-admin", tags: ["contract", "template", "docx", "important"], thumbnail: sampleContractThumb(), hoursAgo: 34, assetName: "sample-service-contract-template.docx", assetMime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", assetSize: 312_000),
+        item(id: "sample-health-parasites-gut", title: "Parasites and gut health: evidence notes", description: "Neutral reading list from CDC and PubMed on parasite risk, prevention, and the gut parasitome.", url: "https://www.cdc.gov/parasites/causes/index.html", source: "CDC", type: .article, folderId: "f-health", tags: ["research", "gut-health", "parasites", "questions-for-doctor"], thumbnail: sampleHealthResearchThumb(), hoursAgo: 33, metadataPolicy: .liveMetadata),
+        item(id: "sample-life-recovery-code", title: "Emergency recovery code", description: "SAMPLE long code: RK8F-Q44P-29LM-7DZQ. Shows how SAVI keeps exact private text findable.", source: "SAVI", type: .text, folderId: "f-private-vault", tags: ["sample", "private", "recovery-code", "important", "credential"], thumbnail: sampleRecoveryThumb(), hoursAgo: 48),
+        item(id: "sample-ai-agent-guide", title: "Building Effective AI Agents", description: "Discover how Anthropic approaches the development of reliable AI agents.", url: "https://www.anthropic.com/engineering/building-effective-agents", source: "Anthropic", type: .article, folderId: "f-growth", tags: ["ai", "agent", "productivity", "life-hack"], thumbnail: "https://cdn.sanity.io/images/4zrzovbb/website/76b5733c669f0dfb9c7aa7fc512a495867cf12e6-2400x1260.png", hoursAgo: 38, metadataPolicy: .liveMetadata),
 
         item(id: "sample-watch-claude", title: "How to use Claude like a thinking partner", description: "A practical setup for long-context productivity and better saved research.", url: "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview", source: "Anthropic", type: .article, folderId: "f-must-see", tags: ["read-later", "ai", "productivity"], thumbnailSeed: "savi-claude-thinking", hoursAgo: 26, metadataPolicy: .liveMetadata),
         item(id: "sample-watch-wwdc", title: "Apple WWDC recap", description: "A conference video page to watch when you have ten quiet minutes.", url: "https://developer.apple.com/videos/wwdc2024/", source: "Apple", type: .video, folderId: "f-must-see", tags: ["video", "apple", "tech"], thumbnailSeed: "savi-wwdc-recap", hoursAgo: 27, metadataPolicy: .liveMetadata),
@@ -1396,8 +1526,8 @@ enum SaviSeeds {
         item(id: "sample-ai-inbox-zero", title: "Inbox zero with shortcuts", description: "A workflow link for shortcuts, reminders, and calmer inboxes.", url: "https://support.apple.com/guide/shortcuts/welcome/ios", source: "Apple Support", type: .article, folderId: "f-growth", tags: ["workflow", "shortcuts", "productivity"], thumbnailSeed: "savi-inbox-zero", hoursAgo: 80),
         item(id: "sample-ai-workspace", title: "Prompt: find my strongest talents", description: "Reusable AI prompt: Look at my work history, hobbies, saved notes, and the problems people ask me to solve. Identify my recurring strengths, where they are useful, and a 7-day experiment to test one direction.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "talent", "reflection", "career"], thumbnail: sampleTalentPromptThumb(), hoursAgo: 92),
 
-        item(id: "sample-meme-cursed", title: "Numa Numa: the webcam dance that ate the internet", description: "A classic early internet video save for the Memes & Laughs folder.", url: "https://www.youtube.com/watch?v=Cqd1Gvq-RBY", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "numa-numa", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("Cqd1Gvq-RBY"), hoursAgo: 14, metadataPolicy: .liveMetadata),
-        item(id: "sample-meme-group-chat", title: "Charlie Bit My Finger: early YouTube history", description: "A famous family video moment saved as internet-history, not a random clip.", url: "https://www.youtube.com/watch?v=0EqSXDwTq6U", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "charlie-bit-my-finger", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("0EqSXDwTq6U"), hoursAgo: 18, metadataPolicy: .liveMetadata),
+        item(id: "sample-meme-cursed", title: "Numa Numa: the webcam dance that ate the internet", description: "A classic early internet video save for the Memes & LOLs folder.", url: "https://www.youtube.com/watch?v=Cqd1Gvq-RBY", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "numa-numa", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("Cqd1Gvq-RBY"), hoursAgo: 9, metadataPolicy: .liveMetadata),
+        item(id: "sample-meme-group-chat", title: "Charlie Bit My Finger: early YouTube history", description: "A famous family video moment saved as internet-history, not a random clip.", url: "https://www.youtube.com/watch?v=0EqSXDwTq6U", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "charlie-bit-my-finger", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("0EqSXDwTq6U"), hoursAgo: 13, metadataPolicy: .liveMetadata),
         item(id: "sample-meme-review", title: "Dramatic Look", description: "Five seconds of dramatic zoom, somehow a whole era of the internet.", url: "https://www.youtube.com/watch?v=y8Kyi0WNg40", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "reaction", "internet-history"], thumbnail: youtubeThumb("y8Kyi0WNg40"), hoursAgo: 31, metadataPolicy: .liveMetadata),
         item(id: "sample-meme-badger", title: "Badger Badger Badger", description: "A looping Flash-era internet song that still explains an entire corner of web history.", url: "https://www.youtube.com/watch?v=EIyixC9NsLI", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "flash", "internet-history"], thumbnail: youtubeThumb("EIyixC9NsLI"), hoursAgo: 104, metadataPolicy: .liveMetadata),
         item(id: "sample-meme-keyboard-cat", title: "Keyboard Cat", description: "The musical send-off meme, saved for when something deserves a tiny piano exit.", url: "https://www.youtube.com/watch?v=J---aiyznGQ", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "keyboard-cat", "internet-history"], thumbnail: youtubeThumb("J---aiyznGQ"), hoursAgo: 116, metadataPolicy: .liveMetadata),
@@ -1409,7 +1539,7 @@ enum SaviSeeds {
         item(id: "sample-place-museum", title: "Weekend museum idea", description: "A place save for the kind of Saturday that starts with coffee.", url: "https://maps.apple.com/?q=museum", source: "Maps", type: .place, folderId: "f-travel", tags: ["maps", "museum", "weekend"], thumbnailSeed: "savi-museum", hoursAgo: 164),
         item(id: "sample-place-walk", title: "Walking route for a lazy Sunday", description: "A route save with snacks, shade, and one perfect bookstore stop.", url: "https://maps.apple.com/?q=walking%20route", source: "Maps", type: .place, folderId: "f-travel", tags: ["route", "maps", "weekend"], thumbnailSeed: "savi-sunday-walk", hoursAgo: 188),
 
-        item(id: "sample-food-pasta", title: "Late-night pasta formula", description: "A fast dinner idea you would otherwise lose in a scroll.", url: "https://www.bbcgoodfood.com/recipes/collection/pasta-recipes", source: "BBC Good Food", type: .article, folderId: "f-recipes", tags: ["recipe", "dinner", "pasta"], thumbnailSeed: "savi-late-pasta", hoursAgo: 20, metadataPolicy: .liveMetadata),
+        item(id: "sample-food-pasta", title: "Late-night pasta formula", description: "A fast dinner idea you would otherwise lose in a scroll.", url: "https://www.bbcgoodfood.com/recipes/collection/pasta-recipes", source: "BBC Good Food", type: .article, folderId: "f-recipes", tags: ["recipe", "dinner", "pasta"], thumbnailSeed: "savi-late-pasta", hoursAgo: 35, metadataPolicy: .liveMetadata),
         item(id: "sample-food-salmon", title: "Crispy salmon bowl", description: "A dinner recipe collection for salmon nights and lunch leftovers.", url: "https://www.bbcgoodfood.com/recipes/collection/salmon-recipes", source: "BBC Good Food", type: .article, folderId: "f-recipes", tags: ["recipe", "salmon", "dinner"], thumbnailSeed: "savi-salmon-bowl", hoursAgo: 212),
         item(id: "sample-food-wrap", title: "3-minute breakfast wrap", description: "A quick breakfast idea for mornings that got away from you.", url: "https://www.bbcgoodfood.com/recipes/collection/wrap-recipes", source: "BBC Good Food", type: .article, folderId: "f-recipes", tags: ["recipe", "breakfast", "wrap"], thumbnailSeed: "savi-breakfast-wrap", hoursAgo: 224),
         item(id: "sample-food-taco-sauce", title: "The taco sauce worth saving", description: "A tiny recipe link with huge future leftovers energy.", url: "https://www.bbcgoodfood.com/recipes/collection/taco-recipes", source: "BBC Good Food", type: .article, folderId: "f-recipes", tags: ["recipe", "tacos", "sauce"], thumbnailSeed: "savi-taco-sauce", hoursAgo: 236),
@@ -1429,7 +1559,7 @@ enum SaviSeeds {
         item(id: "sample-private-receipt", title: "Sample return receipt PDF", description: "Fake receipt sample that demonstrates protected document saves.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "receipt", "pdf"], thumbnail: sampleVaultThumb(title: "Return receipt", subtitle: "Protected PDF", symbolName: "receipt.fill"), hoursAgo: 368, assetName: "sample-return-receipt.pdf", assetMime: "application/pdf", assetSize: 142_000),
 
         item(id: "sample-research-climate", title: "Climate report PDF", description: "A public PDF report for testing document search and filters.", url: "https://www.ipcc.ch/report/ar6/wg1/downloads/report/IPCC_AR6_WGI_SPM.pdf", source: "IPCC", type: .file, folderId: "f-research", tags: ["pdf", "report", "climate"], thumbnail: sampleGraphicThumb(title: "Climate report", subtitle: "Public PDF sample", accentHex: "#5ADDCB", symbolName: "leaf.fill", rows: ["IPCC summary", "Charts + findings", "PDF document", "Saved for research"]), hoursAgo: 36, assetName: "ipcc-ar6-summary.pdf", assetMime: "application/pdf", assetSize: 920_000),
-        item(id: "sample-research-microbiome", title: "Gut parasitome review", description: "PubMed review save about parasites, microbiome interactions, and research questions.", url: "https://pubmed.ncbi.nlm.nih.gov/35509426/", source: "PubMed", type: .article, folderId: "f-research", tags: ["pubmed", "microbiome", "parasites", "research"], thumbnailSeed: "savi-parasitome-review", hoursAgo: 392),
+        item(id: "sample-research-microbiome", title: "Does your microbiome control your thoughts?", description: "Research save on gut microbes, parasites, behavior, and the gut-brain axis. Kept as a curiosity note, not medical advice.", url: "https://pubmed.ncbi.nlm.nih.gov/30109417/", source: "PubMed", type: .article, folderId: "f-research", tags: ["pubmed", "microbiome", "gut-brain-axis", "parasites", "mind", "behavior"], thumbnailSeed: "savi-microbiome-thoughts", hoursAgo: 5),
         item(id: "sample-research-paper", title: "Academic paper to revisit", description: "Attention Is All You Need, saved as a classic research reference.", url: "https://arxiv.org/abs/1706.03762", source: "arXiv", type: .article, folderId: "f-research", tags: ["paper", "arxiv", "pdf"], thumbnailSeed: "savi-academic-paper", hoursAgo: 404),
         item(id: "sample-research-market", title: "Market sizing spreadsheet", description: "A spreadsheet save for testing docs, work research, and file search.", source: "Device", type: .file, folderId: "f-research", tags: ["spreadsheet", "market", "research"], thumbnail: sampleSpreadsheetThumb(), hoursAgo: 416, assetName: "sample-market-sizing.xlsx", assetMime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", assetSize: 286_000),
 
@@ -1449,11 +1579,11 @@ enum SaviSeeds {
         item(id: "sample-science-volcano", title: "Volcano camera feed", description: "A volcano reference link for the dramatic rocks department.", url: "https://www.nps.gov/subjects/volcanoes/index.htm", source: "NPS", type: .link, folderId: "f-wtf-favorites", tags: ["volcano", "science", "nature"], thumbnailSeed: "savi-volcano", hoursAgo: 572),
 
         item(id: "sample-rabbit-lost-media", title: "Lost media rabbit hole", description: "A weird media-history dive to enjoy when curiosity wins.", url: "https://en.wikipedia.org/wiki/Lost_media", source: "Wikipedia", type: .link, folderId: "f-tinfoil", tags: ["rabbit-hole", "lost-media"], thumbnailSeed: "savi-lost-media", hoursAgo: 584),
-        item(id: "sample-rabbit-map", title: "Were the pyramids aligned on purpose?", description: "A Smithsonian piece about pyramid alignment, saved as a curiosity to read with healthy skepticism.", url: "https://www.smithsonianmag.com/smart-news/fall-equinox-secret-pyramids-near-perfect-alignment-180968223/", source: "Smithsonian", type: .article, folderId: "f-tinfoil", tags: ["pyramids", "alignment", "history", "rabbit-hole", "fact-check"], thumbnailSeed: "savi-pyramid-alignment", hoursAgo: 43),
-        item(id: "sample-rabbit-ufo", title: "UFO and UAP records at the National Archives", description: "Official public records and research links, saved as a rabbit hole to fact-check later.", url: "https://www.archives.gov/news/topics/ufos", source: "National Archives", type: .article, folderId: "f-tinfoil", tags: ["ufo", "uap", "official-records", "fact-check", "rabbit-hole"], thumbnailSeed: "savi-ufo-fact-check", hoursAgo: 19),
-        item(id: "sample-rabbit-perpetual-motion", title: "Infinite energy machines people swore would work", description: "A skeptical rabbit hole on perpetual-motion devices, wild inventor claims, and why the physics usually says no.", url: "https://www.britannica.com/science/perpetual-motion", source: "Britannica", type: .article, folderId: "f-tinfoil", tags: ["rabbit-hole", "perpetual-motion", "free-energy", "inventors", "fact-check"], thumbnailSeed: "savi-perpetual-motion", hoursAgo: 21),
+        item(id: "sample-rabbit-map", title: "Were the pyramids aligned on purpose?", description: "A Smithsonian piece about pyramid alignment, saved as a curiosity to read with healthy skepticism.", url: "https://www.smithsonianmag.com/smart-news/fall-equinox-secret-pyramids-near-perfect-alignment-180968223/", source: "Smithsonian", type: .article, folderId: "f-tinfoil", tags: ["pyramids", "alignment", "history", "rabbit-hole", "fact-check"], thumbnailSeed: "savi-pyramid-alignment", hoursAgo: 18),
+        item(id: "sample-rabbit-ufo", title: "UFO and UAP records at the National Archives", description: "Official public records and research links, saved as a rabbit hole to fact-check later.", url: "https://www.archives.gov/news/topics/ufos", source: "National Archives", type: .article, folderId: "f-tinfoil", tags: ["ufo", "uap", "official-records", "fact-check", "rabbit-hole"], thumbnailSeed: "savi-ufo-fact-check", hoursAgo: 45),
+        item(id: "sample-rabbit-perpetual-motion", title: "Infinite energy machines people swore would work", description: "A skeptical rabbit hole on perpetual-motion devices, wild inventor claims, and why the physics usually says no.", url: "https://www.britannica.com/science/perpetual-motion", source: "Britannica", type: .article, folderId: "f-tinfoil", tags: ["rabbit-hole", "perpetual-motion", "free-energy", "inventors", "fact-check"], thumbnailSeed: "savi-perpetual-motion", hoursAgo: 46),
         item(id: "sample-rabbit-folklore", title: "Internet folklore timeline", description: "A chronology of strange web stories and the screenshots that survived.", url: "https://knowyourmeme.com/", source: "Know Your Meme", type: .article, folderId: "f-tinfoil", tags: ["internet", "folklore", "history"], thumbnailSeed: "savi-folklore", hoursAgo: 620),
-        item(id: "sample-rabbit-failed-budget", title: "Pentagon audit rabbit hole", description: "An official Defense.gov audit update saved for the next budget-accountability deep dive.", url: "https://www.defense.gov/News/News-Stories/Article/Article/3967135/dods-2024-audit-shows-progress-toward-2028-goals/", source: "Defense.gov", type: .article, folderId: "f-tinfoil", tags: ["pentagon", "audit", "budget", "official-records", "rabbit-hole"], thumbnailSeed: "savi-pentagon-audit", hoursAgo: 42),
+        item(id: "sample-rabbit-failed-budget", title: "Pentagon audit rabbit hole", description: "An official Defense.gov audit update saved for the next budget-accountability deep dive.", url: "https://www.defense.gov/News/News-Stories/Article/Article/3967135/dods-2024-audit-shows-progress-toward-2028-goals/", source: "Defense.gov", type: .article, folderId: "f-tinfoil", tags: ["pentagon", "audit", "budget", "official-records", "rabbit-hole"], thumbnailSeed: "savi-pentagon-audit", hoursAgo: 17),
         item(id: "sample-rabbit-big-dig", title: "The Big Dig budget overrun", description: "A classic infrastructure rabbit hole about timelines, tunnels, and wildly expensive surprises.", url: "https://en.wikipedia.org/wiki/Big_Dig", source: "Wikipedia", type: .article, folderId: "f-tinfoil", tags: ["rabbit-hole", "budget", "weird-project", "infrastructure"], thumbnailSeed: "savi-big-dig-budget", hoursAgo: 632),
         item(id: "sample-rabbit-voynich", title: "The Voynich manuscript mystery", description: "A strange illustrated manuscript that scholars still argue about, saved for a proper curiosity session.", url: "https://en.wikipedia.org/wiki/Voynich_manuscript", source: "Wikipedia", type: .article, folderId: "f-tinfoil", tags: ["rabbit-hole", "mystery", "history", "manuscript"], thumbnailSeed: "savi-voynich", hoursAgo: 644),
         item(id: "sample-rabbit-number-stations", title: "Number stations: radio signals to nowhere", description: "An eerie broadcast-history rabbit hole with enough mystery to earn its own folder.", url: "https://en.wikipedia.org/wiki/Numbers_station", source: "Wikipedia", type: .article, folderId: "f-tinfoil", tags: ["rabbit-hole", "radio", "mystery", "history"], thumbnailSeed: "savi-number-stations", hoursAgo: 656),
@@ -1495,7 +1625,7 @@ enum SaviSeeds {
             "f-paste-bin": ["Paste Bin", "Notes & Clips"],
             "f-wtf-favorites": ["Science Stuff", "Science Finds"],
             "f-growth": ["AI Hacks", "AI & Work"],
-            "f-lmao": ["LULZ", "Memes & Laughs"],
+            "f-lmao": ["LULZ", "Memes & Laughs", "Memes & LOLs"],
             "f-travel": ["Places", "Places & Trips"],
             "f-health": ["Health Hacks", "Health"],
             "f-research": ["Research", "Research & PDFs"],
@@ -1506,14 +1636,14 @@ enum SaviSeeds {
             "f-private-vault": [0, 5, 6, 7, 8],
             "f-life-admin": [0, 1],
             "f-must-see": [0, 1],
-            "f-growth": [1, 2, 3],
-            "f-lmao": [2, 3, 4],
+            "f-growth": [1, 2, 3, 4],
+            "f-lmao": [2, 3, 4, 6],
             "f-travel": [3, 4, 6],
             "f-recipes": [4, 5, 7],
-            "f-paste-bin": [1, 5, 6],
-            "f-research": [7, 8, 10],
+            "f-paste-bin": [1, 5, 6, 8],
+            "f-research": [7, 8, 9, 10],
             "f-design": [8, 9, 10],
-            "f-health": [8, 9, 10],
+            "f-health": [1, 2, 8, 9, 10],
             "f-wtf-favorites": [2, 10, 11],
             "f-tinfoil": [11, 12],
             "f-random": [12, 13],
@@ -1555,6 +1685,8 @@ enum SaviSeeds {
 // MARK: - Utilities
 
 enum SaviImageCache {
+    private static let maxInlineImageDataURLCharacters = 7_500_000
+
     private static let dataURLImages: NSCache<NSString, UIImage> = {
         let cache = NSCache<NSString, UIImage>()
         cache.countLimit = 80
@@ -1562,17 +1694,126 @@ enum SaviImageCache {
         return cache
     }()
 
-    static func image(fromDataURL value: String) -> UIImage? {
-        let key = value as NSString
+    static func cachedImage(fromDataURL value: String, maxPixelSize: CGFloat = thumbnailMaxPixelSize) -> UIImage? {
+        guard value.utf8.count <= maxInlineImageDataURLCharacters else {
+            return nil
+        }
+        return dataURLImages.object(forKey: dataURLCacheKey(for: value, maxPixelSize: maxPixelSize))
+    }
+
+    static func image(fromDataURL value: String, maxPixelSize: CGFloat = thumbnailMaxPixelSize) -> UIImage? {
+        guard value.utf8.count <= maxInlineImageDataURLCharacters else {
+            return nil
+        }
+
+        let key = dataURLCacheKey(for: value, maxPixelSize: maxPixelSize)
         if let image = dataURLImages.object(forKey: key) {
             return image
         }
-        guard let image = SaviText.imageFromDataURL(value) else {
+        guard let data = imageData(fromDataURL: value),
+              let image = downsampleImage(data: data, maxPixelSize: maxPixelSize) ?? UIImage(data: data)
+        else {
             return nil
         }
         let cost = Int(image.size.width * image.size.height * max(image.scale, 1) * max(image.scale, 1) * 4)
         dataURLImages.setObject(image, forKey: key, cost: max(cost, 1))
         return image
+    }
+
+    static func cacheIdentifier(forDataURL value: String, maxPixelSize: CGFloat = thumbnailMaxPixelSize) -> String {
+        var hash: UInt64 = 14_695_981_039_346_656_037
+
+        func feed<S: StringProtocol>(_ slice: S) {
+            for byte in slice.utf8 {
+                hash ^= UInt64(byte)
+                hash &*= 1_099_511_628_211
+            }
+        }
+
+        feed(value.prefix(4096))
+        if value.count > 4096 {
+            feed(value.suffix(4096))
+        }
+        return "data-url-\(Int(maxPixelSize))-\(value.utf8.count)-\(String(hash, radix: 16))"
+    }
+
+    private static var thumbnailMaxPixelSize: CGFloat {
+        SaviPerformancePolicy.current.dataThumbnailMaxPixelSize
+    }
+
+    private static func dataURLCacheKey(for value: String, maxPixelSize: CGFloat) -> NSString {
+        cacheIdentifier(forDataURL: value, maxPixelSize: maxPixelSize) as NSString
+    }
+
+    private static func imageData(fromDataURL value: String) -> Data? {
+        guard let comma = value.prefix(160).firstIndex(of: ",") else { return nil }
+        let header = String(value[..<comma]).lowercased()
+        guard header.hasPrefix("data:image/"),
+              !header.hasPrefix("data:image/svg+xml")
+        else { return nil }
+
+        let payload = String(value[value.index(after: comma)...])
+        if header.contains(";base64") {
+            return Data(base64Encoded: payload)
+        }
+        return payload.removingPercentEncoding?.data(using: .utf8)
+    }
+
+    static func downsampleImage(data: Data, maxPixelSize: CGFloat) -> UIImage? {
+        let options = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, options) else { return nil }
+        let downsampleOptions = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: Int(max(maxPixelSize, 1))
+        ] as CFDictionary
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions) else { return nil }
+        return UIImage(cgImage: cgImage, scale: 1, orientation: .up)
+    }
+}
+
+private actor SaviThumbnailWorkThrottle {
+    private let limit: Int
+    private var activeCount = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    init(limit: Int) {
+        self.limit = max(1, limit)
+    }
+
+    func acquire() async {
+        if activeCount < limit {
+            activeCount += 1
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            waiters.append(continuation)
+        }
+    }
+
+    func release() {
+        if waiters.isEmpty {
+            activeCount = max(0, activeCount - 1)
+        } else {
+            let next = waiters.removeFirst()
+            next.resume()
+        }
+    }
+}
+
+private enum SaviThumbnailWorkLimiter {
+    private static let throttle = SaviThumbnailWorkThrottle(limit: SaviPerformancePolicy.current.thumbnailConcurrentLoads)
+
+    static func run<T>(_ operation: () async -> T) async -> T {
+        await throttle.acquire()
+        defer {
+            Task {
+                await throttle.release()
+            }
+        }
+        return await operation()
     }
 }
 
@@ -1580,16 +1821,19 @@ enum SaviImageCache {
 final class SaviRemoteImageLoader: ObservableObject {
     @Published private(set) var image: UIImage?
     private var task: Task<Void, Never>?
+    private var cancelTask: Task<Void, Never>?
     private var currentURL: URL?
 
     deinit {
         task?.cancel()
+        cancelTask?.cancel()
     }
 
     func load(_ url: URL) {
         guard currentURL != url || image == nil else { return }
         currentURL = url
         task?.cancel()
+        cancelTask?.cancel()
 
         if let cached = SaviRemoteImageCache.memoryImage(for: url) {
             image = cached
@@ -1597,10 +1841,29 @@ final class SaviRemoteImageLoader: ObservableObject {
         }
 
         image = nil
-        task = Task {
-            let loaded = await SaviRemoteImageCache.image(for: url)
-            guard !Task.isCancelled, currentURL == url else { return }
-            image = loaded
+        task = Task { [weak self] in
+            guard !Task.isCancelled else { return }
+            let loaded = await SaviThumbnailWorkLimiter.run {
+                await Task.detached(priority: .utility) {
+                    await SaviRemoteImageCache.image(for: url)
+                }.value
+            }
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard self?.currentURL == url else { return }
+                self?.image = loaded
+            }
+        }
+    }
+
+    func cancel() {
+        cancelTask?.cancel()
+        let grace = SaviPerformancePolicy.current.thumbnailCancellationGraceNanoseconds
+        cancelTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: grace)
+            await MainActor.run {
+                self?.task?.cancel()
+            }
         }
     }
 }
@@ -1620,11 +1883,103 @@ struct SaviCachedRemoteImage<Placeholder: View>: View {
                 placeholder()
             }
         }
+        .transaction { transaction in
+            transaction.animation = nil
+        }
         .onAppear {
             loader.load(url)
         }
         .onChange(of: url) { value in
             loader.load(value)
+        }
+        .onDisappear {
+            loader.cancel()
+        }
+    }
+}
+
+@MainActor
+final class SaviDataURLImageLoader: ObservableObject {
+    @Published private(set) var image: UIImage?
+    private var task: Task<Void, Never>?
+    private var cancelTask: Task<Void, Never>?
+    private var currentKey: String?
+
+    deinit {
+        task?.cancel()
+        cancelTask?.cancel()
+    }
+
+    func load(_ dataURL: String) {
+        let key = SaviImageCache.cacheIdentifier(forDataURL: dataURL)
+        guard currentKey != key || image == nil else { return }
+        currentKey = key
+        task?.cancel()
+        cancelTask?.cancel()
+
+        if let cached = SaviImageCache.cachedImage(fromDataURL: dataURL) {
+            image = cached
+            return
+        }
+
+        image = nil
+        task = Task { [weak self] in
+            guard !Task.isCancelled else { return }
+            let loaded = await SaviThumbnailWorkLimiter.run {
+                await Task.detached(priority: .utility) {
+                    SaviImageCache.image(fromDataURL: dataURL)
+                }.value
+            }
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard self?.currentKey == key else { return }
+                self?.image = loaded
+            }
+        }
+    }
+
+    func cancel() {
+        cancelTask?.cancel()
+        let grace = SaviPerformancePolicy.current.thumbnailCancellationGraceNanoseconds
+        cancelTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: grace)
+            await MainActor.run {
+                self?.task?.cancel()
+            }
+        }
+    }
+}
+
+struct SaviCachedDataURLImage<Placeholder: View>: View {
+    let dataURL: String
+    @ViewBuilder let placeholder: () -> Placeholder
+    @StateObject private var loader = SaviDataURLImageLoader()
+
+    private var cacheKey: String {
+        SaviImageCache.cacheIdentifier(forDataURL: dataURL)
+    }
+
+    var body: some View {
+        Group {
+            if let image = loader.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                placeholder()
+            }
+        }
+        .transaction { transaction in
+            transaction.animation = nil
+        }
+        .onAppear {
+            loader.load(dataURL)
+        }
+        .onChange(of: cacheKey) { _ in
+            loader.load(dataURL)
+        }
+        .onDisappear {
+            loader.cancel()
         }
     }
 }
@@ -1671,7 +2026,7 @@ enum SaviRemoteImageCache {
                 return nil
             }
             guard data.count <= 12 * 1024 * 1024,
-                  let image = UIImage(data: data)
+                  let image = SaviImageCache.downsampleImage(data: data, maxPixelSize: remoteMaxPixelSize) ?? UIImage(data: data)
             else { return nil }
             store(image, for: url)
             await write(data, for: url)
@@ -1692,8 +2047,12 @@ enum SaviRemoteImageCache {
             guard let data = try? Data(contentsOf: cacheFileURL(for: url)),
                   data.count <= 12 * 1024 * 1024
             else { return nil }
-            return UIImage(data: data)
+            return SaviImageCache.downsampleImage(data: data, maxPixelSize: remoteMaxPixelSize) ?? UIImage(data: data)
         }.value
+    }
+
+    private static var remoteMaxPixelSize: CGFloat {
+        SaviPerformancePolicy.current.remoteThumbnailMaxPixelSize
     }
 
     private static func write(_ data: Data, for url: URL) async {
@@ -2060,12 +2419,14 @@ enum SaviText {
     }
 
     static func imageFromDataURL(_ value: String) -> UIImage? {
-        guard value.lowercased().hasPrefix("data:image/"),
-              !isSVGDataURL(value),
-              let comma = value.firstIndex(of: ",")
+        guard let comma = value.prefix(160).firstIndex(of: ",")
         else { return nil }
 
         let header = String(value[..<comma]).lowercased()
+        guard header.hasPrefix("data:image/"),
+              !header.hasPrefix("data:image/svg+xml")
+        else { return nil }
+
         let payload = String(value[value.index(after: comma)...])
         let data: Data?
         if header.contains(";base64") {
@@ -2077,7 +2438,12 @@ enum SaviText {
     }
 
     static func isSVGDataURL(_ value: String) -> Bool {
-        value.lowercased().hasPrefix("data:image/svg+xml")
+        guard let comma = value.prefix(160).firstIndex(of: ",") else {
+            let header = String(value.prefix(80)).lowercased()
+            return header.hasPrefix("data:image/svg+xml")
+        }
+        let header = String(value[..<comma]).lowercased()
+        return header.hasPrefix("data:image/svg+xml")
     }
 
     static func isMapsString(_ value: String) -> Bool {
@@ -2393,12 +2759,62 @@ extension String {
     }
 
     var saviDecodedHTMLString: String {
-        guard let data = data(using: .utf8) else { return self }
-        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
-            .documentType: NSAttributedString.DocumentType.html,
-            .characterEncoding: String.Encoding.utf8.rawValue
+        Self.saviDecodeHTMLEntities(in: self)
+    }
+
+    private static func saviDecodeHTMLEntities(in value: String) -> String {
+        guard value.contains("&") else { return value }
+        let namedEntities: [String: String] = [
+            "amp": "&",
+            "lt": "<",
+            "gt": ">",
+            "quot": "\"",
+            "apos": "'",
+            "nbsp": " ",
+            "ndash": "-",
+            "mdash": "-",
+            "lsquo": "'",
+            "rsquo": "'",
+            "ldquo": "\"",
+            "rdquo": "\"",
+            "hellip": "...",
+            "copy": "(c)",
+            "reg": "(R)",
+            "trade": "(TM)"
         ]
-        return (try? NSAttributedString(data: data, options: options, documentAttributes: nil).string) ?? self
+        guard let regex = try? NSRegularExpression(pattern: #"&(#x[0-9A-Fa-f]+|#[0-9]+|[A-Za-z][A-Za-z0-9]+);"#) else {
+            return value
+        }
+
+        let original = value
+        let matches = regex.matches(in: original, range: NSRange(original.startIndex..<original.endIndex, in: original))
+        guard !matches.isEmpty else { return value }
+
+        var decoded = ""
+        var cursor = original.startIndex
+        for match in matches {
+            guard let entityRange = Range(match.range, in: original),
+                  let bodyRange = Range(match.range(at: 1), in: original)
+            else { continue }
+            decoded += original[cursor..<entityRange.lowerBound]
+            let body = String(original[bodyRange])
+            if body.hasPrefix("#x") || body.hasPrefix("#X") {
+                let hex = String(body.dropFirst(2))
+                decoded += UInt32(hex, radix: 16)
+                    .flatMap(UnicodeScalar.init)
+                    .map(String.init) ?? String(original[entityRange])
+            } else if body.hasPrefix("#") {
+                let decimal = String(body.dropFirst())
+                decoded += UInt32(decimal, radix: 10)
+                    .flatMap(UnicodeScalar.init)
+                    .map(String.init) ?? String(original[entityRange])
+            } else {
+                decoded += namedEntities[body.lowercased()] ?? String(original[entityRange])
+            }
+            cursor = entityRange.upperBound
+        }
+        decoded += original[cursor...]
+        return decoded
     }
 }
 

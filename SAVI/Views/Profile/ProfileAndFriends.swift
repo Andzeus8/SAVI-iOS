@@ -8,9 +8,8 @@ import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
-import CloudKit
 import AuthenticationServices
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 
@@ -40,35 +39,35 @@ struct ProfileScreen: View {
                         ProfileBetaNotesCard()
                     }
 
-                    StatsPanel()
-
                     ProfileSectionLabel(
-                        title: "Set up SAVI",
-                        subtitle: "The three things that make SAVI feel fast."
+                        title: "Pilot checklist",
+                        subtitle: "Try the path this beta is built around."
                     )
 
                     ProfileSetupChecklist(
                         openGuide: { activeProfileSheet = .guide },
+                        openSearch: { store.setTab(.search) },
                         openVault: { store.openFoldersManagement() },
-                        openBackup: { activeProfileSheet = .backup }
+                        openBackup: { activeProfileSheet = .backup },
+                        openFeedback: { activeProfileSheet = .feedback }
                     )
 
-                    ProfileSectionLabel(
-                        title: "Manage",
-                        subtitle: "Tune the app, protect saves, and move your library."
-                    )
-
-                    ProfileShortcutGrid(
-                        openFolders: { store.openFoldersManagement() },
-                        openBackups: { activeProfileSheet = .backup },
-                        openAppearance: { activeProfileSheet = .appearance },
+                    ProfileFeedbackCard(
                         openGuide: { activeProfileSheet = .guide }
                     )
 
-                    ProfileSettingsGroup(
-                        openAccount: { activeProfileSheet = .account },
+                    ProfilePrivacyBackupGroup(
+                        openVault: { store.openFoldersManagement() },
+                        openBackup: { activeProfileSheet = .backup },
+                        openAccount: { activeProfileSheet = .account }
+                    )
+
+                    ProfileLibraryAppearanceGroup(
+                        openAppearance: { activeProfileSheet = .appearance },
                         openLibrary: { activeProfileSheet = .library }
                     )
+
+                    StatsPanel()
 
                     if !SaviReleaseGate.socialFeaturesEnabled {
                         ProfileSocialComingSoonCard()
@@ -101,6 +100,7 @@ enum ProfileManagementSheet: String, Identifiable {
     case appearance
     case guide
     case library
+    case feedback
 
     var id: String { rawValue }
 
@@ -112,12 +112,13 @@ enum ProfileManagementSheet: String, Identifiable {
         case .appearance: return "Appearance"
         case .guide: return "Guide"
         case .library: return "Library Tools"
+        case .feedback: return "Help & Feedback"
         }
     }
 
     var presentationDetents: Set<PresentationDetent> {
         switch self {
-        case .appearance, .guide:
+        case .appearance, .guide, .feedback:
             return [.medium, .large]
         default:
             return [.large]
@@ -158,6 +159,8 @@ struct ProfileDetailSheet: View {
                         GuideSettingsCard()
                     case .library:
                         LibrarySettingsCard()
+                    case .feedback:
+                        FeedbackSettingsCard()
                     }
                 }
                 .padding(.horizontal, 18)
@@ -291,7 +294,7 @@ struct ProfileBetaNotesCard: View {
 
             HStack(spacing: 7) {
                 SocialBetaBadge()
-                Text("Friends are coming soon; this beta keeps your saves private.")
+                Text("Friends' curated favorites are coming later; this beta keeps your saves private.")
                     .font(SaviType.ui(.caption, weight: .black))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -307,7 +310,7 @@ struct ProfileBetaNotesCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .saviCard(cornerRadius: 18)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("SAVI Beta. Save from any app, let SAVI sort it, then find it again by title, folder, tag, source, or file type. Friends are coming soon; this beta keeps your saves private.")
+        .accessibilityLabel("SAVI Beta. Save from any app, let SAVI sort it, then find it again by title, folder, tag, source, or file type. Friends' curated favorites are coming later; this beta keeps your saves private.")
     }
 }
 
@@ -345,12 +348,12 @@ struct ProfileSocialComingSoonCard: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 7) {
-                    Text("Friends are next")
+                    Text("Friends' favorites are next")
                         .font(SaviType.ui(.caption, weight: .black))
                         .foregroundStyle(SaviTheme.textMuted)
                     SocialBetaBadge()
                 }
-                Text("Soon you’ll be able to follow friends and see the saves they choose to make public.")
+                Text("SAVI starts as your pocket organizer. Later, friends can curate the links, videos, places, and ideas they actually recommend.")
                     .font(SaviType.reading(.caption, weight: .regular))
                     .foregroundStyle(SaviTheme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -366,7 +369,7 @@ struct ProfileSocialComingSoonCard: View {
                 .stroke(SaviTheme.cardStroke.opacity(0.68), lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Friends are next. Social Beta. Soon you will be able to follow friends and see the saves they choose to make public.")
+        .accessibilityLabel("Friends' favorites are next. Social Beta. SAVI starts as your pocket organizer. Later, friends can curate the links, videos, places, and ideas they actually recommend.")
     }
 }
 
@@ -374,10 +377,10 @@ struct SocialDisabledSettingsCard: View {
     var body: some View {
         SettingsCard(title: "Social Beta", symbol: "person.2.slash.fill") {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Friends are coming later.")
+                Text("Friends' favorites are coming later.")
                     .font(SaviType.ui(.headline, weight: .black))
                     .foregroundStyle(SaviTheme.text)
-                Text("For this TestFlight, SAVI is focused on private saving, search, folders, Private Vault, and archive backup. Friend feeds, public profiles, likes, and publishing stay hidden until moderation, reporting, and terms are ready.")
+                Text("For this TestFlight, SAVI is focused on saving everyday things, finding them again, folders, Private Vault, and archive backup. Friend-curated feeds, public profiles, likes, and publishing stay hidden until moderation, reporting, and terms are ready.")
                     .font(SaviType.ui(.subheadline, weight: .semibold))
                     .foregroundStyle(SaviTheme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -408,8 +411,10 @@ struct ProfileSectionLabel: View {
 struct ProfileSetupChecklist: View {
     @EnvironmentObject private var store: SaviStore
     let openGuide: () -> Void
+    let openSearch: () -> Void
     let openVault: () -> Void
     let openBackup: () -> Void
+    let openFeedback: () -> Void
 
     private var privateVaultStatus: String {
         if store.folders.first(where: { $0.id == "f-private-vault" })?.locked == true {
@@ -433,6 +438,15 @@ struct ProfileSetupChecklist: View {
             )
 
             ProfileSetupRow(
+                title: "Find something again",
+                subtitle: "Search the sample library by title, folder, tag, source, or file type, then try Explore.",
+                symbol: "magnifyingglass",
+                status: "Try",
+                tint: SaviTheme.accentText,
+                action: openSearch
+            )
+
+            ProfileSetupRow(
                 title: "Protect Private Vault",
                 subtitle: "Keep IDs, codes, receipts, banking notes, and medical saves behind Face ID.",
                 symbol: "lock.shield.fill",
@@ -449,6 +463,15 @@ struct ProfileSetupChecklist: View {
                 tint: SaviTheme.chartreuse,
                 iconForeground: .black,
                 action: openBackup
+            )
+
+            ProfileSetupRow(
+                title: "Send feedback",
+                subtitle: "Report bugs, confusing moments, or anything that blocks the pilot.",
+                symbol: "exclamationmark.bubble.fill",
+                status: "Open",
+                tint: SaviTheme.accentText,
+                action: openFeedback
             )
         }
         .padding(10)
@@ -515,6 +538,169 @@ struct ProfileSetupRow: View {
         }
         .buttonStyle(SaviPressScaleButtonStyle())
         .accessibilityLabel("\(title). \(subtitle). \(status).")
+    }
+}
+
+struct ProfileFeedbackCard: View {
+    let openGuide: () -> Void
+
+    var body: some View {
+        SettingsCard(title: "Help & Feedback", symbol: "exclamationmark.bubble.fill") {
+            ProfileFeedbackActions(area: "Profile", openGuide: openGuide)
+        }
+    }
+}
+
+struct FeedbackSettingsCard: View {
+    var body: some View {
+        SettingsCard(title: "Help & Feedback", symbol: "exclamationmark.bubble.fill") {
+            ProfileFeedbackActions(area: "Help & Feedback", openGuide: nil)
+        }
+    }
+}
+
+private struct ProfileFeedbackActions: View {
+    @Environment(\.openURL) private var openURL
+    @State private var feedbackStatus: String?
+    let area: String
+    var openGuide: (() -> Void)? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Send pilot bugs, confusing moments, or anything that makes saving and finding feel slower than it should.")
+                .font(SaviType.ui(.subheadline, weight: .semibold))
+                .foregroundStyle(SaviTheme.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                openBugReport()
+            } label: {
+                Label("Report a bug", systemImage: "envelope.badge.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(SaviPrimaryButtonStyle())
+
+            Button {
+                copyFeedbackEmail()
+            } label: {
+                Label("Copy \(SaviSupport.feedbackEmail)", systemImage: "doc.on.doc.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(SaviSecondaryButtonStyle())
+
+            if let openGuide {
+                Button(action: openGuide) {
+                    Label("Quick Guide", systemImage: "questionmark.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(SaviSecondaryButtonStyle())
+            }
+
+            Text("TestFlight screenshot feedback also lands in App Store Connect. Email is best when you want a direct thread.")
+                .font(SaviType.ui(.caption, weight: .semibold))
+                .foregroundStyle(SaviTheme.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let feedbackStatus {
+                Text(feedbackStatus)
+                    .font(SaviType.ui(.caption, weight: .black))
+                    .foregroundStyle(SaviTheme.accentText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func openBugReport() {
+        guard let url = SaviSupport.bugReportURL(area: area) else {
+            copyFeedbackEmail()
+            return
+        }
+
+        openURL(url) { accepted in
+            if accepted {
+                feedbackStatus = "Opening email to \(SaviSupport.feedbackEmail)."
+            } else {
+                copyFeedbackEmail()
+            }
+        }
+    }
+
+    private func copyFeedbackEmail() {
+        UIPasteboard.general.string = SaviSupport.feedbackEmail
+        feedbackStatus = "Copied \(SaviSupport.feedbackEmail)."
+    }
+}
+
+struct ProfilePrivacyBackupGroup: View {
+    @EnvironmentObject private var store: SaviStore
+    let openVault: () -> Void
+    let openBackup: () -> Void
+    let openAccount: () -> Void
+
+    private var privateVaultTrailing: String {
+        if store.folders.first(where: { $0.id == "f-private-vault" })?.locked == true {
+            return "Locked"
+        }
+        return "Optional"
+    }
+
+    var body: some View {
+        SettingsCard(title: "Privacy & Backup", symbol: "lock.shield.fill") {
+            VStack(spacing: 8) {
+                ProfileSettingsRow(
+                    title: "Private Vault",
+                    subtitle: "Lock sensitive saves behind Face ID or passcode.",
+                    symbol: "lock.shield.fill",
+                    trailing: privateVaultTrailing,
+                    action: openVault
+                )
+
+                ProfileSettingsRow(
+                    title: "Full Archive",
+                    subtitle: "Export or restore a portable ZIP of your library.",
+                    symbol: "externaldrive.fill",
+                    trailing: "Ready",
+                    tint: SaviTheme.chartreuse,
+                    action: openBackup
+                )
+
+                ProfileSettingsRow(
+                    title: "Account & iCloud",
+                    subtitle: store.isAppleAccountLinked
+                        ? store.cloudKitStatus
+                        : (SaviReleaseGate.socialFeaturesEnabled ? "Sign in for friends and iCloud." : "Optional private backup status."),
+                    symbol: "person.crop.circle.badge.checkmark",
+                    trailing: store.isAppleAccountLinked ? "Linked" : (SaviReleaseGate.socialFeaturesEnabled ? "Set up" : "Check"),
+                    action: openAccount
+                )
+            }
+        }
+    }
+}
+
+struct ProfileLibraryAppearanceGroup: View {
+    let openAppearance: () -> Void
+    let openLibrary: () -> Void
+
+    var body: some View {
+        SettingsCard(title: "Library & Appearance", symbol: "slider.horizontal.3") {
+            VStack(spacing: 8) {
+                ProfileSettingsRow(
+                    title: "Appearance",
+                    subtitle: "Theme and display.",
+                    symbol: "moon.stars.fill",
+                    action: openAppearance
+                )
+
+                ProfileSettingsRow(
+                    title: "Library tools",
+                    subtitle: "Sample saves and device cleanup.",
+                    symbol: "archivebox.fill",
+                    tint: .red,
+                    action: openLibrary
+                )
+            }
+        }
     }
 }
 
@@ -589,7 +775,7 @@ struct ProfileShortcutGrid: View {
 
             ProfileShortcutTile(
                 title: "Appearance",
-                subtitle: "Theme and Home layout.",
+                subtitle: "Theme and display.",
                 symbol: "moon.stars.fill",
                 tint: SaviTheme.accentText,
                 action: openAppearance
@@ -798,7 +984,7 @@ struct AccountCloudSettingsCard: View {
                         Text("Social Beta is off")
                             .font(SaviType.ui(.caption, weight: .black))
                             .foregroundStyle(SaviTheme.accentText)
-                        Text("Use SAVI locally, export a full archive, or use private iCloud backup when signing is configured.")
+                        Text("Use SAVI locally and export a full archive for backup. iCloud backup is paused for this beta.")
                             .font(SaviType.ui(.caption2, weight: .semibold))
                             .foregroundStyle(SaviTheme.textMuted)
                             .fixedSize(horizontal: false, vertical: true)
@@ -879,7 +1065,7 @@ struct AccountCloudSettingsCard: View {
                         .foregroundStyle(SaviTheme.text)
                     Text(SaviReleaseGate.socialFeaturesEnabled
                         ? "CloudKit is used for friends and public link previews. Full local files stay private unless you export a backup to Files or iCloud Drive."
-                        : "CloudKit is only for optional private iCloud backup in this beta. Friend feeds and public link publishing are off.")
+                        : "iCloud backup is paused for this beta while production CloudKit signing is verified. Use full archive export instead.")
                         .font(SaviType.ui(.caption, weight: .semibold))
                         .foregroundStyle(SaviTheme.textMuted)
                         .fixedSize(horizontal: false, vertical: true)
@@ -917,25 +1103,32 @@ struct BackupSettingsCard: View {
     var body: some View {
         SettingsCard(title: "Backup", symbol: "externaldrive.fill") {
             VStack(alignment: .leading, spacing: 10) {
-                Button {
-                    Task { await store.backupToICloud() }
-                } label: {
-                    Label(store.isCloudBackupRunning ? "Working..." : "Back up to iCloud", systemImage: "icloud.and.arrow.up.fill")
-                }
-                .buttonStyle(SaviPrimaryButtonStyle())
-                .disabled(store.isCloudBackupRunning)
+                if SaviReleaseGate.cloudKitFeaturesEnabled {
+                    Button {
+                        Task { await store.backupToICloud() }
+                    } label: {
+                        Label(store.isCloudBackupRunning ? "Working..." : "Back up to iCloud", systemImage: "icloud.and.arrow.up.fill")
+                    }
+                    .buttonStyle(SaviPrimaryButtonStyle())
+                    .disabled(store.isCloudBackupRunning)
 
-                Button {
-                    Task { await store.restoreFromICloudBackup() }
-                } label: {
-                    Label("Restore iCloud", systemImage: "icloud.and.arrow.down.fill")
-                }
-                .buttonStyle(SaviSecondaryButtonStyle())
-                .disabled(store.isCloudBackupRunning)
+                    Button {
+                        Task { await store.restoreFromICloudBackup() }
+                    } label: {
+                        Label("Restore iCloud", systemImage: "icloud.and.arrow.down.fill")
+                    }
+                    .buttonStyle(SaviSecondaryButtonStyle())
+                    .disabled(store.isCloudBackupRunning)
 
-                Divider()
-                    .overlay(SaviTheme.cardStroke)
-                    .padding(.vertical, 2)
+                    Divider()
+                        .overlay(SaviTheme.cardStroke)
+                        .padding(.vertical, 2)
+                } else {
+                    Text("For this TestFlight beta, full archive export is the supported backup path. iCloud backup will return after production CloudKit is verified.")
+                        .font(SaviType.ui(.caption, weight: .semibold))
+                        .foregroundStyle(SaviTheme.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Button {
@@ -996,16 +1189,6 @@ struct BackupSettingsCard: View {
                 .presentationDragIndicator(.visible)
         }
         .fileExporter(
-            isPresented: $store.isExportingArchive,
-            document: store.archiveDocument ?? SaviArchiveDocument(data: Data()),
-            contentType: .saviArchiveZip,
-            defaultFilename: store.archiveExportFilename
-        ) { result in
-            if case .failure = result {
-                store.toast = "Archive export was cancelled."
-            }
-        }
-        .fileExporter(
             isPresented: $store.isExportingBackup,
             document: store.backupDocument ?? SaviBackupDocument(data: Data()),
             contentType: .json,
@@ -1046,6 +1229,11 @@ private struct ArchiveExportOptionsSheet: View {
                         .font(SaviType.reading(.subheadline, weight: .regular))
                         .foregroundStyle(SaviTheme.textMuted)
                         .fixedSize(horizontal: false, vertical: true)
+
+                    Text("After SAVI prepares the ZIP, iOS opens the share sheet so you can AirDrop, message, or Save to Files.")
+                        .font(SaviType.ui(.caption, weight: .semibold))
+                        .foregroundStyle(SaviTheme.textMuted.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 18)
@@ -1054,10 +1242,11 @@ private struct ArchiveExportOptionsSheet: View {
                     Button {
                         exportAll()
                     } label: {
-                        Label("All folders", systemImage: "archivebox.fill")
+                        Label(store.isPreparingArchiveExport ? "Preparing..." : "All folders", systemImage: store.isPreparingArchiveExport ? "hourglass" : "archivebox.fill")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(SaviPrimaryButtonStyle())
+                    .disabled(store.isPreparingArchiveExport)
 
                     Button {
                         toggleAll()
@@ -1090,13 +1279,13 @@ private struct ArchiveExportOptionsSheet: View {
                         exportSelected()
                     } label: {
                         Label(
-                            selectedCount == 0 ? "Choose folders to export" : "Export \(selectedCount) folder\(selectedCount == 1 ? "" : "s")",
-                            systemImage: "square.and.arrow.down"
+                            store.isPreparingArchiveExport ? "Preparing..." : selectedCount == 0 ? "Choose folders to export" : "Export \(selectedCount) folder\(selectedCount == 1 ? "" : "s")",
+                            systemImage: store.isPreparingArchiveExport ? "hourglass" : "square.and.arrow.down"
                         )
                         .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(SaviPrimaryButtonStyle())
-                    .disabled(selectedCount == 0)
+                    .disabled(selectedCount == 0 || store.isPreparingArchiveExport)
 
                     Text(selectedCount == 0 ? "Selected folder archives include only those folders, their saves, and attached files." : "\(selectedItemCount) save\(selectedItemCount == 1 ? "" : "s") will be included. Restoring this archive later still replaces the current library after confirmation.")
                         .font(SaviType.ui(.caption, weight: .semibold))
@@ -1139,17 +1328,13 @@ private struct ArchiveExportOptionsSheet: View {
 
     private func exportAll() {
         dismiss()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            store.buildFullArchiveDocument()
-        }
+        Task { await store.prepareFullArchiveForSharing() }
     }
 
     private func exportSelected() {
         let ids = selectedFolderIds
         dismiss()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            store.buildFullArchiveDocument(folderIds: ids)
-        }
+        Task { await store.prepareFullArchiveForSharing(folderIds: ids) }
     }
 }
 
@@ -1200,155 +1385,28 @@ private struct ArchiveFolderOptionRow: View {
 
 struct AppearanceSettingsCard: View {
     @EnvironmentObject private var store: SaviStore
-    @State private var customizeHomePresented = false
 
     var body: some View {
         SettingsCard(title: "Appearance", symbol: "moon.stars.fill") {
             VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Theme")
-                        .font(SaviType.ui(.caption, weight: .black))
-                        .foregroundStyle(SaviTheme.textMuted)
-                        .textCase(.uppercase)
-                        .tracking(0.8)
+                Text("Choose the display style that feels best on this phone.")
+                    .font(SaviType.ui(.caption, weight: .semibold))
+                    .foregroundStyle(SaviTheme.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                    HStack(spacing: 10) {
-                        ThemeButton(title: "System", active: store.prefs.themeMode == "system") {
-                            store.setTheme("system")
-                        }
-                        ThemeButton(title: "Dark", active: store.prefs.themeMode == "dark") {
-                            store.setTheme("dark")
-                        }
-                        ThemeButton(title: "Light", active: store.prefs.themeMode == "light") {
-                            store.setTheme("light")
-                        }
+                HStack(spacing: 10) {
+                    ThemeButton(title: "System", active: store.prefs.themeMode == "system") {
+                        store.setTheme("system")
+                    }
+                    ThemeButton(title: "Dark", active: store.prefs.themeMode == "dark") {
+                        store.setTheme("dark")
+                    }
+                    ThemeButton(title: "Light", active: store.prefs.themeMode == "light") {
+                        store.setTheme("light")
                     }
                 }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Home Layout")
-                        .font(SaviType.ui(.caption, weight: .black))
-                        .foregroundStyle(SaviTheme.textMuted)
-                        .textCase(.uppercase)
-                        .tracking(0.8)
-
-                    HomePreferenceGrid {
-                        ForEach(SaviHomeLayoutMode.allCases) { mode in
-                            HomePreferenceButton(
-                                title: mode.title,
-                                symbol: mode.symbolName,
-                                active: store.prefs.homeLayoutMode == mode.rawValue
-                            ) {
-                                store.setHomeLayoutMode(mode)
-                            }
-                        }
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Folders")
-                        .font(SaviType.ui(.caption, weight: .black))
-                        .foregroundStyle(SaviTheme.textMuted)
-                        .textCase(.uppercase)
-                        .tracking(0.8)
-
-                    HomePreferenceGrid {
-                        ForEach(SaviHomeFolderMode.allCases) { mode in
-                            HomePreferenceButton(
-                                title: mode.title,
-                                symbol: mode.symbolName,
-                                active: store.prefs.homeFolderMode == mode.rawValue
-                            ) {
-                                store.setHomeFolderMode(mode)
-                            }
-                        }
-                    }
-                }
-
-                Toggle(isOn: Binding(
-                    get: { store.prefs.homeShowsFeaturedSave },
-                    set: { store.setHomeShowsFeaturedSave($0) }
-                )) {
-                    Label("Show Just Saved widget", systemImage: "newspaper.fill")
-                        .font(SaviType.ui(.subheadline, weight: .black))
-                        .foregroundStyle(SaviTheme.text)
-                }
-                .tint(SaviTheme.chartreuse)
-                .padding(12)
-                .background(SaviTheme.surfaceRaised)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(SaviTheme.cardStroke.opacity(0.72), lineWidth: 1)
-                )
-
-                Button {
-                    customizeHomePresented = true
-                } label: {
-                    Label("Customize Home", systemImage: "slider.horizontal.3")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(SaviSecondaryButtonStyle())
             }
         }
-        .sheet(isPresented: $customizeHomePresented) {
-            HomeWidgetBuilderSheet()
-                .environmentObject(store)
-                .preferredColorScheme(store.preferredColorScheme)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-    }
-}
-
-private struct HomePreferenceGrid<Content: View>: View {
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: 8),
-                GridItem(.flexible(), spacing: 8)
-            ],
-            spacing: 8
-        ) {
-            content
-        }
-    }
-}
-
-private struct HomePreferenceButton: View {
-    let title: String
-    let symbol: String
-    let active: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .font(.system(size: 14, weight: .black))
-                    .frame(width: 18)
-
-                Text(title)
-                    .font(SaviType.ui(.caption, weight: .black))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-
-                Spacer(minLength: 0)
-            }
-            .foregroundStyle(active ? .black : SaviTheme.text)
-            .padding(.horizontal, 11)
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .background(active ? SaviTheme.chartreuse : SaviTheme.surfaceRaised)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(active ? Color.clear : SaviTheme.cardStroke.opacity(0.72), lineWidth: 1)
-            )
-        }
-        .buttonStyle(SaviPressScaleButtonStyle())
-        .accessibilityAddTraits(active ? .isSelected : [])
     }
 }
 

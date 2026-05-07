@@ -51,6 +51,8 @@ beta. Debug builds may still expose those features for development.
 - Full archives can include private/locked content and should be stored safely.
 - Optional iCloud backup is private to the user's iCloud container.
 - Social Beta is off in the first external beta.
+- Help & Feedback sends tester-written email to `1080solutionsA@gmail.com`; SAVI does
+  not attach logs or saved content automatically.
 - Metadata fetching may contact saved-link hosts to retrieve titles and
   thumbnails.
 - Image search is user-triggered only and should be hidden if no proxy is
@@ -59,7 +61,9 @@ beta. Debug builds may still expose those features for development.
 ## Submission Reminders
 
 - Publish a Privacy Policy URL before external TestFlight review.
-- Make Support URL or support email visible in App Store Connect.
+- Make Support URL or support email visible in App Store Connect. Use
+  `1080solutionsA@gmail.com` for the first beta unless a separate support alias is
+  created.
 - Confirm whether `ITSAppUsesNonExemptEncryption = NO` is appropriate before
   setting it or answering export compliance.
 - Ensure `PrivacyInfo.xcprivacy` still covers any required reason APIs in the

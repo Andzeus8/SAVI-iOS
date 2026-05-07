@@ -6,7 +6,7 @@ This repository is the active SAVI app. Use it for current SAVI work.
 - Xcode project: `/Users/guest1/Documents/SAVI-iOS/SAVI.xcodeproj`
 - Main app target: `SAVI`
 - Share extension target: `SAVIShareExtension`
-- Simulator bundle id: `com.savi.app`
+- Simulator bundle id: `com.altatecrd.savi`
 
 ## Work Here For
 

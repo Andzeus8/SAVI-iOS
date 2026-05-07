@@ -8,9 +8,8 @@ import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
-import CloudKit
 import AuthenticationServices
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 
@@ -33,7 +32,9 @@ struct ContentView: View {
         }
         .preferredColorScheme(store.preferredColorScheme)
         .task {
+            NSLog("[SAVI Native] root task starting bootstrap perfTier=%@", SaviPerformancePolicy.current.rawValue)
             await store.bootstrap()
+            NSLog("[SAVI Native] root task finished bootstrap")
         }
         .onOpenURL { url in
             NSLog("[SAVI Native] received deep link %@", url.absoluteString)

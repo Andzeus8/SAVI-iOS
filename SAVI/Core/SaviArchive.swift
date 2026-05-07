@@ -3,17 +3,16 @@ import UniformTypeIdentifiers
 import SwiftUI
 
 extension UTType {
-    static var saviArchiveZip: UTType {
-        UTType(filenameExtension: "zip") ?? .data
-    }
+    // Avoid filename-extension UTType lookup during root view construction. Older
+    // iOS 17 devices have crashed inside LaunchServices while resolving custom
+    // archive extensions at launch; broad data import keeps restore available.
+    static let saviArchiveZip = UTType.data
 
-    static var saviArchivePackage: UTType {
-        UTType(filenameExtension: "saviarchive") ?? .data
-    }
+    static let saviArchivePackage = UTType.data
 }
 
 struct SaviArchiveDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.saviArchiveZip, .saviArchivePackage] }
+    static var readableContentTypes: [UTType] { [.data] }
 
     var data: Data
 

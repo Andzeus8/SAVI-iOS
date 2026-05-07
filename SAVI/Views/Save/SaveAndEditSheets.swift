@@ -8,9 +8,8 @@ import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
-import CloudKit
 import AuthenticationServices
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 
@@ -2028,7 +2027,7 @@ struct ItemThumbnailEditSection: View {
                     .foregroundStyle(SaviTheme.textMuted)
 
                 HStack(alignment: .center, spacing: 12) {
-                    ItemThumb(item: item, enablesPressPreview: false)
+                    SaviListItemThumb(item: item)
                         .frame(width: 86, height: 66)
                         .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
                         .overlay(

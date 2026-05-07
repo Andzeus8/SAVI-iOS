@@ -8,9 +8,8 @@ import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
-import CloudKit
 import AuthenticationServices
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 
@@ -48,10 +47,15 @@ struct FolderStrip: View {
     @EnvironmentObject private var store: SaviStore
     var title = "Quick Folders"
     let folders: [SaviFolder]
+    var rows = 1
+
+    private var clampedRows: Int {
+        min(max(rows, 1), 3)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SaviHomeSectionHeader(title: title, actionTitle: "All") {
+            FolderStripHeader(title: title) {
                 store.openFoldersManagement()
             }
 
@@ -62,12 +66,24 @@ struct FolderStrip: View {
 
                 ZStack(alignment: .trailing) {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: spacing) {
-                            ForEach(folders) { folder in
-                                HomeFolderTile(folder: folder, width: tileWidth)
+                        if clampedRows == 1 {
+                            HStack(spacing: spacing) {
+                                ForEach(folders) { folder in
+                                    HomeFolderTile(folder: folder, width: tileWidth)
+                                }
                             }
+                            .padding(.trailing, 22)
+                        } else {
+                            LazyHGrid(
+                                rows: Array(repeating: GridItem(.fixed(SaviHomeFolderStripMetrics.tileHeight), spacing: spacing), count: clampedRows),
+                                spacing: spacing
+                            ) {
+                                ForEach(folders) { folder in
+                                    HomeFolderTile(folder: folder, width: tileWidth)
+                                }
+                            }
+                            .padding(.trailing, 22)
                         }
-                        .padding(.trailing, 22)
                     }
 
                     LinearGradient(
@@ -79,12 +95,63 @@ struct FolderStrip: View {
                     .allowsHitTesting(false)
                 }
             }
-            .frame(height: SaviHomeFolderStripMetrics.tileHeight)
+            .frame(height: folderStripHeight)
 
             Rectangle()
                 .fill(SaviTheme.cardStroke.opacity(0.42))
                 .frame(height: 1)
         }
+    }
+
+    private var folderStripHeight: CGFloat {
+        let rows = CGFloat(clampedRows)
+        let spacing = CGFloat(max(clampedRows - 1, 0)) * SaviHomeFolderStripMetrics.spacing
+        return rows * SaviHomeFolderStripMetrics.tileHeight + spacing
+    }
+}
+
+private struct FolderStripHeader: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Button(action: action) {
+                HStack(spacing: 7) {
+                    Text(title)
+                        .font(SaviType.ui(.title3, weight: .bold))
+                    Image(systemName: "chevron.right")
+                        .font(SaviType.ui(.caption, weight: .black))
+                }
+                .foregroundStyle(SaviTheme.text)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(SaviPressScaleButtonStyle())
+
+            Spacer(minLength: 8)
+
+            Button(action: action) {
+                HStack(spacing: 5) {
+                    Text("See all")
+                    Image(systemName: "chevron.right")
+                        .font(SaviType.ui(.caption2, weight: .black))
+                        .accessibilityHidden(true)
+                }
+                    .font(SaviType.ui(.caption, weight: .black))
+                    .foregroundStyle(SaviTheme.accentText.opacity(0.84))
+                    .lineLimit(1)
+                    .padding(.horizontal, 11)
+                    .frame(height: 32)
+                    .background(SaviTheme.surfaceRaised.opacity(0.78))
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(SaviTheme.cardStroke.opacity(0.62), lineWidth: 1)
+                    )
+            }
+            .buttonStyle(SaviPressScaleButtonStyle())
+        }
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -167,6 +234,67 @@ private enum SaviHomeFolderStripMetrics {
     static var iconFont: Font { SaviFolderTileMetrics.iconFont }
 }
 
+struct SaviItemCardInteractionTarget: ViewModifier {
+    @EnvironmentObject private var store: SaviStore
+    let item: SaviItem
+    var tapAction: (() -> Void)?
+    var previewAction: (() -> Void)?
+    var allowsPreview = true
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        let tappable = content
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if let tapAction {
+                    tapAction()
+                } else {
+                    store.openItemCard(item)
+                }
+            }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction(named: "Open") {
+                store.openItemCard(item)
+            }
+
+        if allowsPreview {
+            tappable
+                .highPriorityGesture(
+                    LongPressGesture(minimumDuration: 0.42)
+                        .onEnded { _ in
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            if let previewAction {
+                                previewAction()
+                            } else {
+                                store.previewItemContent(item)
+                            }
+                        }
+                )
+                .accessibilityAction(named: "Preview") {
+                    store.previewItemContent(item)
+                }
+        } else {
+            tappable
+        }
+    }
+}
+
+extension View {
+    func saviItemCardInteraction(
+        item: SaviItem,
+        tapAction: (() -> Void)? = nil,
+        previewAction: (() -> Void)? = nil,
+        allowsPreview: Bool = true
+    ) -> some View {
+        modifier(SaviItemCardInteractionTarget(
+            item: item,
+            tapAction: tapAction,
+            previewAction: previewAction,
+            allowsPreview: allowsPreview
+        ))
+    }
+}
+
 struct ItemRow: View {
     let item: SaviItem
     var context: ItemRowContext = .home
@@ -186,55 +314,50 @@ struct EditorialTimelineItemRow: View {
     var showsSnippet = false
 
     var body: some View {
-        Button {
-            store.presentItem(item)
-        } label: {
-            HStack(alignment: .center, spacing: 12) {
-                EditorialTimelineTimeRail(savedAt: item.savedAt)
+        HStack(alignment: .center, spacing: 12) {
+            EditorialTimelineTimeRail(savedAt: item.savedAt)
 
-                ItemThumb(item: item, enablesPressPreview: false)
-                    .frame(width: EditorialTimelineItemLayout.thumbnailSize, height: EditorialTimelineItemLayout.thumbnailSize)
-                    .clipShape(RoundedRectangle(cornerRadius: EditorialTimelineItemLayout.thumbnailCorner, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: EditorialTimelineItemLayout.thumbnailCorner, style: .continuous)
-                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.58), lineWidth: 1)
-                    )
-                    .saviThumbnailTypeBadge(for: item)
+            SaviListItemThumb(item: item)
+                .frame(width: EditorialTimelineItemLayout.thumbnailSize, height: EditorialTimelineItemLayout.thumbnailSize)
+                .clipShape(RoundedRectangle(cornerRadius: EditorialTimelineItemLayout.thumbnailCorner, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: EditorialTimelineItemLayout.thumbnailCorner, style: .continuous)
+                        .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.58), lineWidth: 1)
+                )
+                .saviThumbnailTypeBadge(for: item)
 
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(SaviItemDisplay.rowTitle(for: item))
-                        .font(EditorialTimelineItemLayout.titleFont)
-                        .foregroundStyle(SaviTheme.text)
-                        .lineLimit(2)
-                        .lineSpacing(1.8)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .layoutPriority(2)
+            VStack(alignment: .leading, spacing: 7) {
+                Text(SaviItemDisplay.rowTitle(for: item))
+                    .font(EditorialTimelineItemLayout.titleFont)
+                    .foregroundStyle(SaviTheme.text)
+                    .lineLimit(2)
+                    .lineSpacing(1.8)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .layoutPriority(2)
 
-                    if showsSnippet {
-                        ItemSnippetLine(item: item, context: context)
-                            .lineLimit(1)
-                            .layoutPriority(1)
-                    }
-
-                    ItemTokenRow(
-                        item: item,
-                        folder: store.folder(for: item.folderId),
-                        tags: item.tags,
-                        hidesTags: true
-                    )
-
-                    if showsMatchReasons, store.hasActiveSearchControls {
-                        SearchMatchReasonLine(item: item)
-                    }
+                if showsSnippet {
+                    ItemSnippetLine(item: item, context: context)
+                        .lineLimit(1)
+                        .layoutPriority(1)
                 }
-                .frame(minHeight: EditorialTimelineItemLayout.thumbnailSize, alignment: .leading)
+
+                ItemTokenRow(
+                    item: item,
+                    folder: store.folder(for: item.folderId),
+                    tags: item.tags,
+                    hidesTags: true
+                )
+
+                if showsMatchReasons, store.hasActiveSearchControls {
+                    SearchMatchReasonLine(item: item)
+                }
             }
-            .padding(.vertical, 7)
-            .padding(.trailing, 4)
-            .contentShape(Rectangle())
+            .frame(minHeight: EditorialTimelineItemLayout.thumbnailSize, alignment: .leading)
         }
-        .buttonStyle(SaviPressScaleButtonStyle())
+        .padding(.vertical, 7)
+        .padding(.trailing, 4)
+        .saviItemCardInteraction(item: item, allowsPreview: context != .home)
         .accessibilityLabel("\(SaviItemDisplay.rowTitle(for: item)), saved \(SaviText.relativeSavedTime(item.savedAt))")
     }
 }
@@ -260,6 +383,8 @@ struct SaviFluidTimelineGroup: View {
     let title: String
     let items: [SaviItem]
     var context: ItemRowContext = .home
+    var keyboardIsActive = false
+    var dismissKeyboard: (() -> Void)?
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -275,7 +400,12 @@ struct SaviFluidTimelineGroup: View {
                 SaviFluidTimelineGroupLabel(title: title)
 
                 ForEach(items) { item in
-                    SaviFluidTimelineItemRow(item: item, context: context)
+                    SaviFluidTimelineItemRow(
+                        item: item,
+                        context: context,
+                        keyboardIsActive: keyboardIsActive,
+                        dismissKeyboard: dismissKeyboard
+                    )
                 }
             }
         }
@@ -286,64 +416,77 @@ struct SearchResultRow: View {
     @EnvironmentObject private var store: SaviStore
     @Environment(\.colorScheme) private var colorScheme
     let item: SaviItem
+    var keyboardIsActive = false
+    var dismissKeyboard: (() -> Void)?
 
     var body: some View {
-        Button {
-            store.presentItem(item)
-        } label: {
-            HStack(alignment: .top, spacing: 12) {
-                ItemThumb(item: item, enablesPressPreview: false)
-                    .frame(width: SearchResultRowMetrics.thumbnailSize, height: SearchResultRowMetrics.thumbnailSize)
-                    .clipShape(RoundedRectangle(cornerRadius: SearchResultRowMetrics.thumbnailCorner, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: SearchResultRowMetrics.thumbnailCorner, style: .continuous)
-                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.58), lineWidth: 1)
+        HStack(alignment: .top, spacing: 12) {
+            SaviListItemThumb(item: item)
+                .frame(width: SearchResultRowMetrics.thumbnailSize, height: SearchResultRowMetrics.thumbnailSize)
+                .clipShape(RoundedRectangle(cornerRadius: SearchResultRowMetrics.thumbnailCorner, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: SearchResultRowMetrics.thumbnailCorner, style: .continuous)
+                        .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.58), lineWidth: 1)
+                )
+                .saviThumbnailTypeBadge(for: item)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(SaviItemDisplay.rowTitle(for: item))
+                    .font(SaviType.reading(.subheadline, weight: .bold))
+                    .foregroundStyle(SaviTheme.text)
+                    .lineLimit(2)
+                    .lineSpacing(1.6)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .layoutPriority(2)
+
+                ItemSnippetLine(item: item, context: .search)
+                    .lineLimit(1)
+                    .layoutPriority(1)
+
+                HStack(alignment: .center, spacing: 8) {
+                    ItemTokenRow(
+                        item: item,
+                        folder: store.folder(for: item.folderId),
+                        tags: item.tags,
+                        hidesTags: true
                     )
-                    .saviThumbnailTypeBadge(for: item)
+                    .layoutPriority(1)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(SaviItemDisplay.rowTitle(for: item))
-                        .font(SaviType.reading(.subheadline, weight: .bold))
-                        .foregroundStyle(SaviTheme.text)
-                        .lineLimit(2)
-                        .lineSpacing(1.6)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .layoutPriority(2)
-
-                    ItemSnippetLine(item: item, context: .search)
-                        .lineLimit(1)
-                        .layoutPriority(1)
-
-                    HStack(alignment: .center, spacing: 8) {
-                        ItemTokenRow(
-                            item: item,
-                            folder: store.folder(for: item.folderId),
-                            tags: item.tags,
-                            hidesTags: true
-                        )
-                        .layoutPriority(1)
-
-                        SavedTimeCornerLabel(savedAt: item.savedAt)
-                            .layoutPriority(0)
-                    }
-
-                    if store.hasActiveSearchControls {
-                        SearchMatchReasonLine(item: item)
-                    }
+                    SavedTimeCornerLabel(savedAt: item.savedAt)
+                        .layoutPriority(0)
                 }
-                .frame(minHeight: SearchResultRowMetrics.thumbnailSize, alignment: .topLeading)
+
+                if store.hasActiveSearchControls {
+                    SearchMatchReasonLine(item: item)
+                }
             }
-            .padding(.vertical, 9)
-            .padding(.trailing, 4)
-            .contentShape(Rectangle())
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.42 : 0.34))
-                    .frame(height: 1)
-            }
+            .frame(minHeight: SearchResultRowMetrics.thumbnailSize, alignment: .topLeading)
         }
-        .buttonStyle(SaviPressScaleButtonStyle())
+        .padding(.vertical, 9)
+        .padding(.trailing, 4)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.42 : 0.34))
+                .frame(height: 1)
+        }
+        .saviItemCardInteraction(
+            item: item,
+            tapAction: {
+                if keyboardIsActive {
+                    dismissKeyboard?()
+                } else {
+                    store.openItemCard(item)
+                }
+            },
+            previewAction: {
+                if keyboardIsActive {
+                    dismissKeyboard?()
+                } else {
+                    store.previewItemContent(item)
+                }
+            }
+        )
         .accessibilityLabel("\(SaviItemDisplay.rowTitle(for: item)), saved \(SaviText.relativeSavedTime(item.savedAt))")
     }
 }
@@ -380,6 +523,8 @@ private struct SaviFluidTimelineItemRow: View {
     @Environment(\.colorScheme) private var colorScheme
     let item: SaviItem
     var context: ItemRowContext = .home
+    var keyboardIsActive = false
+    var dismissKeyboard: (() -> Void)?
 
     private var folder: SaviFolder? {
         store.folder(for: item.folderId)
@@ -391,45 +536,57 @@ private struct SaviFluidTimelineItemRow: View {
     }
 
     var body: some View {
-        Button {
-            store.presentItem(item)
-        } label: {
-            HStack(alignment: .center, spacing: 12) {
-                SaviFluidTimelineRailMark(savedAt: item.savedAt, dotColor: dotColor)
+        HStack(alignment: .center, spacing: 12) {
+            SaviFluidTimelineRailMark(savedAt: item.savedAt, dotColor: dotColor)
 
-                ItemThumb(item: item, enablesPressPreview: false)
-                    .frame(width: SaviFluidTimelineMetrics.thumbnailSize, height: SaviFluidTimelineMetrics.thumbnailSize)
-                    .clipShape(RoundedRectangle(cornerRadius: SaviFluidTimelineMetrics.thumbnailCorner, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: SaviFluidTimelineMetrics.thumbnailCorner, style: .continuous)
-                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.58), lineWidth: 1)
-                    )
-                    .saviThumbnailTypeBadge(for: item)
+            SaviListItemThumb(item: item)
+                .frame(width: SaviFluidTimelineMetrics.thumbnailSize, height: SaviFluidTimelineMetrics.thumbnailSize)
+                .clipShape(RoundedRectangle(cornerRadius: SaviFluidTimelineMetrics.thumbnailCorner, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: SaviFluidTimelineMetrics.thumbnailCorner, style: .continuous)
+                        .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.58), lineWidth: 1)
+                )
+                .saviThumbnailTypeBadge(for: item)
 
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(SaviItemDisplay.rowTitle(for: item))
-                        .font(SaviType.reading(.subheadline, weight: .bold))
-                        .foregroundStyle(SaviTheme.text)
-                        .lineLimit(2)
-                        .lineSpacing(1.8)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .layoutPriority(2)
+            VStack(alignment: .leading, spacing: 7) {
+                Text(SaviItemDisplay.rowTitle(for: item))
+                    .font(SaviType.reading(.subheadline, weight: .bold))
+                    .foregroundStyle(SaviTheme.text)
+                    .lineLimit(2)
+                    .lineSpacing(1.8)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .layoutPriority(2)
 
-                    ItemTokenRow(
-                        item: item,
-                        folder: folder,
-                        tags: item.tags,
-                        hidesTags: true
-                    )
-                }
-                .frame(minHeight: SaviFluidTimelineMetrics.thumbnailSize, alignment: .leading)
+                ItemTokenRow(
+                    item: item,
+                    folder: folder,
+                    tags: item.tags,
+                    hidesTags: true
+                )
             }
-            .padding(.vertical, 10)
-            .padding(.trailing, 4)
-            .contentShape(Rectangle())
+            .frame(minHeight: SaviFluidTimelineMetrics.thumbnailSize, alignment: .leading)
         }
-        .buttonStyle(SaviPressScaleButtonStyle())
+        .padding(.vertical, 10)
+        .padding(.trailing, 4)
+        .saviItemCardInteraction(
+            item: item,
+            tapAction: {
+                if keyboardIsActive {
+                    dismissKeyboard?()
+                } else {
+                    store.openItemCard(item)
+                }
+            },
+            previewAction: {
+                if keyboardIsActive {
+                    dismissKeyboard?()
+                } else {
+                    store.previewItemContent(item)
+                }
+            },
+            allowsPreview: context != .home
+        )
         .accessibilityLabel("\(SaviItemDisplay.rowTitle(for: item)), saved \(SaviText.relativeSavedTime(item.savedAt))")
     }
 }
@@ -440,30 +597,38 @@ private struct SaviFluidTimelineRailMark: View {
     let dotColor: Color
 
     var body: some View {
-        TimelineView(.periodic(from: Date(), by: 60)) { context in
-            ZStack(alignment: .leading) {
-                Text(timeRailLabel(now: context.date))
-                    .font(SaviType.ui(.caption2, weight: .bold))
-                    .foregroundStyle(colorScheme == .dark ? SaviTheme.textMuted.opacity(0.94) : SaviTheme.metadataText.opacity(0.82))
-                    .lineLimit(colorScheme == .dark ? 1 : 2)
-                    .multilineTextAlignment(.trailing)
-                    .minimumScaleFactor(0.72)
-                    .frame(width: SaviFluidTimelineMetrics.timeWidth, alignment: .trailing)
-                    .position(x: SaviFluidTimelineMetrics.timeWidth / 2, y: SaviFluidTimelineMetrics.thumbnailSize / 2)
-
-                Circle()
-                    .fill(dotColor)
-                    .frame(width: colorScheme == .dark ? 13 : 12, height: colorScheme == .dark ? 13 : 12)
-                    .overlay(
-                        Circle()
-                            .stroke(colorScheme == .dark ? SaviTheme.surface : SaviTheme.background, lineWidth: colorScheme == .dark ? 2.5 : 2)
-                    )
-                    .shadow(color: dotColor.opacity(colorScheme == .dark ? 0.34 : 0.22), radius: colorScheme == .dark ? 5 : 4, x: 0, y: 1)
-                    .position(x: SaviFluidTimelineMetrics.lineX, y: SaviFluidTimelineMetrics.thumbnailSize / 2)
+        if !SaviPerformancePolicy.current.allowsLiveRelativeTimeUpdates {
+            content(now: Date())
+        } else {
+            TimelineView(.periodic(from: Date(), by: 60)) { context in
+                content(now: context.date)
             }
-            .frame(width: SaviFluidTimelineMetrics.railWidth, height: SaviFluidTimelineMetrics.thumbnailSize)
-            .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: context.date))")
         }
+    }
+
+    private func content(now: Date) -> some View {
+        ZStack(alignment: .leading) {
+            Text(timeRailLabel(now: now))
+                .font(SaviType.ui(.caption2, weight: .bold))
+                .foregroundStyle(colorScheme == .dark ? SaviTheme.textMuted.opacity(0.94) : SaviTheme.metadataText.opacity(0.82))
+                .lineLimit(colorScheme == .dark ? 1 : 2)
+                .multilineTextAlignment(.trailing)
+                .minimumScaleFactor(0.72)
+                .frame(width: SaviFluidTimelineMetrics.timeWidth, alignment: .trailing)
+                .position(x: SaviFluidTimelineMetrics.timeWidth / 2, y: SaviFluidTimelineMetrics.thumbnailSize / 2)
+
+            Circle()
+                .fill(dotColor)
+                .frame(width: colorScheme == .dark ? 13 : 12, height: colorScheme == .dark ? 13 : 12)
+                .overlay(
+                    Circle()
+                        .stroke(colorScheme == .dark ? SaviTheme.surface : SaviTheme.background, lineWidth: colorScheme == .dark ? 2.5 : 2)
+                )
+                .shadow(color: dotColor.opacity(colorScheme == .dark ? 0.20 : 0.12), radius: SaviPerformancePolicy.current.isLegacy ? 1 : 4, x: 0, y: 1)
+                .position(x: SaviFluidTimelineMetrics.lineX, y: SaviFluidTimelineMetrics.thumbnailSize / 2)
+        }
+        .frame(width: SaviFluidTimelineMetrics.railWidth, height: SaviFluidTimelineMetrics.thumbnailSize)
+        .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: now))")
     }
 
     private func timeRailLabel(now: Date) -> String {
@@ -496,24 +661,30 @@ private struct EditorialTimelineTimeRail: View {
     let savedAt: Double
 
     var body: some View {
-        TimelineView(.periodic(from: Date(), by: 60)) { context in
-            VStack(spacing: 5) {
-                Text(SaviText.compactRelativeSavedTime(savedAt, now: context.date))
-                    .font(SaviType.ui(.caption2, weight: .bold))
-                    .foregroundStyle(SaviTheme.metadataText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(width: 38, alignment: .trailing)
-
-                Rectangle()
-                    .fill(SaviTheme.cardStroke.opacity(0.65))
-                    .frame(width: 1)
-                    .frame(maxHeight: .infinity)
+        if !SaviPerformancePolicy.current.allowsLiveRelativeTimeUpdates {
+            content(now: Date())
+        } else {
+            TimelineView(.periodic(from: Date(), by: 60)) { context in
+                content(now: context.date)
             }
-            .frame(width: 44)
-            .frame(minHeight: 96)
-            .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: context.date))")
         }
+    }
+
+    private func content(now: Date) -> some View {
+        VStack(spacing: 5) {
+            Text(SaviText.compactRelativeSavedTime(savedAt, now: now))
+                .font(SaviType.ui(.caption2, weight: .bold))
+                .foregroundStyle(SaviTheme.metadataText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: 38, alignment: .trailing)
+
+            Rectangle()
+                .fill(SaviTheme.cardStroke.opacity(0.70))
+                .frame(width: 1, height: 44)
+        }
+        .frame(width: 44)
+        .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: now))")
     }
 }
 
@@ -574,13 +745,8 @@ struct SaveCard: View {
             y: colorScheme == .light ? 4 : 6
         )
         .contentShape(shape)
-        .onTapGesture {
-            store.presentItem(item)
-        }
+        .saviItemCardInteraction(item: item, allowsPreview: context != .home)
         .accessibilityElement(children: .contain)
-        .accessibilityAction(named: "Open") {
-            store.presentItem(item)
-        }
     }
 
     private var saveCardStroke: Color {
@@ -594,7 +760,7 @@ private struct SaveCardThumbnail: View {
     let item: SaviItem
 
     var body: some View {
-        ItemThumb(item: item)
+            SaviListItemThumb(item: item)
             .frame(width: SaviItemLayout.rowThumbnailWidth, height: SaviItemLayout.rowThumbnailHeight)
             .clipShape(RoundedRectangle(cornerRadius: SaviItemLayout.thumbnailCorner, style: .continuous))
             .saviThumbnailTypeBadge(for: item)
@@ -840,13 +1006,21 @@ struct SavedTimeInline: View {
     let savedAt: Double
 
     var body: some View {
-        TimelineView(.periodic(from: Date(), by: 60)) { context in
-            Label(SaviText.compactRelativeSavedTime(savedAt, now: context.date), systemImage: "clock")
-                .labelStyle(.titleAndIcon)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: context.date))")
+        if !SaviPerformancePolicy.current.allowsLiveRelativeTimeUpdates {
+            content(now: Date())
+        } else {
+            TimelineView(.periodic(from: Date(), by: 60)) { context in
+                content(now: context.date)
+            }
         }
+    }
+
+    private func content(now: Date) -> some View {
+        Label(SaviText.compactRelativeSavedTime(savedAt, now: now), systemImage: "clock")
+            .labelStyle(.titleAndIcon)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: now))")
     }
 }
 
@@ -854,15 +1028,23 @@ struct SavedTimeCornerLabel: View {
     let savedAt: Double
 
     var body: some View {
-        TimelineView(.periodic(from: Date(), by: 60)) { context in
-            Text(SaviText.compactRelativeSavedTime(savedAt, now: context.date))
-                .font(SaviItemTypography.meta)
-                .foregroundStyle(SaviTheme.metadataText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.74)
-                .fixedSize(horizontal: true, vertical: false)
-                .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: context.date))")
+        if !SaviPerformancePolicy.current.allowsLiveRelativeTimeUpdates {
+            content(now: Date())
+        } else {
+            TimelineView(.periodic(from: Date(), by: 60)) { context in
+                content(now: context.date)
+            }
         }
+    }
+
+    private func content(now: Date) -> some View {
+        Text(SaviText.compactRelativeSavedTime(savedAt, now: now))
+            .font(SaviItemTypography.meta)
+            .foregroundStyle(SaviTheme.metadataText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.74)
+            .fixedSize(horizontal: true, vertical: false)
+            .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: now))")
     }
 }
 
@@ -1131,18 +1313,96 @@ struct SavedTimePill: View {
     let savedAt: Double
 
     var body: some View {
-        TimelineView(.periodic(from: Date(), by: 60)) { context in
-            Text(SaviText.compactRelativeSavedTime(savedAt, now: context.date))
-                .font(SaviItemTypography.pill)
-                .foregroundStyle(SaviTheme.metadataText)
-                .lineLimit(1)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(SaviTheme.surface)
-                .clipShape(Capsule())
-                .fixedSize(horizontal: true, vertical: false)
-                .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: context.date))")
+        if !SaviPerformancePolicy.current.allowsLiveRelativeTimeUpdates {
+            content(now: Date())
+        } else {
+            TimelineView(.periodic(from: Date(), by: 60)) { context in
+                content(now: context.date)
+            }
         }
+    }
+
+    private func content(now: Date) -> some View {
+        Text(SaviText.compactRelativeSavedTime(savedAt, now: now))
+            .font(SaviItemTypography.pill)
+            .foregroundStyle(SaviTheme.metadataText)
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(SaviTheme.surface)
+            .clipShape(Capsule())
+            .fixedSize(horizontal: true, vertical: false)
+            .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: now))")
+    }
+}
+
+struct SaviSavedTimeText: View {
+    let savedAt: Double
+    var prefix: String?
+    var font: Font = SaviItemTypography.meta
+    var foreground: Color = SaviTheme.metadataText
+    var relativeStyle: RelativeStyle = .compact
+    var minimumScaleFactor: CGFloat?
+
+    enum RelativeStyle {
+        case compact
+        case full
+    }
+
+    var body: some View {
+        if !SaviPerformancePolicy.current.allowsLiveRelativeTimeUpdates {
+            content(now: Date())
+        } else {
+            TimelineView(.periodic(from: Date(), by: 60)) { context in
+                content(now: context.date)
+            }
+        }
+    }
+
+    private func content(now: Date) -> some View {
+        Text(displayText(now: now))
+            .font(font)
+            .foregroundStyle(foreground)
+            .lineLimit(1)
+            .minimumScaleFactor(minimumScaleFactor ?? 1)
+            .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: now))")
+    }
+
+    private func displayText(now: Date) -> String {
+        let value: String
+        switch relativeStyle {
+        case .compact:
+            value = SaviText.compactRelativeSavedTime(savedAt, now: now)
+        case .full:
+            value = SaviText.relativeSavedTime(savedAt, now: now)
+        }
+        return prefix.map { "\($0) \(value)" } ?? value
+    }
+}
+
+struct SaviSavedTimeLabel: View {
+    let savedAt: Double
+    var prefix: String?
+
+    var body: some View {
+        if !SaviPerformancePolicy.current.allowsLiveRelativeTimeUpdates {
+            content(now: Date())
+        } else {
+            TimelineView(.periodic(from: Date(), by: 60)) { context in
+                content(now: context.date)
+            }
+        }
+    }
+
+    private func content(now: Date) -> some View {
+        Label(displayText(now: now), systemImage: "clock")
+            .lineLimit(1)
+            .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: now))")
+    }
+
+    private func displayText(now: Date) -> String {
+        let value = SaviText.relativeSavedTime(savedAt, now: now)
+        return prefix.map { "\($0) \(value)" } ?? value
     }
 }
 
@@ -1264,13 +1524,18 @@ struct ItemThumb: View {
                 fallback
             }
         } else if let thumbnail = item.thumbnail?.nilIfBlank,
-                  let image = SaviImageCache.image(fromDataURL: thumbnail) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
+                  thumbnail.hasPrefix("data:image/"),
+                  !SaviText.isSVGDataURL(thumbnail) {
+            SaviCachedDataURLImage(dataURL: thumbnail) {
+                fallback
+            }
         } else if let thumbnail = item.thumbnail?.nilIfBlank,
                   SaviText.isSVGDataURL(thumbnail) {
-            SaviSVGDataThumbnail(dataURL: thumbnail)
+            if !SaviPerformancePolicy.current.allowsSVGDataThumbnails {
+                fallback
+            } else {
+                SaviSVGDataThumbnail(dataURL: thumbnail)
+            }
         } else {
             fallback
         }
@@ -1278,28 +1543,249 @@ struct ItemThumb: View {
 
     @ViewBuilder
     private var fallback: some View {
-        TimelineView(.periodic(from: Date(), by: 30)) { context in
-            if let brand = SaviSourceBrand.brand(for: item),
-               store.shouldShowBrandFallback(for: item, now: context.date) {
-                SaviBrandFallbackThumb(brand: brand, large: large)
-            } else if store.shouldShowThumbnailPending(for: item, now: context.date) {
-                SaviThumbnailPendingThumb(
-                    message: store.thumbnailPendingMessage(for: item),
-                    large: large
-                )
-            } else {
-                VStack(spacing: large ? 12 : 4) {
-                    Image(systemName: item.type.symbolName)
-                        .font(large ? .system(size: 46, weight: .bold) : .title3.weight(.bold))
-                        .foregroundStyle(SaviTheme.chartreuse)
-                    if large {
-                        Text(item.readableSource ?? item.type.label)
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.white.opacity(0.75))
-                    }
+        if !SaviPerformancePolicy.current.allowsLiveRelativeTimeUpdates {
+            staticFallback(now: Date())
+        } else {
+            TimelineView(.periodic(from: Date(), by: 30)) { context in
+                staticFallback(now: context.date)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func staticFallback(now: Date) -> some View {
+        if let brand = SaviSourceBrand.brand(for: item),
+           store.shouldShowBrandFallback(for: item, now: now) {
+            SaviBrandFallbackThumb(brand: brand, large: large)
+        } else if store.shouldShowThumbnailPending(for: item, now: now) {
+            SaviThumbnailPendingThumb(
+                message: store.thumbnailPendingMessage(for: item),
+                large: large
+            )
+        } else if isAudioFile {
+            SaviAudioFileFallbackThumb(item: item, large: large)
+        } else {
+            VStack(spacing: large ? 12 : 4) {
+                Image(systemName: fallbackSymbolName)
+                    .font(large ? .system(size: 46, weight: .bold) : .title3.weight(.bold))
+                    .foregroundStyle(SaviTheme.chartreuse)
+                if large {
+                    Text(fallbackLabel)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.75))
                 }
             }
         }
+    }
+
+    private var fallbackSymbolName: String {
+        item.type.symbolName
+    }
+
+    private var fallbackLabel: String {
+        item.readableSource ?? item.type.label
+    }
+
+    private var isAudioFile: Bool {
+        let haystack = [
+            item.assetMime ?? "",
+            item.assetName ?? "",
+            item.source,
+            item.title,
+            item.itemDescription,
+            item.tags.joined(separator: " ")
+        ]
+        .joined(separator: " ")
+        .lowercased()
+
+        return haystack.contains("audio/") ||
+            haystack.contains(".mp3") ||
+            haystack.contains(".m4a") ||
+            haystack.contains(".wav") ||
+            haystack.contains(".aac") ||
+            haystack.contains("voice memo") ||
+            haystack.contains("voice-note") ||
+            haystack.contains("audio")
+    }
+}
+
+struct SaviListItemThumb: View {
+    let item: SaviItem
+    var large = false
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: SaviSourceBrand.brand(for: item)?.backgroundColors.map { Color(hex: $0) } ??
+                    [Color(hex: item.color ?? "#2D2151"), Color(hex: "#141120")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            thumbnailContent
+        }
+        .contentShape(Rectangle())
+        .clipped()
+        .overlay(
+            RoundedRectangle(cornerRadius: large ? 24 : 16, style: .continuous)
+                .stroke(.white.opacity(0.10), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private var thumbnailContent: some View {
+        if let thumbnail = item.thumbnail?.nilIfBlank,
+           thumbnail.hasPrefix("http"),
+           let url = URL(string: thumbnail) {
+            SaviCachedRemoteImage(url: url) {
+                fallback
+            }
+        } else if let thumbnail = item.thumbnail?.nilIfBlank,
+                  thumbnail.hasPrefix("data:image/"),
+                  !SaviText.isSVGDataURL(thumbnail) {
+            SaviCachedDataURLImage(dataURL: thumbnail) {
+                fallback
+            }
+        } else if let thumbnail = item.thumbnail?.nilIfBlank,
+                  SaviText.isSVGDataURL(thumbnail) {
+            if !SaviPerformancePolicy.current.allowsSVGDataThumbnails {
+                fallback
+            } else {
+                SaviSVGDataThumbnail(dataURL: thumbnail)
+            }
+        } else {
+            fallback
+        }
+    }
+
+    @ViewBuilder
+    private var fallback: some View {
+        if let brand = SaviSourceBrand.brand(for: item) {
+            SaviBrandFallbackThumb(brand: brand, large: large)
+        } else if isAudioFile {
+            SaviAudioFileFallbackThumb(item: item, large: large)
+        } else {
+            VStack(spacing: large ? 12 : 4) {
+                Image(systemName: item.type.symbolName)
+                    .font(large ? .system(size: 46, weight: .bold) : .title3.weight(.bold))
+                    .foregroundStyle(SaviTheme.chartreuse)
+                if large {
+                    Text(item.readableSource ?? item.type.label)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.75))
+                }
+            }
+        }
+    }
+
+    private var isAudioFile: Bool {
+        let haystack = [
+            item.assetMime ?? "",
+            item.assetName ?? "",
+            item.source,
+            item.title,
+            item.itemDescription,
+            item.tags.joined(separator: " ")
+        ]
+        .joined(separator: " ")
+        .lowercased()
+
+        return haystack.contains("audio/") ||
+            haystack.contains(".mp3") ||
+            haystack.contains(".m4a") ||
+            haystack.contains(".wav") ||
+            haystack.contains(".aac") ||
+            haystack.contains("voice memo") ||
+            haystack.contains("voice-note") ||
+            haystack.contains("audio")
+    }
+}
+
+private struct SaviAudioFileFallbackThumb: View {
+    let item: SaviItem
+    let large: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: large ? 14 : 7) {
+            HStack(spacing: large ? 10 : 5) {
+                Text(fileExtension)
+                    .font(.system(size: large ? 18 : 9, weight: .black, design: .rounded))
+                    .foregroundStyle(Color(hex: "#201334"))
+                    .padding(.horizontal, large ? 10 : 5)
+                    .padding(.vertical, large ? 6 : 3)
+                    .background(SaviTheme.chartreuse)
+                    .clipShape(RoundedRectangle(cornerRadius: large ? 10 : 5, style: .continuous))
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "waveform")
+                    .font(.system(size: large ? 24 : 12, weight: .black))
+                    .foregroundStyle(.white.opacity(0.88))
+            }
+
+            Spacer(minLength: 0)
+
+            HStack(alignment: .center, spacing: large ? 8 : 3) {
+                Image(systemName: "play.fill")
+                    .font(.system(size: large ? 17 : 8, weight: .black))
+                    .foregroundStyle(SaviTheme.chartreuse)
+                    .frame(width: large ? 36 : 18, height: large ? 36 : 18)
+                    .background(.white.opacity(0.14))
+                    .clipShape(Circle())
+
+                waveform
+            }
+
+            VStack(alignment: .leading, spacing: large ? 4 : 1) {
+                Text(fileName)
+                    .font(.system(size: large ? 16 : 7, weight: .black, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+
+                if large {
+                    Text("Audio file")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.64))
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(large ? 18 : 8)
+        .background(.white.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: large ? 24 : 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: large ? 24 : 14, style: .continuous)
+                .stroke(.white.opacity(0.14), lineWidth: 1)
+        )
+        .padding(large ? 18 : 8)
+    }
+
+    private var waveform: some View {
+        let heights: [CGFloat] = large
+            ? [14, 26, 42, 30, 52, 24, 38, 18, 46]
+            : [8, 13, 20, 15, 24, 12, 19, 9, 22]
+
+        return HStack(alignment: .center, spacing: large ? 5 : 2) {
+            ForEach(Array(heights.enumerated()), id: \.offset) { _, height in
+                Capsule()
+                    .fill(.white.opacity(0.78))
+                    .frame(width: large ? 5 : 2.5, height: height)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var fileExtension: String {
+        guard let assetName = item.assetName?.nilIfBlank,
+              let ext = assetName.split(separator: ".").last,
+              ext.count <= 5
+        else { return "AUD" }
+        return ext.uppercased()
+    }
+
+    private var fileName: String {
+        item.assetName?.nilIfBlank ?? item.title
     }
 }
 

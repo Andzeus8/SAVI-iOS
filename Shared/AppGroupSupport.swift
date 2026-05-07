@@ -4,7 +4,7 @@ import UIKit
 #endif
 
 enum SAVISharedContainer {
-    static let productionAppGroupIdentifier = "group.com.savi.shared"
+    static let productionAppGroupIdentifier = "group.com.altatecrd.savi.shared"
     static let personalDebugAppGroupIdentifier = "group.com.altatecrd.savi.personaldebug"
     static var appGroupIdentifier: String {
         let bundleIdentifier = Bundle.main.bundleIdentifier ?? ""

@@ -8,22 +8,20 @@ import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
-import CloudKit
 import AuthenticationServices
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 
 struct HomeScreen: View {
     @EnvironmentObject private var store: SaviStore
-    @State private var visibleRecentLimit = 40
+    @State private var visibleRecentLimit = SaviPerformancePolicy.current.homeInitialRecentLimit
     @State private var customizeHomePresented = false
     @State private var handledScrollToTopRequest = 0
 
     var body: some View {
         let allRecentItems = store.filteredItems(for: .home)
         let layoutMode = SaviHomeLayoutMode(rawValue: store.prefs.homeLayoutMode) ?? .timeline
-        let folderMode = SaviHomeFolderMode(rawValue: store.prefs.homeFolderMode) ?? .fourGrid
         let recentItems = Array(allRecentItems.prefix(visibleRecentLimit))
         let visibleWidgets = store.visibleHomeWidgets
         let recentGroups = visibleWidgets.contains { $0.widgetKind == .recentSaves }
@@ -60,7 +58,6 @@ struct HomeScreen: View {
                                 allRecentItems: allRecentItems,
                                 recentGroups: recentGroups,
                                 layoutMode: layoutMode,
-                                folderMode: folderMode,
                                 visibleRecentCount: recentItems.count,
                                 totalRecentCount: allRecentItems.count,
                                 loadMoreRecentItems: loadMoreRecentItems
@@ -98,7 +95,7 @@ struct HomeScreen: View {
 
     private func loadMoreRecentItems(total: Int) {
         guard visibleRecentLimit < total else { return }
-        visibleRecentLimit = min(visibleRecentLimit + 32, total)
+        visibleRecentLimit = min(visibleRecentLimit + SaviPerformancePolicy.current.homeRecentPageSize, total)
     }
 
     private func handleScrollToTopIfNeeded(proxy: ScrollViewProxy, animated: Bool) {
@@ -125,7 +122,6 @@ private struct HomeWidgetHost: View {
     let allRecentItems: [SaviItem]
     let recentGroups: [SaviSavedItemDateGroup]
     let layoutMode: SaviHomeLayoutMode
-    let folderMode: SaviHomeFolderMode
     let visibleRecentCount: Int
     let totalRecentCount: Int
     let loadMoreRecentItems: (Int) -> Void
@@ -135,7 +131,7 @@ private struct HomeWidgetHost: View {
         case .latestSaves:
             LatestSavesWidget(items: allRecentItems, size: widget.widgetSize)
         case .folders:
-            FoldersWidget(size: widget.widgetSize, folderMode: folderMode)
+            FoldersWidget(widget: widget)
         case .recentSaves:
             RecentSavesWidget(
                 groups: recentGroups,
@@ -214,52 +210,46 @@ private struct LatestSaveMiniCard: View {
     }
 
     var body: some View {
-        Button {
-            store.presentItem(item)
-        } label: {
-            ZStack(alignment: .bottomLeading) {
-                ItemThumb(item: item, large: true, enablesPressPreview: false)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: cardHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                LinearGradient(
-                    colors: [.black.opacity(0.08), .black.opacity(0.76)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+        ZStack(alignment: .bottomLeading) {
+            SaviListItemThumb(item: item, large: true)
+                .frame(maxWidth: .infinity)
+                .frame(height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(SaviItemDisplay.rowTitle(for: item))
-                        .font(SaviType.reading(.callout, weight: .bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                        .lineSpacing(1.5)
-                        .multilineTextAlignment(.leading)
-
-                    HStack(spacing: 6) {
-                        if let folder = store.folder(for: item.folderId) {
-                            KeeperPill(folder: folder, maxWidth: 104)
-                        }
-                        Spacer(minLength: 4)
-                        TimelineView(.periodic(from: Date(), by: 60)) { context in
-                            Text(SaviText.compactRelativeSavedTime(item.savedAt, now: context.date))
-                                .font(SaviItemTypography.meta)
-                                .foregroundStyle(.white.opacity(0.82))
-                                .lineLimit(1)
-                        }
-                    }
-                }
-                .padding(11)
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.24 : 0.58), lineWidth: 1)
+            LinearGradient(
+                colors: [.black.opacity(0.08), .black.opacity(0.76)],
+                startPoint: .top,
+                endPoint: .bottom
             )
-            .shadow(color: SaviTheme.cardShadow.opacity(colorScheme == .light ? 0.1 : 0.22), radius: 12, x: 0, y: 7)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 7) {
+                Text(SaviItemDisplay.rowTitle(for: item))
+                    .font(SaviType.reading(.callout, weight: .bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .lineSpacing(1.5)
+                    .multilineTextAlignment(.leading)
+
+                HStack(spacing: 6) {
+                    if let folder = store.folder(for: item.folderId) {
+                        KeeperPill(folder: folder, maxWidth: 104)
+                    }
+                    Spacer(minLength: 4)
+                    SaviSavedTimeText(
+                        savedAt: item.savedAt,
+                        foreground: .white.opacity(0.82)
+                    )
+                }
+            }
+            .padding(11)
         }
-        .buttonStyle(SaviPressScaleButtonStyle())
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.24 : 0.58), lineWidth: 1)
+        )
+        .shadow(color: SaviTheme.cardShadow.opacity(colorScheme == .light ? 0.1 : 0.22), radius: 12, x: 0, y: 7)
+        .saviItemCardInteraction(item: item, allowsPreview: false)
         .accessibilityLabel("Latest save, \(SaviItemDisplay.rowTitle(for: item))")
     }
 }
@@ -270,55 +260,51 @@ private struct LatestSaveCompactRow: View {
     let item: SaviItem
 
     var body: some View {
-        Button {
-            store.presentItem(item)
-        } label: {
-            HStack(alignment: .center, spacing: 10) {
-                ItemThumb(item: item, enablesPressPreview: false)
-                    .frame(width: 52, height: 52)
-                    .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 13, style: .continuous)
-                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.24 : 0.5), lineWidth: 1)
-                    )
-                    .saviThumbnailTypeBadge(for: item, padding: 3)
+        HStack(alignment: .center, spacing: 10) {
+            SaviListItemThumb(item: item)
+                .frame(width: 52, height: 52)
+                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.24 : 0.5), lineWidth: 1)
+                )
+                .saviThumbnailTypeBadge(for: item, padding: 3)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(SaviItemDisplay.rowTitle(for: item))
-                        .font(SaviType.reading(.subheadline, weight: .bold))
-                        .foregroundStyle(SaviTheme.text)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    HStack(spacing: 7) {
-                        if let folder = store.folder(for: item.folderId) {
-                            KeeperPill(folder: folder, maxWidth: 108)
-                                .layoutPriority(2)
-                        }
-
-                        Text(store.primaryKindLabel(for: item))
-                            .font(SaviItemTypography.meta)
-                            .foregroundStyle(SaviTheme.metadataText)
-                            .lineLimit(1)
-
-                        Spacer(minLength: 4)
-
-                        SavedTimeCornerLabel(savedAt: item.savedAt)
-                    }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(SaviItemDisplay.rowTitle(for: item))
+                    .font(SaviType.reading(.subheadline, weight: .bold))
+                    .foregroundStyle(SaviTheme.text)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 7) {
+                    if let folder = store.folder(for: item.folderId) {
+                        KeeperPill(folder: folder, maxWidth: 108)
+                            .layoutPriority(2)
+                    }
+
+                    Text(store.primaryKindLabel(for: item))
+                        .font(SaviItemTypography.meta)
+                        .foregroundStyle(SaviTheme.metadataText)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 4)
+
+                    SavedTimeCornerLabel(savedAt: item.savedAt)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(9)
-            .frame(minHeight: 70, alignment: .center)
-            .background(rowBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.26 : 0.46), lineWidth: 1)
-            )
         }
-        .buttonStyle(SaviPressScaleButtonStyle())
+        .padding(9)
+        .frame(minHeight: 70, alignment: .center)
+        .background(rowBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.26 : 0.46), lineWidth: 1)
+        )
+        .saviItemCardInteraction(item: item, allowsPreview: false)
         .accessibilityLabel("Just saved, \(SaviItemDisplay.rowTitle(for: item))")
     }
 
@@ -329,19 +315,14 @@ private struct LatestSaveCompactRow: View {
 
 private struct FoldersWidget: View {
     @EnvironmentObject private var store: SaviStore
-    let size: SaviHomeWidgetSize
-    let folderMode: SaviHomeFolderMode
-
-    private var folderLimit: Int {
-        switch size {
-        case .compact: return 4
-        case .medium: return 4
-        case .large: return 6
-        }
-    }
+    let widget: SaviHomeWidgetConfig
 
     var body: some View {
-        FolderStrip(title: "Recent Folders", folders: store.homeFolders())
+        FolderStrip(
+            title: "Your Folders",
+            folders: store.homeFolders(limit: nil),
+            rows: widget.folderRowCount
+        )
     }
 }
 
@@ -416,54 +397,50 @@ private struct RecentSaveScanCard: View {
     let item: SaviItem
 
     var body: some View {
-        Button {
-            store.presentItem(item)
-        } label: {
-            HStack(alignment: .center, spacing: 10) {
-                ItemThumb(item: item, enablesPressPreview: false)
-                    .frame(width: 74, height: 74)
-                    .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 15, style: .continuous)
-                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.24 : 0.52), lineWidth: 1)
-                    )
-                    .saviThumbnailTypeBadge(for: item)
+        HStack(alignment: .center, spacing: 10) {
+            SaviListItemThumb(item: item)
+                .frame(width: 74, height: 74)
+                .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15, style: .continuous)
+                        .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.24 : 0.52), lineWidth: 1)
+                )
+                .saviThumbnailTypeBadge(for: item)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(SaviItemDisplay.rowTitle(for: item))
-                        .font(SaviType.reading(.subheadline, weight: .bold))
-                        .foregroundStyle(SaviTheme.text)
-                        .lineLimit(2)
-                        .lineSpacing(1.5)
-                        .multilineTextAlignment(.leading)
-                        .layoutPriority(2)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(SaviItemDisplay.rowTitle(for: item))
+                    .font(SaviType.reading(.subheadline, weight: .bold))
+                    .foregroundStyle(SaviTheme.text)
+                    .lineLimit(2)
+                    .lineSpacing(1.5)
+                    .multilineTextAlignment(.leading)
+                    .layoutPriority(2)
 
-                    ItemSnippetLine(item: item, context: .home)
-                        .lineLimit(1)
-                        .layoutPriority(1)
+                ItemSnippetLine(item: item, context: .home)
+                    .lineLimit(1)
+                    .layoutPriority(1)
 
-                    ItemTokenRow(
-                        item: item,
-                        folder: store.folder(for: item.folderId),
-                        tags: item.tags,
-                        hidesTags: true
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                SavedTimeCornerLabel(savedAt: item.savedAt)
-                    .frame(width: 38, alignment: .trailing)
+                ItemTokenRow(
+                    item: item,
+                    folder: store.folder(for: item.folderId),
+                    tags: item.tags,
+                    hidesTags: true
+                )
             }
-            .padding(10)
-            .frame(minHeight: 94, alignment: .center)
-            .background(cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 19, style: .continuous)
-                    .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.25 : 0.58), lineWidth: 1)
-            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            SavedTimeCornerLabel(savedAt: item.savedAt)
+                .frame(width: 38, alignment: .trailing)
         }
-        .buttonStyle(SaviPressScaleButtonStyle())
+        .padding(10)
+        .frame(minHeight: 94, alignment: .center)
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 19, style: .continuous)
+                .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.25 : 0.58), lineWidth: 1)
+        )
+        .saviItemCardInteraction(item: item, allowsPreview: false)
         .accessibilityLabel("\(SaviItemDisplay.rowTitle(for: item)), saved \(SaviText.relativeSavedTime(item.savedAt))")
     }
 
@@ -478,60 +455,54 @@ private struct RecentSaveDigestCard: View {
     let item: SaviItem
 
     var body: some View {
-        Button {
-            store.presentItem(item)
-        } label: {
-            ZStack(alignment: .bottomLeading) {
-                ItemThumb(item: item, large: true, enablesPressPreview: false)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 154)
-                    .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
-
-                LinearGradient(
-                    colors: [.black.opacity(0.02), .black.opacity(0.78)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+        ZStack(alignment: .bottomLeading) {
+            SaviListItemThumb(item: item, large: true)
+                .frame(maxWidth: .infinity)
+                .frame(height: 154)
                 .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 7) {
-                    HStack(spacing: 8) {
-                        ItemTypeSourceText(item: item)
-                            .foregroundStyle(.white.opacity(0.80))
-                        Spacer(minLength: 8)
-                        TimelineView(.periodic(from: Date(), by: 60)) { context in
-                            Text(SaviText.compactRelativeSavedTime(item.savedAt, now: context.date))
-                                .font(SaviItemTypography.meta)
-                                .foregroundStyle(.white.opacity(0.82))
-                                .lineLimit(1)
-                        }
-                    }
+            LinearGradient(
+                colors: [.black.opacity(0.02), .black.opacity(0.78)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
 
-                    Text(SaviItemDisplay.rowTitle(for: item))
-                        .font(SaviType.reading(.title3, weight: .bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                        .lineSpacing(2)
-                        .multilineTextAlignment(.leading)
-
-                    if let folder = store.folder(for: item.folderId) {
-                        KeeperPill(folder: folder, maxWidth: 142)
-                    }
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(spacing: 8) {
+                    ItemTypeSourceText(item: item)
+                        .foregroundStyle(.white.opacity(0.80))
+                    Spacer(minLength: 8)
+                    SaviSavedTimeText(
+                        savedAt: item.savedAt,
+                        foreground: .white.opacity(0.82)
+                    )
                 }
-                .padding(13)
+
+                Text(SaviItemDisplay.rowTitle(for: item))
+                    .font(SaviType.reading(.title3, weight: .bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .lineSpacing(2)
+                    .multilineTextAlignment(.leading)
+
+                if let folder = store.folder(for: item.folderId) {
+                    KeeperPill(folder: folder, maxWidth: 142)
+                }
             }
-            .overlay(
-                RoundedRectangle(cornerRadius: 21, style: .continuous)
-                    .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.24 : 0.58), lineWidth: 1)
-            )
-            .shadow(
-                color: SaviTheme.cardShadow.opacity(colorScheme == .light ? 0.10 : 0.20),
-                radius: 12,
-                x: 0,
-                y: 7
-            )
+            .padding(13)
         }
-        .buttonStyle(SaviPressScaleButtonStyle())
+        .overlay(
+            RoundedRectangle(cornerRadius: 21, style: .continuous)
+                .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.24 : 0.58), lineWidth: 1)
+        )
+        .shadow(
+            color: SaviTheme.cardShadow.opacity(colorScheme == .light ? 0.10 : 0.20),
+            radius: 12,
+            x: 0,
+            y: 7
+        )
+        .saviItemCardInteraction(item: item, allowsPreview: false)
         .accessibilityLabel("Featured recent save, \(SaviItemDisplay.rowTitle(for: item))")
     }
 }
@@ -681,12 +652,7 @@ private struct FriendActivityRow: View {
 
                         Spacer(minLength: 8)
 
-                        TimelineView(.periodic(from: Date(), by: 60)) { context in
-                            Text(SaviText.compactRelativeSavedTime(link.sharedAt, now: context.date))
-                                .font(SaviItemTypography.meta)
-                                .foregroundStyle(SaviTheme.metadataText)
-                                .lineLimit(1)
-                        }
+                        SaviSavedTimeText(savedAt: link.sharedAt)
                     }
 
                     HStack(alignment: .center, spacing: 12) {
@@ -996,61 +962,55 @@ private struct FeaturedSaveCard: View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "Most Recent Save")
 
-            Button {
-                store.presentItem(item)
-            } label: {
-                ZStack(alignment: .bottomLeading) {
-                    ItemThumb(item: item, large: true, enablesPressPreview: false)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 178)
-                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-
-                    LinearGradient(
-                        colors: [.black.opacity(0), .black.opacity(0.72)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+            ZStack(alignment: .bottomLeading) {
+                SaviListItemThumb(item: item, large: true)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 178)
                     .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(SaviItemDisplay.rowTitle(for: item))
-                            .font(SaviType.reading(.title3, weight: .bold))
-                            .foregroundStyle(.white)
-                            .lineLimit(2)
-                            .lineSpacing(2)
+                LinearGradient(
+                    colors: [.black.opacity(0), .black.opacity(0.72)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
-                        HStack(spacing: 8) {
-                            if let folder = store.folder(for: item.folderId) {
-                                KeeperPill(folder: folder, maxWidth: 132)
-                            }
-                            Text(store.primaryKindLabel(for: item))
-                                .font(SaviItemTypography.meta)
-                                .foregroundStyle(.white.opacity(0.78))
-                                .lineLimit(1)
-                            Spacer()
-                            TimelineView(.periodic(from: Date(), by: 60)) { context in
-                                Text(SaviText.compactRelativeSavedTime(item.savedAt, now: context.date))
-                                    .font(SaviItemTypography.meta)
-                                    .foregroundStyle(.white.opacity(0.78))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.76)
-                            }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(SaviItemDisplay.rowTitle(for: item))
+                        .font(SaviType.reading(.title3, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .lineSpacing(2)
+
+                    HStack(spacing: 8) {
+                        if let folder = store.folder(for: item.folderId) {
+                            KeeperPill(folder: folder, maxWidth: 132)
                         }
+                        Text(store.primaryKindLabel(for: item))
+                            .font(SaviItemTypography.meta)
+                            .foregroundStyle(.white.opacity(0.78))
+                            .lineLimit(1)
+                        Spacer()
+                        SaviSavedTimeText(
+                            savedAt: item.savedAt,
+                            foreground: .white.opacity(0.78),
+                            minimumScaleFactor: 0.76
+                        )
                     }
-                    .padding(14)
                 }
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.24 : 0.58), lineWidth: 1)
-                )
-                .shadow(
-                    color: SaviTheme.cardShadow.opacity(colorScheme == .light ? 0.12 : 0.24),
-                    radius: 14,
-                    x: 0,
-                    y: 8
-                )
+                .padding(14)
             }
-            .buttonStyle(SaviPressScaleButtonStyle())
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.24 : 0.58), lineWidth: 1)
+            )
+            .shadow(
+                color: SaviTheme.cardShadow.opacity(colorScheme == .light ? 0.12 : 0.24),
+                radius: 14,
+                x: 0,
+                y: 8
+            )
+            .saviItemCardInteraction(item: item, allowsPreview: false)
             .accessibilityLabel("Most recent save, \(SaviItemDisplay.rowTitle(for: item))")
         }
     }
@@ -1344,9 +1304,20 @@ struct HomeWidgetBuilderSheet: View {
         NavigationStack {
             List {
                 Section {
+                    HomeWidgetLayoutControls()
+                        .environmentObject(store)
+                        .listRowInsets(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
+                } header: {
+                    Text("Home layout")
+                } footer: {
+                    Text("Recent Saves stays pinned at the bottom so your newest saves never get buried under other widgets.")
+                }
+
+                Section {
                     ForEach(store.prefs.homeWidgets) { widget in
                         HomeWidgetBuilderRow(widget: widget)
                             .environmentObject(store)
+                            .moveDisabled(widget.widgetKind == .recentSaves)
                     }
                     .onMove { source, destination in
                         store.moveHomeWidget(from: source, to: destination)
@@ -1354,7 +1325,7 @@ struct HomeWidgetBuilderSheet: View {
                 } header: {
                     Text("Home widgets")
                 } footer: {
-                    Text("Drag to reorder. Hidden widgets stay saved here so you can bring them back later.")
+                    Text("Drag to reorder widgets above Recent Saves. Hidden widgets stay saved here so you can bring them back later.")
                 }
 
                 Section {
@@ -1391,6 +1362,77 @@ struct HomeWidgetBuilderSheet: View {
     }
 }
 
+private struct HomeWidgetLayoutControls: View {
+    @EnvironmentObject private var store: SaviStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Choose how the Recent Saves feed reads. Folder rows are set on the Folders widget below.")
+                .font(SaviType.ui(.caption, weight: .semibold))
+                .foregroundStyle(SaviTheme.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HomeWidgetPreferenceGrid {
+                ForEach(SaviHomeLayoutMode.allCases) { mode in
+                    HomeWidgetPreferenceButton(
+                        title: mode.title,
+                        symbol: mode.symbolName,
+                        active: store.prefs.homeLayoutMode == mode.rawValue
+                    ) {
+                        store.setHomeLayoutMode(mode)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct HomeWidgetPreferenceGrid<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: 8),
+                GridItem(.flexible(), spacing: 8)
+            ],
+            spacing: 8
+        ) {
+            content
+        }
+    }
+}
+
+private struct HomeWidgetPreferenceButton: View {
+    let title: String
+    let symbol: String
+    let active: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(SaviType.ui(.caption, weight: .black))
+                Text(title)
+                    .font(SaviType.ui(.caption, weight: .black))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+            .frame(maxWidth: .infinity, minHeight: 38)
+            .padding(.horizontal, 8)
+            .background(active ? SaviTheme.chartreuse : SaviTheme.surfaceRaised)
+            .foregroundStyle(active ? Color.black : SaviTheme.text)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(active ? Color.clear : SaviTheme.cardStroke.opacity(0.72), lineWidth: 1)
+            )
+        }
+        .buttonStyle(SaviPressScaleButtonStyle())
+    }
+}
+
 private struct HomeWidgetBuilderRow: View {
     @EnvironmentObject private var store: SaviStore
     let widget: SaviHomeWidgetConfig
@@ -1413,7 +1455,7 @@ private struct HomeWidgetBuilderRow: View {
                     Text(displayTitle)
                         .font(SaviType.ui(.subheadline, weight: .black))
                         .foregroundStyle(SaviTheme.text)
-                    Text(widget.widgetSize.title)
+                    Text(detailText)
                         .font(SaviType.ui(.caption, weight: .semibold))
                         .foregroundStyle(SaviTheme.textMuted)
                 }
@@ -1426,17 +1468,34 @@ private struct HomeWidgetBuilderRow: View {
                 ))
                 .labelsHidden()
                 .tint(SaviTheme.chartreuse)
+                .disabled(kind == .recentSaves)
             }
 
-            Picker("Size", selection: Binding(
-                get: { widget.widgetSize },
-                set: { store.setHomeWidgetSize(widget, size: $0) }
-            )) {
-                ForEach(SaviHomeWidgetSize.allCases) { size in
-                    Text(size.title).tag(size)
+            if kind == .folders {
+                Picker("Rows", selection: Binding(
+                    get: { widget.folderRowsMode },
+                    set: { store.setHomeWidgetFolderRows(widget, rows: $0) }
+                )) {
+                    ForEach(SaviHomeFolderRows.allCases) { rows in
+                        Text(rows.title).tag(rows)
+                    }
                 }
+                .pickerStyle(.segmented)
+            } else if kind != .recentSaves {
+                Picker("Size", selection: Binding(
+                    get: { widget.widgetSize },
+                    set: { store.setHomeWidgetSize(widget, size: $0) }
+                )) {
+                    ForEach(SaviHomeWidgetSize.allCases) { size in
+                        Text(size.title).tag(size)
+                    }
+                }
+                .pickerStyle(.segmented)
+            } else {
+                Label("Pinned at the bottom of Home", systemImage: "pin.fill")
+                    .font(SaviType.ui(.caption, weight: .black))
+                    .foregroundStyle(SaviTheme.textMuted)
             }
-            .pickerStyle(.segmented)
 
             if kind == .pinnedFolder {
                 Picker("Folder", selection: Binding(
@@ -1449,11 +1508,13 @@ private struct HomeWidgetBuilderRow: View {
                 }
             }
 
-            Button(role: .destructive) {
-                store.deleteHomeWidget(widget)
-            } label: {
-                Label("Remove", systemImage: "trash")
-                    .font(SaviType.ui(.caption, weight: .black))
+            if kind != .recentSaves {
+                Button(role: .destructive) {
+                    store.deleteHomeWidget(widget)
+                } label: {
+                    Label("Remove", systemImage: "trash")
+                        .font(SaviType.ui(.caption, weight: .black))
+                }
             }
         }
         .padding(.vertical, 5)
@@ -1465,6 +1526,17 @@ private struct HomeWidgetBuilderRow: View {
         }
         return widget.title?.nilIfBlank ?? kind.title
     }
+
+    private var detailText: String {
+        switch kind {
+        case .folders:
+            return widget.folderRowsMode.title
+        case .recentSaves:
+            return "Pinned bottom"
+        default:
+            return widget.widgetSize.title
+        }
+    }
 }
 
 private struct AddHomeWidgetSheet: View {
@@ -1472,6 +1544,7 @@ private struct AddHomeWidgetSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var kind: SaviHomeWidgetKind = .latestSaves
     @State private var size: SaviHomeWidgetSize = .compact
+    @State private var folderRows: SaviHomeFolderRows = .one
     @State private var folderId: String = ""
 
     var body: some View {
@@ -1479,18 +1552,30 @@ private struct AddHomeWidgetSheet: View {
             Form {
                 Section("Widget") {
                     Picker("Type", selection: $kind) {
-                        ForEach(SaviHomeWidgetKind.allCases) { option in
+                        ForEach(SaviHomeWidgetKind.allCases.filter { $0 != .recentSaves }) { option in
                             Label(option.title, systemImage: option.symbolName)
                                 .tag(option)
                         }
                     }
 
-                    Picker("Size", selection: $size) {
-                        ForEach(SaviHomeWidgetSize.allCases) { option in
-                            Text(option.title).tag(option)
+                    if kind == .folders {
+                        Picker("Rows", selection: $folderRows) {
+                            ForEach(SaviHomeFolderRows.allCases) { option in
+                                Text(option.title).tag(option)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                    } else if kind != .recentSaves {
+                        Picker("Size", selection: $size) {
+                            ForEach(SaviHomeWidgetSize.allCases) { option in
+                                Text(option.title).tag(option)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    } else {
+                        Label("Recent Saves is always pinned at the bottom of Home.", systemImage: "pin.fill")
+                            .font(SaviType.ui(.caption, weight: .semibold))
                     }
-                    .pickerStyle(.segmented)
 
                     if kind == .pinnedFolder {
                         Picker("Folder", selection: Binding(
@@ -1510,7 +1595,8 @@ private struct AddHomeWidgetSheet: View {
                             kind: kind,
                             size: size,
                             folderId: kind == .pinnedFolder ? selectedFolderId : nil,
-                            title: kind == .pinnedFolder ? store.folder(for: selectedFolderId)?.name : nil
+                            title: kind == .pinnedFolder ? store.folder(for: selectedFolderId)?.name : nil,
+                            folderRows: kind == .folders ? folderRows : nil
                         )
                         dismiss()
                     } label: {
@@ -1533,6 +1619,7 @@ private struct AddHomeWidgetSheet: View {
             }
             .onChange(of: kind) { newKind in
                 size = newKind.defaultSize
+                folderRows = .one
             }
         }
     }

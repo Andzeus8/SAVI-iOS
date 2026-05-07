@@ -83,6 +83,15 @@ Pass criteria:
 - Metadata and AI never trap the user.
 - Pending share imports into the main app on foreground.
 
+## Feedback Gate
+
+- App Store Connect Beta Feedback Email is `1080solutionsA@gmail.com`.
+- Profile > Help & Feedback opens a prefilled bug report with build/device/iOS
+  context and does not attach logs or saved content automatically.
+- If Mail is unavailable, the app copies `1080solutionsA@gmail.com`.
+- During internal TestFlight, submit one screenshot feedback item and one
+  written feedback item, then confirm both appear in App Store Connect.
+
 ## Performance Gate
 
 - Cold launch feels immediate on a fresh install.
@@ -99,12 +108,13 @@ SAVI is production-ready only when:
 - Debug/personal signing has been replaced with production signing.
 - Share extension has passed real-device tests.
 - Backup/export/restore has passed at least one fresh-install restore.
+- Help & Feedback has passed mailto/copy fallback and TestFlight feedback checks.
 - Privacy/App Store capability review is complete.
 
 ## First External TestFlight Posture
 
 - Use two build channels from one source tree:
-  - `SAVI` / `com.savi.app` / Release is the TestFlight and App Store channel.
+  - `SAVI` / `com.altatecrd.savi` / Release is the TestFlight and App Store channel.
   - `SAVI Test` / `com.altatecrd.savi.personaldebug` / Debug is the internal
     development channel.
 - Ship the first external beta with Social Beta disabled in Release.

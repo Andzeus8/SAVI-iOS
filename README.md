@@ -8,7 +8,7 @@ This is the active SAVI product codebase.
 - Xcode project: `/Users/guest1/Documents/SAVI-iOS/SAVI.xcodeproj`
 - App target: `SAVI`
 - Share Extension target: `SAVIShareExtension`
-- App Group: `group.com.savi.shared`
+- App Group: `group.com.altatecrd.savi.shared`
 
 All current product work should happen here unless a request explicitly says to edit the old web prototype.
 

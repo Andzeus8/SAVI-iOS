@@ -1,9 +1,9 @@
 #!/bin/zsh
 set -euo pipefail
 
-MAIN_BUNDLE_ID="com.savi.app"
+MAIN_BUNDLE_ID="com.altatecrd.savi"
 TEST_BUNDLE_ID="com.altatecrd.savi.personaldebug"
-MAIN_APP_GROUP="group.com.savi.shared"
+MAIN_APP_GROUP="group.com.altatecrd.savi.shared"
 SIMULATOR_ID="${SIMULATOR_ID:-}"
 BACKUP_ROOT="${SAVI_TEST_BACKUP_ROOT:-/Users/guest1/Desktop/SAVI_QA/test-data-backups}"
 
@@ -15,7 +15,7 @@ Copies simulator data from main SAVI into SAVI Test so the two installed apps
 look the same during QA.
 
 Source:
-  com.savi.app / group.com.savi.shared / native
+  com.altatecrd.savi / group.com.altatecrd.savi.shared / native
 
 Destination:
   com.altatecrd.savi.personaldebug / Documents/SAVI-native

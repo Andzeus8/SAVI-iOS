@@ -8,9 +8,8 @@ import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
-import CloudKit
 import AuthenticationServices
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 
@@ -113,6 +112,16 @@ struct NativeSaviRootView: View {
                         .ignoresSafeArea()
                         .preferredColorScheme(store.preferredColorScheme)
                 }
+                .sheet(item: Binding<SaviShareFileURL?>(
+                    get: { store.archiveShareFileURL.map { SaviShareFileURL(url: $0) } },
+                    set: { _ in }
+                )) { shareFile in
+                    SaviActivityView(activityItems: [shareFile.url]) { completed in
+                        store.finishArchiveShare(completed: completed)
+                    }
+                    .ignoresSafeArea()
+                    .preferredColorScheme(store.preferredColorScheme)
+                }
                 .sheet(isPresented: $store.isSearchRefinePresented) {
                     SearchRefineSheet()
                         .environmentObject(store)
@@ -134,7 +143,7 @@ struct NativeSaviRootView: View {
                         .presentationDetents([.medium, .large])
                         .presentationDragIndicator(.visible)
                 }
-                .fileImporter(isPresented: $backupImportPresented, allowedContentTypes: [.json, .saviArchiveZip, .saviArchivePackage]) { result in
+                .fileImporter(isPresented: $backupImportPresented, allowedContentTypes: [.json, .data]) { result in
                     if case .success(let url) = result {
                         Task { await store.previewBackupImport(from: url) }
                     }
@@ -191,6 +200,14 @@ struct NativeSaviRootView: View {
                 .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
                     isKeyboardVisible = false
                 }
+                .onAppear {
+                    store.evaluateTabTipAfterPresentation()
+                }
+                .onChange(of: store.isShareSetupGuidePresented) { isPresented in
+                    if !isPresented {
+                        store.evaluateTabTipAfterPresentation()
+                    }
+                }
 
             if !store.prefs.onboarded {
                 OnboardingView()
@@ -211,11 +228,26 @@ struct NativeSaviRootView: View {
                 .zIndex(3)
             }
 
+            if store.prefs.onboarded, let tabTip = store.activeTabTip {
+                SaviTabTipOverlay(
+                    tip: tabTip,
+                    dismissAction: { store.dismissActiveTabTip() }
+                )
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                .zIndex(3)
+            }
+
             if store.prefs.onboarded, store.isShareSetupReminderPresented {
                 ShareSetupReminderOverlay()
                     .environmentObject(store)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                     .zIndex(4)
+            }
+
+            if let archiveExportStatus = store.archiveExportStatus {
+                ArchiveExportLoadingScreen(status: archiveExportStatus)
+                    .transition(.opacity)
+                    .zIndex(6)
             }
 
             if let toast = store.toast {
@@ -261,6 +293,78 @@ struct NativeSaviRootView: View {
                 .padding(.bottom, 6)
         }
         .background(SaviTheme.surfaceRaised.ignoresSafeArea(edges: .bottom))
+    }
+}
+
+private struct ArchiveExportLoadingScreen: View {
+    let status: SaviArchiveExportStatus
+
+    var body: some View {
+        ZStack {
+            SaviTheme.background
+                .opacity(0.96)
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(SaviTheme.chartreuse.opacity(0.22))
+                        .frame(width: 72, height: 72)
+
+                    ProgressView()
+                        .tint(SaviTheme.chartreuse)
+                        .scaleEffect(1.2)
+                }
+                .accessibilityHidden(true)
+
+                VStack(spacing: 8) {
+                    Text(status.title)
+                        .font(SaviType.display(size: 30, weight: .black))
+                        .foregroundStyle(SaviTheme.text)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(status.message)
+                        .font(SaviType.reading(.subheadline, weight: .regular))
+                        .foregroundStyle(SaviTheme.textMuted)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Text(status.scopeLine)
+                    .font(SaviType.ui(.caption, weight: .black))
+                    .foregroundStyle(SaviTheme.text)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 34)
+                    .background(SaviTheme.surfaceRaised.opacity(0.82))
+                    .clipShape(Capsule())
+
+                HStack(alignment: .top, spacing: 9) {
+                    Image(systemName: "lock.shield.fill")
+                        .font(SaviType.ui(.caption, weight: .black))
+                        .foregroundStyle(SaviTheme.accentText)
+                    Text("Nothing is uploaded. You choose where to save it next.")
+                        .font(SaviType.ui(.caption, weight: .semibold))
+                        .foregroundStyle(SaviTheme.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(SaviTheme.surfaceRaised.opacity(0.68))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .padding(18)
+            .frame(maxWidth: 360)
+            .saviCard(cornerRadius: 24)
+            .padding(.horizontal, 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(status.title). \(status.message). \(status.scopeLine). Nothing is uploaded. You choose where to save it next.")
     }
 }
 

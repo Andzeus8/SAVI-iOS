@@ -8,15 +8,15 @@ import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
-import CloudKit
 import AuthenticationServices
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 
 struct ExploreLibraryView: View {
     @EnvironmentObject private var store: SaviStore
     @Binding var seed: Int
+    @State private var visibleExploreLimit = SaviPerformancePolicy.current.exploreInitialLimit
 
     private var emptyTitle: String {
         if !SaviReleaseGate.socialFeaturesEnabled {
@@ -30,7 +30,7 @@ struct ExploreLibraryView: View {
 
     private var emptyMessage: String {
         if !SaviReleaseGate.socialFeaturesEnabled {
-            return "Save links, videos, images, and places, and SAVI will turn them into a fresh mix worth revisiting."
+            return "Save links, videos, images, and places, and SAVI will turn them into a fun mix of your favorites."
         }
         switch store.exploreScope {
         case .all:
@@ -44,30 +44,53 @@ struct ExploreLibraryView: View {
 
     var body: some View {
         let snapshot = store.exploreSnapshot(seed: seed, scope: store.exploreScope)
+        let visibleItems = Array(snapshot.items.prefix(visibleExploreLimit))
 
         VStack(alignment: .leading, spacing: 12) {
             ExploreCompactHeader(snapshot: snapshot)
 
             if SaviReleaseGate.socialFeaturesEnabled {
                 ExploreScopeControl()
+            } else {
+                ExploreSocialTeaserCard()
             }
 
-            if snapshot.items.isEmpty {
+            if visibleItems.isEmpty {
                 EmptyStateView(
                     symbol: "sparkles",
                     title: emptyTitle,
                     message: emptyMessage
                 )
-            } else if let hero = snapshot.items.first {
-                ExploreMosaicBoard(seed: seed, hero: hero, items: Array(snapshot.items.dropFirst()))
-                    .transition(.opacity)
-                    .id("\(store.exploreScope.rawValue)-\(seed)")
+            } else {
+                if SaviPerformancePolicy.current.usesCompactExploreFeed {
+                    ExploreEditorialFeed(seed: seed, items: visibleItems)
+                        .transition(.opacity)
+                        .id("editorial-\(store.exploreScope.rawValue)-\(seed)")
+                } else if let hero = visibleItems.first {
+                    ExploreMosaicBoard(seed: seed, hero: hero, items: Array(visibleItems.dropFirst()))
+                        .transition(.opacity)
+                        .id("\(store.exploreScope.rawValue)-\(seed)")
+                }
+
+                if visibleItems.count < snapshot.items.count {
+                    FeedPageLoader(label: "Loading more finds") {
+                        visibleExploreLimit = min(visibleExploreLimit + SaviPerformancePolicy.current.explorePageSize, snapshot.items.count)
+                    }
+                    .id("explore-loader-\(visibleItems.count)-\(snapshot.items.count)")
+                }
             }
 
-            if !SaviReleaseGate.socialFeaturesEnabled {
-                ExploreSocialTeaserCard()
-            }
         }
+        .onChange(of: seed) { _ in
+            resetVisibleExploreLimit()
+        }
+        .onChange(of: store.exploreScope) { _ in
+            resetVisibleExploreLimit()
+        }
+    }
+
+    private func resetVisibleExploreLimit() {
+        visibleExploreLimit = SaviPerformancePolicy.current.exploreInitialLimit
     }
 }
 
@@ -84,8 +107,8 @@ private struct ExploreCompactHeader: View {
                     .lineLimit(1)
 
                 Text(SaviReleaseGate.socialFeaturesEnabled
-                    ? "A fresh mix from you and your friends."
-                    : "A fresh shuffle of links, videos, places, memes, and rabbit holes you saved.")
+                    ? "A fun mix of favorites from you and your friends."
+                    : "A fun way to browse the links, videos, places, memes, and rabbit holes you saved.")
                     .font(SaviType.reading(.subheadline, weight: .semibold))
                     .foregroundStyle(SaviTheme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -196,7 +219,7 @@ private struct ExploreSocialTeaserCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 7) {
-                    Text("Friends are coming")
+                    Text("Friends' favorites are next")
                         .font(SaviType.ui(.subheadline, weight: .black))
                         .foregroundStyle(SaviTheme.text)
 
@@ -210,7 +233,7 @@ private struct ExploreSocialTeaserCard: View {
                         .clipShape(Capsule())
                 }
 
-                Text("Soon you’ll be able to follow friends and see the saves they choose to make public.")
+                Text("Soon Explore can also mix in links, videos, places, and ideas curated by friends you trust.")
                     .font(SaviType.reading(.caption, weight: .regular))
                     .foregroundStyle(SaviTheme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -226,7 +249,7 @@ private struct ExploreSocialTeaserCard: View {
                 .stroke(SaviTheme.cardStroke.opacity(0.72), lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Friends are coming. Beta. Soon you'll be able to follow friends and see the saves they choose to make public.")
+        .accessibilityLabel("Friends' favorites are next. Beta. Soon Explore can also mix in links, videos, places, and ideas curated by friends you trust.")
     }
 }
 
@@ -576,7 +599,7 @@ private struct ExploreStoryImage: View {
     var large = false
 
     var body: some View {
-        ItemThumb(item: item, large: large, enablesPressPreview: false)
+        SaviListItemThumb(item: item, large: large)
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .clipped()
@@ -1154,7 +1177,7 @@ struct ExploreShuffleCard: View {
 
     private var artworkOverlayCard: some View {
         ZStack(alignment: .bottomLeading) {
-            ItemThumb(item: item, large: variant == .hero || variant == .tall, enablesPressPreview: false)
+            SaviListItemThumb(item: item, large: variant == .hero || variant == .tall)
                 .frame(width: width, height: variant.height)
                 .clipped()
 
@@ -1199,7 +1222,7 @@ struct ExploreShuffleCard: View {
     private var mediaTileCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack(alignment: .bottomLeading) {
-                ItemThumb(item: item, large: false, enablesPressPreview: false)
+                SaviListItemThumb(item: item, large: false)
                     .frame(maxWidth: .infinity)
                     .frame(height: mediaTileImageHeight)
                     .clipped()
@@ -1581,16 +1604,11 @@ struct SavedAgoText: View {
     var prefix: String?
 
     var body: some View {
-        TimelineView(.periodic(from: Date(), by: 60)) { context in
-            Text(displayText(at: context.date))
-                .lineLimit(1)
-                .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: context.date))")
-        }
-    }
-
-    private func displayText(at date: Date) -> String {
-        let value = SaviText.relativeSavedTime(savedAt, now: date)
-        return prefix.map { "\($0) \(value)" } ?? value
+        SaviSavedTimeText(
+            savedAt: savedAt,
+            prefix: prefix,
+            relativeStyle: .full
+        )
     }
 }
 
@@ -1599,16 +1617,7 @@ struct SavedAgoLabel: View {
     var prefix: String?
 
     var body: some View {
-        TimelineView(.periodic(from: Date(), by: 60)) { context in
-            Label(displayText(at: context.date), systemImage: "clock")
-                .lineLimit(1)
-                .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: context.date))")
-        }
-    }
-
-    private func displayText(at date: Date) -> String {
-        let value = SaviText.relativeSavedTime(savedAt, now: date)
-        return prefix.map { "\($0) \(value)" } ?? value
+        SaviSavedTimeLabel(savedAt: savedAt, prefix: prefix)
     }
 }
 

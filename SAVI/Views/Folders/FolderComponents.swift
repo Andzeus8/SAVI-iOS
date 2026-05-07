@@ -8,9 +8,8 @@ import PhotosUI
 import LocalAuthentication
 import LinkPresentation
 import Network
-import CloudKit
 import AuthenticationServices
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 
@@ -25,27 +24,18 @@ struct FolderIconBadge: View {
     var foreground: Color?
     var publicBadgeStyle: SaviFolderVisualStyle?
 
-    private var customImage: UIImage? {
-        guard let imageDataURL = imageDataURL?.nilIfBlank else { return nil }
-        return SaviText.imageFromDataURL(imageDataURL)
-    }
-
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(background ?? Color(hex: color))
 
-            if let customImage {
-                Image(uiImage: customImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: size, height: size)
+            if let imageDataURL = imageDataURL?.nilIfBlank {
+                SaviCachedDataURLImage(dataURL: imageDataURL) {
+                    iconSymbol
+                }
+                .frame(width: size, height: size)
             } else {
-                Image(systemName: symbolName)
-                    .font(font)
-                    .symbolRenderingMode(.monochrome)
-                    .foregroundStyle(foreground ?? SaviTheme.foreground(onHex: color))
-                    .frame(width: size * 0.58, height: size * 0.58)
+                iconSymbol
             }
         }
         .frame(width: size, height: size)
@@ -63,6 +53,14 @@ struct FolderIconBadge: View {
                     .accessibilityHidden(true)
             }
         }
+    }
+
+    private var iconSymbol: some View {
+        Image(systemName: symbolName)
+            .font(font)
+            .symbolRenderingMode(.monochrome)
+            .foregroundStyle(foreground ?? SaviTheme.foreground(onHex: color))
+            .frame(width: size * 0.58, height: size * 0.58)
     }
 }
 

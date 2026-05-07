@@ -1,5 +1,5 @@
 import Foundation
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
 import FoundationModels
 #endif
 import LinkPresentation
@@ -28,6 +28,15 @@ enum ShareItemExtractorError: LocalizedError {
 }
 
 enum ShareItemExtractor {
+    private static var shouldUseLinkPresentationMetadata: Bool {
+        if #available(iOS 18, *) {
+            return true
+        }
+        return false
+    }
+
+    private static let metadataFetchTimeoutNanoseconds: UInt64 = 3_800_000_000
+
     static func extract(from context: NSExtensionContext?) async throws -> PendingShare {
         guard let item = (context?.inputItems.first as? NSExtensionItem) ?? (context?.inputItems.compactMap({ $0 as? NSExtensionItem }).first),
               let provider = item.attachments?.first
@@ -255,7 +264,7 @@ enum ShareItemExtractor {
     }
 
     static func improveWithAppleIntelligence(_ share: PendingShare) async -> PendingShare {
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
         if #available(iOS 26.0, *) {
             return await improveWithFoundationModels(share)
         }
@@ -410,7 +419,7 @@ extension ShareItemExtractor {
 }
 
 private extension ShareItemExtractor {
-#if canImport(FoundationModels)
+#if DEBUG && canImport(FoundationModels)
     @available(iOS 26.0, *)
     static func improveWithFoundationModels(_ share: PendingShare) async -> PendingShare {
         let model = SystemLanguageModel(useCase: .contentTagging)
@@ -1271,12 +1280,14 @@ private extension ShareItemExtractor {
                 guard let metadata = try? await fetchHTMLMetadata(for: url) else { return .empty }
                 return .metadata(metadata)
             }
-            group.addTask {
-                guard let metadata = try? await fetchLinkPresentationMetadata(for: url) else { return .empty }
-                return .metadata(metadata)
+            if shouldUseLinkPresentationMetadata {
+                group.addTask {
+                    guard let metadata = try? await fetchLinkPresentationMetadata(for: url) else { return .empty }
+                    return .metadata(metadata)
+                }
             }
             group.addTask {
-                try? await Task.sleep(nanoseconds: 2_200_000_000)
+                try? await Task.sleep(nanoseconds: metadataFetchTimeoutNanoseconds)
                 return .timedOut
             }
 
@@ -1327,7 +1338,7 @@ private extension ShareItemExtractor {
     static func fetchYouTubeMetadata(for url: URL) async throws -> RemoteMetadata {
         let canonicalURL = canonicalYouTubeURL(from: url)
 
-        if let metadata = try? await fetchNoembedMetadata(for: canonicalURL) {
+        if let metadata = try? await fetchYouTubeOEmbed(for: canonicalURL) {
             return RemoteMetadata(
                 title: metadata.title,
                 description: metadata.description,
@@ -1337,7 +1348,7 @@ private extension ShareItemExtractor {
             )
         }
 
-        if let metadata = try? await fetchYouTubeOEmbed(for: canonicalURL) {
+        if let metadata = try? await fetchNoembedMetadata(for: canonicalURL) {
             return RemoteMetadata(
                 title: metadata.title,
                 description: metadata.description,
@@ -1515,7 +1526,7 @@ private extension ShareItemExtractor {
     static func fetchJSONData(from urlString: String) async throws -> Data {
         guard let url = URL(string: urlString) else { throw ShareItemExtractorError.failedToLoadContent }
         var request = URLRequest(url: url)
-        request.timeoutInterval = 2
+        request.timeoutInterval = 3.5
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<400).contains(http.statusCode) else {
@@ -1567,7 +1578,7 @@ private extension ShareItemExtractor {
 
     static func fetchHTMLMetadata(for url: URL) async throws -> RemoteMetadata {
         var request = URLRequest(url: url)
-        request.timeoutInterval = 2
+        request.timeoutInterval = 3.5
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<400).contains(http.statusCode),
@@ -2086,12 +2097,62 @@ private extension ShareItemExtractor {
 
 private extension String {
     var decodedHTMLString: String {
-        guard let data = data(using: .utf8) else { return self }
-        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
-            .documentType: NSAttributedString.DocumentType.html,
-            .characterEncoding: String.Encoding.utf8.rawValue,
+        Self.decodeHTMLEntities(in: self)
+    }
+
+    private static func decodeHTMLEntities(in value: String) -> String {
+        guard value.contains("&") else { return value }
+        let namedEntities: [String: String] = [
+            "amp": "&",
+            "lt": "<",
+            "gt": ">",
+            "quot": "\"",
+            "apos": "'",
+            "nbsp": " ",
+            "ndash": "-",
+            "mdash": "-",
+            "lsquo": "'",
+            "rsquo": "'",
+            "ldquo": "\"",
+            "rdquo": "\"",
+            "hellip": "...",
+            "copy": "(c)",
+            "reg": "(R)",
+            "trade": "(TM)"
         ]
-        return (try? NSAttributedString(data: data, options: options, documentAttributes: nil).string) ?? self
+        guard let regex = try? NSRegularExpression(pattern: #"&(#x[0-9A-Fa-f]+|#[0-9]+|[A-Za-z][A-Za-z0-9]+);"#) else {
+            return value
+        }
+
+        let original = value
+        let matches = regex.matches(in: original, range: NSRange(original.startIndex..<original.endIndex, in: original))
+        guard !matches.isEmpty else { return value }
+
+        var decoded = ""
+        var cursor = original.startIndex
+        for match in matches {
+            guard let entityRange = Range(match.range, in: original),
+                  let bodyRange = Range(match.range(at: 1), in: original)
+            else { continue }
+            decoded += original[cursor..<entityRange.lowerBound]
+            let body = String(original[bodyRange])
+            if body.hasPrefix("#x") || body.hasPrefix("#X") {
+                let hex = String(body.dropFirst(2))
+                decoded += UInt32(hex, radix: 16)
+                    .flatMap(UnicodeScalar.init)
+                    .map(String.init) ?? String(original[entityRange])
+            } else if body.hasPrefix("#") {
+                let decimal = String(body.dropFirst())
+                decoded += UInt32(decimal, radix: 10)
+                    .flatMap(UnicodeScalar.init)
+                    .map(String.init) ?? String(original[entityRange])
+            } else {
+                decoded += namedEntities[body.lowercased()] ?? String(original[entityRange])
+            }
+            cursor = entityRange.upperBound
+        }
+        decoded += original[cursor...]
+        return decoded
     }
 }
 

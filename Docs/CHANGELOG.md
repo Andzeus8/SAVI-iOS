@@ -4,8 +4,25 @@ This log is the human-readable companion to git history. Git commits remain the
 source of truth; daily entries summarize product intent, affected screens, build
 targets, and QA evidence.
 
+## 2026-05-06
+
+- Reworked Mom's lasagna voice-note sample thumbnail again into a full-bleed
+  audio icon treatment without the fake file-card border.
+- Moved `Building Effective AI Agents` down in the sample library, put
+  hands-only CPR into the early utility slot, and upgraded Mom's lasagna voice
+  note plus generic no-thumbnail audio saves to use audio file preview cards.
+- See [2026-05-06](ChangeLog/2026-05-06.md).
+
 ## 2026-05-05
 
+- Cleaned up the launch sample first scroll again: removed Duolingo TikTok,
+  made Mom's voice note read as audio, moved parasite medication/CPR/Numa Numa
+  earlier, surfaced insurance sooner, swapped Chocolate Rain for Skibidi Toilet,
+  and added an audio thumbnail fallback.
+- Reworked the launch sample library's first 20 saves into a sharper
+  utility/emotion/curiosity storyboard, adding credit-freeze, hands-only CPR,
+  Duolingo TikTok, parasite-medication cancer research, and microbiome/mind
+  hooks while moving Rick Astley lower.
 - Reordered the launch sample library's first ten saves into a tighter
   utility/personality/knowledge storyboard for first-run Home.
 - Polished Profile/Settings around a clearer SAVI Beta explanation, a setup
@@ -100,5 +117,7 @@ with:
 - Summary of the product change.
 - Affected screens or flows.
 - Files or subsystems touched.
-- Build target used for QA, such as `com.savi.app` or the personal debug bundle.
+- Build target used for QA, such as `com.altatecrd.savi` or the personal debug bundle.
 - Screenshots, logs, or simulator/device notes when relevant.
+- Fixed full archive export so it visibly prepares a ZIP and opens the iOS share sheet instead of appearing to do nothing.
+- Changed the first sample Airbnb save into a Photos screenshot/chat card with screenshot metadata and refreshed sample seed version.
