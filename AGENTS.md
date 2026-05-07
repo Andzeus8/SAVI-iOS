@@ -41,3 +41,14 @@ Multiple Codex chats may work in this repo at the same time. Before editing:
 - Avoid files another active chat has claimed unless the change is necessary.
 - Never revert unrelated changes from another chat.
 - After verification, update the work-log entry with status and test notes.
+
+## Fast UI Iteration Rule
+
+For normal UI/product polish, use the fast loop by default:
+
+- Work on one current-size simulator first, usually iPhone 17 or iPhone 17 Pro.
+- Build/install `SAVI Test` Debug with `scripts/savi-fast-dev-sim.sh`.
+- Add `--reinstall` only when Share Extension state, onboarding, or cached assets need a fresh install.
+- Do not build Release, launch multiple simulators, archive, upload, or run the full device matrix for every small UI pass.
+- Use the full gate only when the user explicitly asks for TestFlight/release readiness: Release no-sign build, one clean main/test simulator install, then archive/upload if requested.
+- Treat iPhone 11 as a legacy spot-check or crash-repro target, not the default iteration device.

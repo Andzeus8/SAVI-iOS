@@ -13,6 +13,18 @@ working in `/Users/guest1/Documents/SAVI-iOS` at the same time.
 
 ## Active / Recent Entries
 
+### 2026-05-07 14:57 CEST - Fast UI iteration guardrail
+
+- Owner: current Codex chat
+- Status: completed at 2026-05-07 15:00 CEST
+- Intended files:
+  - `/Users/guest1/Documents/SAVI-iOS/AGENTS.md`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/Handoffs/SAVI_ACTIVE_WORK_LOG.md`
+- Notes:
+  - Make future chats default to the fast one-simulator UI loop unless the user explicitly asks for a TestFlight/release gate.
+- Result:
+  - Added a Fast UI Iteration Rule to `AGENTS.md`: one current-size simulator, Debug `SAVI Test`, `scripts/savi-fast-dev-sim.sh`, and full Release/TestFlight gates only on explicit request.
+
 ### 2026-05-07 14:39 CEST - Build 18 candidate cleanup
 
 - Owner: current Codex chat
