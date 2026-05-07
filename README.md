@@ -31,7 +31,30 @@ If a task involves SAVI app UI, metadata, search, Folders, sharing, folder decis
 
 ## Build And Run
 
-Use the `SAVI` scheme with the iOS Simulator.
+For normal iteration, use the fast Debug loop. It builds and launches only
+`SAVI Test` on one simulator, defaulting to iPhone 17:
+
+```bash
+scripts/savi-fast-dev-sim.sh
+```
+
+When the Share Extension feels cached, refresh only `SAVI Test` on that one
+simulator:
+
+```bash
+scripts/savi-fast-dev-sim.sh --reinstall
+```
+
+Use the full simulator sync only for release/TestFlight gates:
+
+```bash
+scripts/savi-install-both-sim.sh --simulator-id <UDID> --clean
+```
+
+The full sync builds Debug and Release, installs both `SAVI Test` and `SAVI`,
+and should not be part of every small UI pass.
+
+You can also use the `SAVI` scheme directly with the iOS Simulator:
 
 ```bash
 xcodebuild \

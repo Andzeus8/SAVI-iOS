@@ -44,6 +44,17 @@ Do not add a third `SAVI Pilot` app yet. Add one only if we later need an
 internal QA mirror that behaves like TestFlight but installs alongside both
 existing channels.
 
+## Iteration Speed Policy
+
+- Default development loop: `scripts/savi-fast-dev-sim.sh`.
+- Default simulator: iPhone 17.
+- Default app: `SAVI Test` Debug only.
+- Use `scripts/savi-fast-dev-sim.sh --reinstall` when testing Share Extension
+  UI changes that may be cached by the simulator.
+- Do not build Release, launch three simulators, archive, upload, or run the
+  full matrix until a change is ready for a TestFlight gate.
+- Full Release/TestFlight gate: update all target sims, then archive/upload.
+
 ## Apple-Side Checklist
 
 Created/verified in Apple Developer and App Store Connect:

@@ -117,6 +117,11 @@ SAVI is production-ready only when:
   - `SAVI` / `com.altatecrd.savi` / Release is the TestFlight and App Store channel.
   - `SAVI Test` / `com.altatecrd.savi.personaldebug` / Debug is the internal
     development channel.
+- Keep everyday iteration fast: use `scripts/savi-fast-dev-sim.sh` on one
+  current simulator, defaulting to iPhone 17. Do not launch or reinstall the
+  full simulator matrix for small UI/content changes.
+- Reserve `scripts/savi-install-both-sim.sh --clean` across iPhone 17,
+  iPhone Air, and iPhone 11 for explicit Release/TestFlight gates.
 - Ship the first external beta with Social Beta disabled in Release.
 - Keep friend feeds, public profiles, public folders, public sharing toggles,
   sample friend data, and public CloudKit social writes out of TestFlight until
