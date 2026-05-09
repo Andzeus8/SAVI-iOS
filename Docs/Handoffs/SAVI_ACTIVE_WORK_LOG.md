@@ -16,6 +16,30 @@ working in `/Users/guest1/Documents/SAVI-iOS` at the same time.
 
 ## Active / Recent Entries
 
+### 2026-05-09 16:17 CEST - Build 36 TestFlight upload
+
+- Owner: current Codex chat
+- Status: completed at 2026-05-09 16:35 CEST
+- Intended files:
+  - `/Users/guest1/Documents/SAVI-iOS/SAVI.xcodeproj/project.pbxproj`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/Handoffs/SAVI_ACTIVE_WORK_LOG.md`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/ChangeLog/2026-05-09.md`
+  - `/Users/guest1/Documents/SAVI-iOS/build/qa/`
+- Notes:
+  - User asked to push the latest visible Share Sheet details refresh.
+  - Bump iOS app/share-extension build from `35` to `36`, run Release validation, archive, and upload `SAVI 1.0 (36)` to App Store Connect/TestFlight.
+  - Keep product behavior unchanged except the already-implemented Share Sheet UI polish.
+- Result:
+  - Bumped iOS app/share-extension build settings to `36`; Mac companion target stayed at build `1`.
+  - Release generic iPhoneOS no-sign build passed.
+  - Signed Release archive succeeded at `/Users/guest1/Documents/SAVI-iOS/build/qa/archives/SAVI-20260509-163223-b36.xcarchive`.
+  - Verified archive metadata: version `1.0`, app bundle `com.altatecrd.savi`, app build `36`, share extension build `36`.
+  - Uploaded `SAVI 1.0 (36)` to App Store Connect/TestFlight; App Store Connect reported the uploaded package is processing.
+- Verification:
+  - Release no-sign log: `/Users/guest1/Documents/SAVI-iOS/build/qa/logs/SAVI-build36-release-iphoneos-nosign-20260509-163124.log`.
+  - Archive log: `/Users/guest1/Documents/SAVI-iOS/build/qa/logs/SAVI-archive-build36-20260509-163223.log`.
+  - Upload log: `/Users/guest1/Documents/SAVI-iOS/build/qa/logs/SAVI-export-upload-build36-20260509-163223.log`.
+
 ### 2026-05-09 16:12 CEST - Share Sheet visible details refresh
 
 - Owner: current Codex chat
