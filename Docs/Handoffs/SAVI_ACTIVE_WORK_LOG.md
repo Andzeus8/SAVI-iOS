@@ -16,6 +16,24 @@ working in `/Users/guest1/Documents/SAVI-iOS` at the same time.
 
 ## Active / Recent Entries
 
+### 2026-05-09 12:35 CEST - Share Sheet note and tag alignment cleanup
+
+- Owner: current Codex chat
+- Status: completed at 2026-05-09 12:37 CEST
+- Intended files:
+  - `/Users/guest1/Documents/SAVI-iOS/SAVIShareExtension/ShareViewController.swift`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/Handoffs/SAVI_ACTIVE_WORK_LOG.md`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/ChangeLog/2026-05-09.md`
+- Notes:
+  - User wants the Share Sheet note/tag area cleaned up because Add note and tags feel misaligned/off-placement.
+  - Keep persistence, metadata, folder selection, and TestFlight build behavior unchanged.
+- Result:
+  - Grouped suggested tags, custom tag entry, and note controls into a single soft details block inside the Share Sheet preview card.
+  - Added clear `Tags` and `Note` subheaders, removed the duplicate tiny inline `TAGS` label, and changed `Add note`/`Clear` into aligned pill controls.
+  - Tightened the custom tag input and plus button spacing without changing save persistence or metadata behavior.
+  - `git diff --check` passed.
+  - Debug iPhone simulator build passed with the `SAVIShareExtension` target compiling.
+
 ### 2026-05-09 12:00 CEST - GitHub sync for build 35 source
 
 - Owner: current Codex chat

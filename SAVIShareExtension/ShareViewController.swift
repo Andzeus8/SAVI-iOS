@@ -699,7 +699,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         titleField.isHidden = true
 
         configureTagWrapStack()
-        configureTextField(tagsField, placeholder: "Add a tag...")
+        configureTextField(tagsField, placeholder: "Add custom tag")
         tagsField.leftView = makeTagPrefixView()
         tagsField.leftViewMode = .always
         tagsField.autocapitalizationType = .none
@@ -714,6 +714,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         let notesActionsRow = UIStackView(arrangedSubviews: [notesToggleButton, UIView(), notesClearButton])
         notesActionsRow.axis = .horizontal
         notesActionsRow.alignment = .center
+        notesActionsRow.spacing = 8
         notesTextView.font = .preferredFont(forTextStyle: .footnote)
         notesTextView.textColor = ShareTheme.text
         notesTextView.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.82 : 1)
@@ -740,16 +741,22 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         notesPreviewLabel.layer.masksToBounds = true
         notesPreviewLabel.isHidden = true
 
-        cardStack.addArrangedSubview(innerStack)
-        cardStack.addArrangedSubview(titleField)
-        cardStack.addArrangedSubview(tagWrapStack)
-        cardStack.addArrangedSubview(tagInputRow)
+        let detailsStack = makeQuickDetailsStack()
+        detailsStack.addArrangedSubview(makeInlineControlHeader(title: "Tags", subtitle: "SAVI suggested these", symbolName: "tag.fill"))
+        detailsStack.addArrangedSubview(tagWrapStack)
+        detailsStack.addArrangedSubview(tagInputRow)
+        detailsStack.setCustomSpacing(12, after: tagInputRow)
+        detailsStack.addArrangedSubview(makeInlineControlHeader(title: "Note", subtitle: "Optional context for later", symbolName: "note.text"))
         notesActionsRow.layer.cornerRadius = 17
         notesActionsRow.isLayoutMarginsRelativeArrangement = true
-        notesActionsRow.layoutMargins = UIEdgeInsets(top: 0, left: 2, bottom: 0, right: 2)
-        cardStack.addArrangedSubview(notesActionsRow)
-        cardStack.addArrangedSubview(notesPreviewLabel)
-        cardStack.addArrangedSubview(notesTextView)
+        notesActionsRow.layoutMargins = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+        detailsStack.addArrangedSubview(notesActionsRow)
+        detailsStack.addArrangedSubview(notesPreviewLabel)
+        detailsStack.addArrangedSubview(notesTextView)
+
+        cardStack.addArrangedSubview(innerStack)
+        cardStack.addArrangedSubview(titleField)
+        cardStack.addArrangedSubview(detailsStack)
     }
 
     private func configureFolderSummaryCard() {
@@ -842,7 +849,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     private func configureTagWrapStack() {
         tagWrapStack.axis = .vertical
-        tagWrapStack.spacing = 4
+        tagWrapStack.spacing = 5
         tagWrapStack.alignment = .fill
         tagWrapStack.translatesAutoresizingMaskIntoConstraints = false
     }
@@ -850,19 +857,21 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     private func configureTagInputRow() {
         tagInputRow.axis = .horizontal
         tagInputRow.alignment = .center
-        tagInputRow.spacing = 7
+        tagInputRow.spacing = 8
         tagInputRow.translatesAutoresizingMaskIntoConstraints = false
+        tagsField.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        tagsField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         var config = UIButton.Configuration.filled()
         config.image = UIImage(systemName: "plus")
         config.cornerStyle = .capsule
-        config.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 5, bottom: 5, trailing: 5)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 6, bottom: 6, trailing: 6)
         addTagButton.configuration = config
         addTagButton.accessibilityLabel = "Add tag"
         addTagButton.addTarget(self, action: #selector(addTagButtonTapped), for: .touchUpInside)
         addTagButton.setContentCompressionResistancePriority(.required, for: .horizontal)
-        addTagButton.widthAnchor.constraint(equalToConstant: 34).isActive = true
-        addTagButton.heightAnchor.constraint(equalToConstant: 34).isActive = true
+        addTagButton.widthAnchor.constraint(equalToConstant: 36).isActive = true
+        addTagButton.heightAnchor.constraint(equalToConstant: 36).isActive = true
         updateAddTagButtonState()
 
         tagInputRow.addArrangedSubview(tagsField)
@@ -933,23 +942,68 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     private func configureNotesToggle() {
         var config = UIButton.Configuration.plain()
-        config.contentInsets = .zero
+        config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 11, bottom: 6, trailing: 12)
+        config.cornerStyle = .capsule
         config.baseForegroundColor = ShareTheme.muted
         notesToggleButton.configuration = config
         notesToggleButton.contentHorizontalAlignment = .leading
         notesToggleButton.addTarget(self, action: #selector(toggleNotes), for: .touchUpInside)
-        notesToggleButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 30).isActive = true
+        notesToggleButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 34).isActive = true
 
-        var clearConfig = UIButton.Configuration.plain()
+        var clearConfig = UIButton.Configuration.tinted()
         clearConfig.title = "Clear"
         clearConfig.image = UIImage(systemName: "xmark.circle.fill")
         clearConfig.imagePadding = 5
         clearConfig.baseForegroundColor = ShareTheme.muted
-        clearConfig.contentInsets = .zero
+        clearConfig.baseBackgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.78 : 0.24)
+        clearConfig.cornerStyle = .capsule
+        clearConfig.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 11)
         notesClearButton.configuration = clearConfig
         notesClearButton.contentHorizontalAlignment = .trailing
         notesClearButton.addTarget(self, action: #selector(clearNotesTapped), for: .touchUpInside)
-        notesClearButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 30).isActive = true
+        notesClearButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 34).isActive = true
+    }
+
+    private func makeQuickDetailsStack() -> UIStackView {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 8
+        stack.isLayoutMarginsRelativeArrangement = true
+        stack.layoutMargins = UIEdgeInsets(top: 11, left: 11, bottom: 11, right: 11)
+        stack.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.56 : 0.32)
+        stack.layer.cornerRadius = 17
+        return stack
+    }
+
+    private func makeInlineControlHeader(title: String, subtitle: String, symbolName: String) -> UIStackView {
+        let iconView = UIImageView(image: UIImage(systemName: symbolName))
+        iconView.tintColor = ShareTheme.muted.withAlphaComponent(0.78)
+        iconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
+        iconView.setContentHuggingPriority(.required, for: .horizontal)
+
+        let titleLabel = UILabel()
+        titleLabel.font = .systemFont(ofSize: 12.5, weight: .semibold)
+        titleLabel.textColor = ShareTheme.text.withAlphaComponent(0.82)
+        titleLabel.text = title
+
+        let subtitleLabel = UILabel()
+        subtitleLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        subtitleLabel.textColor = ShareTheme.muted.withAlphaComponent(0.82)
+        subtitleLabel.text = subtitle
+        subtitleLabel.numberOfLines = 1
+        subtitleLabel.lineBreakMode = .byTruncatingTail
+
+        let labelRow = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
+        labelRow.axis = .horizontal
+        labelRow.alignment = .firstBaseline
+        labelRow.spacing = 6
+        labelRow.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let row = UIStackView(arrangedSubviews: [iconView, labelRow])
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 6
+        return row
     }
 
     private func makeSectionCard(emphasized: Bool = false) -> UIStackView {
@@ -1877,8 +1931,6 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     private func rebuildTagViews() {
         clearArrangedSubviews(of: tagWrapStack)
 
-        tagWrapStack.addArrangedSubview(makeInlineHint("Tags"))
-
         let selectedValues = selectedTags.map { (value: $0, selected: true) }
         let selectedLower = Set(selectedTags.map { $0.lowercased() })
         let suggestedValues = suggestedTags
@@ -2394,12 +2446,16 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     private func applyNotesToggleConfiguration(hasNotes: Bool) {
         let hasManualNote = hasNotes && didEditNotesManually
-        var config = UIButton.Configuration.plain()
+        var config = UIButton.Configuration.filled()
         config.title = notesExpanded ? "Done" : hasManualNote ? "Edit note" : "Add note"
         config.image = UIImage(systemName: notesExpanded ? "checkmark.circle.fill" : "note.text")
         config.imagePadding = 5
-        config.baseForegroundColor = notesExpanded ? ShareTheme.text.withAlphaComponent(0.78) : ShareTheme.muted
-        config.contentInsets = .zero
+        config.cornerStyle = .capsule
+        config.baseBackgroundColor = notesExpanded
+            ? ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.62 : 0.28)
+            : ShareTheme.surface.withAlphaComponent(isLightAppearance ? 0.94 : 0.52)
+        config.baseForegroundColor = notesExpanded ? ShareTheme.text.withAlphaComponent(0.84) : ShareTheme.muted
+        config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 11, bottom: 6, trailing: 12)
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
             outgoing.font = .systemFont(ofSize: 12.5, weight: .semibold)
