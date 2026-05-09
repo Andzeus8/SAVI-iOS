@@ -31,7 +31,7 @@ working in `/Users/guest1/Documents/SAVI-iOS` at the same time.
   - Staged the full coordinated worktree, including build `35` metadata, architecture/backend docs, Mac companion/founder hub scaffolding, iOS/share-extension polish, public-site drafts, and preflight scripts.
   - `git diff --cached --check` passed after trimming extra EOF blank lines in new docs/scripts.
   - `scripts/savi-safety-scan.sh` passed with no likely app/admin secrets found outside docs/build/git.
-  - Created Git commit for the current source state and prepared it for push to `origin/codex/savi-build17-pilot-sync`.
+  - Created Git commit `c336989` for the current source state and pushed it to `origin/codex/savi-build17-pilot-sync`.
 
 ### 2026-05-09 11:50 CEST - Build 35 TestFlight upload
 
