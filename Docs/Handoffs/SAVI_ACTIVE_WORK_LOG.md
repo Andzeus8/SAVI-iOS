@@ -16,6 +16,28 @@ working in `/Users/guest1/Documents/SAVI-iOS` at the same time.
 
 ## Active / Recent Entries
 
+### 2026-05-09 12:52 CEST - Share Sheet full UI cleanup
+
+- Owner: current Codex chat
+- Status: completed at 2026-05-09 12:52 CEST
+- Intended files:
+  - `/Users/guest1/Documents/SAVI-iOS/SAVIShareExtension/ShareViewController.swift`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/Handoffs/SAVI_ACTIVE_WORK_LOG.md`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/ChangeLog/2026-05-09.md`
+- Notes:
+  - User wants a real Share Sheet UI pass: Save Now alignment, thumbnail/title treatment, tags, and overall cleanliness.
+  - Keep the share extraction, metadata enrichment, folder classification, persistence, and build/TestFlight settings unchanged.
+- Result:
+  - Reworked the Share Sheet top bar so `Save now` has a stable aligned width/height, title sits on the left, and Cancel/Save sit together on the right.
+  - Cleaned the preview card so it focuses on the thumbnail, metadata, title, spinner, and edit-title action only.
+  - Split tags and note controls into their own `Details` card below folder selection, reducing crowding around the thumbnail/title preview.
+  - Tightened preview thumbnail size, corner radius, border, typography, and spacing.
+  - Share extraction, metadata enrichment, folder classification, persistence, build number, signing, and TestFlight state were not changed.
+- Verification:
+  - `git diff --check` passed.
+  - Debug iPhone simulator build passed with the `SAVIShareExtension` target compiling.
+  - Latest Debug app/share extension was reinstalled/launched on the booted iPhone 17 Pro simulator.
+
 ### 2026-05-09 12:43 CEST - Home clear sample button de-emphasis
 
 - Owner: current Codex chat

@@ -198,6 +198,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     private let folderSummaryHintLabel = UILabel()
     private let folderChangeButton = UIButton(type: .system)
     private let folderGridStack = UIStackView()
+    private let detailsSection = UIStackView()
 
     private let titleField = UITextField()
     private var titleEditorExpanded = false
@@ -282,7 +283,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         view.addSubview(scrollView)
 
         contentStack.axis = .vertical
-        contentStack.spacing = 12
+        contentStack.spacing = 11
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentStack)
 
@@ -301,6 +302,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
         configurePreviewCard()
         configureFolderSummaryCard()
+        configureDetailsSection()
 
         let dismissKeyboardTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboardTapped))
         dismissKeyboardTap.cancelsTouchesInView = false
@@ -312,7 +314,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         configureFolderGrid()
         folderSection.addArrangedSubview(folderGridStack)
 
-        [previewCard, folderSection].forEach { contentStack.addArrangedSubview($0) }
+        [previewCard, folderSection, detailsSection].forEach { contentStack.addArrangedSubview($0) }
 
         setNotesExpanded(false, animated: false)
         rebuildFolderButtons()
@@ -353,20 +355,23 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         let controls = UIStackView()
         controls.axis = .horizontal
         controls.alignment = .center
-        controls.spacing = 10
+        controls.spacing = 8
         controls.translatesAutoresizingMaskIntoConstraints = false
         topBar.addSubview(controls)
 
         var cancelConfig = UIButton.Configuration.plain()
         cancelConfig.title = "Cancel"
         cancelConfig.baseForegroundColor = ShareTheme.muted
-        cancelConfig.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 4)
+        cancelConfig.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
         cancelConfig.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 15, weight: .regular)
+            outgoing.font = .systemFont(ofSize: 14.5, weight: .medium)
             return outgoing
         }
         cancelButton.configuration = cancelConfig
+        cancelButton.contentHorizontalAlignment = .center
+        cancelButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+        cancelButton.heightAnchor.constraint(equalToConstant: 38).isActive = true
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
 
         let iconBadge = UILabel()
@@ -383,14 +388,19 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         iconBadge.heightAnchor.constraint(equalToConstant: 20).isActive = true
 
         let sheetTitle = UILabel()
-        sheetTitle.font = .systemFont(ofSize: 17.5, weight: .black)
+        sheetTitle.font = .systemFont(ofSize: 17, weight: .black)
         sheetTitle.textColor = ShareTheme.text
         sheetTitle.text = "Save to SAVI"
+        sheetTitle.numberOfLines = 1
+        sheetTitle.adjustsFontSizeToFitWidth = true
+        sheetTitle.minimumScaleFactor = 0.82
 
         let titleRow = UIStackView(arrangedSubviews: [iconBadge, sheetTitle])
         titleRow.axis = .horizontal
         titleRow.alignment = .center
         titleRow.spacing = 7
+        titleRow.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        titleRow.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         var saveConfig = UIButton.Configuration.filled()
         saveConfig.title = "Save now"
@@ -400,22 +410,27 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         saveConfig.cornerStyle = .capsule
         saveConfig.baseBackgroundColor = ShareTheme.accent
         saveConfig.baseForegroundColor = .black
-        saveConfig.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 16)
+        saveConfig.contentInsets = NSDirectionalEdgeInsets(top: 9, leading: 14, bottom: 9, trailing: 16)
         saveConfig.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
             outgoing.font = .systemFont(ofSize: 14.5, weight: .semibold)
             return outgoing
         }
         saveButton.configuration = saveConfig
+        saveButton.contentHorizontalAlignment = .center
+        saveButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+        saveButton.setContentHuggingPriority(.required, for: .horizontal)
+        saveButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 112).isActive = true
+        saveButton.heightAnchor.constraint(equalToConstant: 38).isActive = true
         saveButton.layer.shadowColor = ShareTheme.accent.cgColor
         saveButton.layer.shadowOpacity = isLightAppearance ? 0.11 : 0.09
         saveButton.layer.shadowRadius = 5
         saveButton.layer.shadowOffset = CGSize(width: 0, height: 2)
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
 
-        controls.addArrangedSubview(cancelButton)
         controls.addArrangedSubview(titleRow)
         controls.addArrangedSubview(UIView())
+        controls.addArrangedSubview(cancelButton)
         controls.addArrangedSubview(saveButton)
 
         NSLayoutConstraint.activate([
@@ -430,8 +445,8 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
             controls.leadingAnchor.constraint(equalTo: topBar.leadingAnchor, constant: 16),
             controls.trailingAnchor.constraint(equalTo: topBar.trailingAnchor, constant: -16),
-            controls.topAnchor.constraint(equalTo: topBar.safeAreaLayoutGuide.topAnchor, constant: 5),
-            controls.bottomAnchor.constraint(equalTo: topBar.bottomAnchor, constant: -7),
+            controls.topAnchor.constraint(equalTo: topBar.safeAreaLayoutGuide.topAnchor, constant: 7),
+            controls.bottomAnchor.constraint(equalTo: topBar.bottomAnchor, constant: -8),
 
             divider.leadingAnchor.constraint(equalTo: topBar.leadingAnchor),
             divider.trailingAnchor.constraint(equalTo: topBar.trailingAnchor),
@@ -571,28 +586,30 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
         let cardStack = UIStackView()
         cardStack.axis = .vertical
-        cardStack.spacing = 8
+        cardStack.spacing = 10
         cardStack.translatesAutoresizingMaskIntoConstraints = false
         previewCard.addSubview(cardStack)
 
         NSLayoutConstraint.activate([
-            cardStack.leadingAnchor.constraint(equalTo: previewCard.leadingAnchor, constant: 14),
-            cardStack.trailingAnchor.constraint(equalTo: previewCard.trailingAnchor, constant: -14),
-            cardStack.topAnchor.constraint(equalTo: previewCard.topAnchor, constant: 14),
-            cardStack.bottomAnchor.constraint(equalTo: previewCard.bottomAnchor, constant: -14),
+            cardStack.leadingAnchor.constraint(equalTo: previewCard.leadingAnchor, constant: 13),
+            cardStack.trailingAnchor.constraint(equalTo: previewCard.trailingAnchor, constant: -13),
+            cardStack.topAnchor.constraint(equalTo: previewCard.topAnchor, constant: 13),
+            cardStack.bottomAnchor.constraint(equalTo: previewCard.bottomAnchor, constant: -13),
         ])
 
         let innerStack = UIStackView()
         innerStack.axis = .horizontal
-        innerStack.alignment = .top
-        innerStack.spacing = 13
+        innerStack.alignment = .center
+        innerStack.spacing = 12
 
         previewMediaWrap.translatesAutoresizingMaskIntoConstraints = false
-        previewMediaWrap.widthAnchor.constraint(equalToConstant: 72).isActive = true
-        previewMediaWrap.heightAnchor.constraint(equalToConstant: 72).isActive = true
-        previewMediaWrap.layer.cornerRadius = 20
+        previewMediaWrap.widthAnchor.constraint(equalToConstant: 66).isActive = true
+        previewMediaWrap.heightAnchor.constraint(equalToConstant: 66).isActive = true
+        previewMediaWrap.layer.cornerRadius = 18
         previewMediaWrap.layer.masksToBounds = true
         previewMediaWrap.backgroundColor = ShareTheme.limeSoft
+        previewMediaWrap.layer.borderWidth = 1
+        previewMediaWrap.layer.borderColor = ShareTheme.subtleStroke.withAlphaComponent(0.52).cgColor
 
         previewImageView.translatesAutoresizingMaskIntoConstraints = false
         previewImageView.contentMode = .scaleAspectFill
@@ -601,7 +618,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
         previewIconView.translatesAutoresizingMaskIntoConstraints = false
         previewIconView.tintColor = ShareTheme.muted
-        previewIconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 29, weight: .semibold)
+        previewIconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 27, weight: .semibold)
 
         previewMediaWrap.addSubview(previewImageView)
         previewMediaWrap.addSubview(previewIconView)
@@ -613,8 +630,8 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
             previewImageView.bottomAnchor.constraint(equalTo: previewMediaWrap.bottomAnchor),
             previewIconView.centerXAnchor.constraint(equalTo: previewMediaWrap.centerXAnchor),
             previewIconView.centerYAnchor.constraint(equalTo: previewMediaWrap.centerYAnchor),
-            previewIconView.widthAnchor.constraint(equalToConstant: 31),
-            previewIconView.heightAnchor.constraint(equalToConstant: 31),
+            previewIconView.widthAnchor.constraint(equalToConstant: 29),
+            previewIconView.heightAnchor.constraint(equalToConstant: 29),
         ])
 
         statusBadge.font = .preferredFont(forTextStyle: .caption1).bold()
@@ -628,9 +645,9 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         statusBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 92).isActive = true
         statusBadge.isHidden = true
 
-        detectedTitleLabel.font = .systemFont(ofSize: 18, weight: .bold)
+        detectedTitleLabel.font = .systemFont(ofSize: 17.2, weight: .bold)
         detectedTitleLabel.textColor = ShareTheme.text
-        detectedTitleLabel.numberOfLines = 4
+        detectedTitleLabel.numberOfLines = 3
         detectedTitleLabel.lineBreakMode = .byTruncatingTail
         detectedTitleLabel.adjustsFontForContentSizeCategory = true
         detectedTitleLabel.allowsDefaultTighteningForTruncation = true
@@ -638,11 +655,11 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         detectedTitleLabel.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         setDetectedTitle("Preparing your save...")
 
-        previewMetaLabel.font = .systemFont(ofSize: 10.5, weight: .semibold)
+        previewMetaLabel.font = .systemFont(ofSize: 10.2, weight: .semibold)
         previewMetaLabel.textColor = ShareTheme.muted.withAlphaComponent(isLightAppearance ? 0.88 : 0.92)
         previewMetaLabel.text = "Share Extension • Link"
 
-        previewSubtitleLabel.font = .systemFont(ofSize: 11.5, weight: .medium)
+        previewSubtitleLabel.font = .systemFont(ofSize: 11.2, weight: .medium)
         previewSubtitleLabel.textColor = ShareTheme.muted
         previewSubtitleLabel.numberOfLines = 1
         previewSubtitleLabel.lineBreakMode = .byTruncatingTail
@@ -667,8 +684,8 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         editTitleButton.accessibilityLabel = "Edit title"
         editTitleButton.setContentHuggingPriority(.required, for: .horizontal)
         editTitleButton.setContentCompressionResistancePriority(.required, for: .horizontal)
-        editTitleButton.widthAnchor.constraint(equalToConstant: 30).isActive = true
-        editTitleButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        editTitleButton.widthAnchor.constraint(equalToConstant: 29).isActive = true
+        editTitleButton.heightAnchor.constraint(equalToConstant: 29).isActive = true
         editTitleButton.addTarget(self, action: #selector(toggleTitleEditor), for: .touchUpInside)
 
         let topRow = UIStackView(arrangedSubviews: [previewMetaLabel, UIView(), spinner, editTitleButton])
@@ -683,7 +700,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
         let textStack = UIStackView(arrangedSubviews: [topRow, detectedTitleLabel, actionRow])
         textStack.axis = .vertical
-        textStack.spacing = 4
+        textStack.spacing = 3
         textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         textStack.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
@@ -697,6 +714,24 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         titleField.inputAccessoryView = makeKeyboardAccessoryToolbar()
         titleField.addTarget(self, action: #selector(titleFieldChanged), for: .editingChanged)
         titleField.isHidden = true
+
+        cardStack.addArrangedSubview(innerStack)
+        cardStack.addArrangedSubview(titleField)
+    }
+
+    private func configureDetailsSection() {
+        detailsSection.axis = .vertical
+        detailsSection.spacing = 8
+        detailsSection.isLayoutMarginsRelativeArrangement = true
+        detailsSection.layoutMargins = UIEdgeInsets(top: 12, left: 12, bottom: 13, right: 12)
+        detailsSection.backgroundColor = ShareTheme.surface
+        detailsSection.layer.cornerRadius = 21
+        detailsSection.layer.borderWidth = 1
+        detailsSection.layer.borderColor = ShareTheme.subtleStroke.cgColor
+        detailsSection.layer.shadowColor = ShareTheme.shadow.cgColor
+        detailsSection.layer.shadowOpacity = isLightAppearance ? 0.035 : 0.12
+        detailsSection.layer.shadowRadius = 12
+        detailsSection.layer.shadowOffset = CGSize(width: 0, height: 5)
 
         configureTagWrapStack()
         configureTextField(tagsField, placeholder: "Add custom tag")
@@ -715,6 +750,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         notesActionsRow.axis = .horizontal
         notesActionsRow.alignment = .center
         notesActionsRow.spacing = 8
+
         notesTextView.font = .preferredFont(forTextStyle: .footnote)
         notesTextView.textColor = ShareTheme.text
         notesTextView.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.82 : 1)
@@ -727,7 +763,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         notesTextView.inputAccessoryView = makeKeyboardAccessoryToolbar()
         notesTextView.isScrollEnabled = true
         notesTextView.textContainer.lineFragmentPadding = 4
-        notesHeightConstraint = notesTextView.heightAnchor.constraint(equalToConstant: 86)
+        notesHeightConstraint = notesTextView.heightAnchor.constraint(equalToConstant: 84)
         notesHeightConstraint?.isActive = true
 
         notesPreviewLabel.font = .preferredFont(forTextStyle: .footnote)
@@ -741,22 +777,14 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         notesPreviewLabel.layer.masksToBounds = true
         notesPreviewLabel.isHidden = true
 
-        let detailsStack = makeQuickDetailsStack()
-        detailsStack.addArrangedSubview(makeInlineControlHeader(title: "Tags", subtitle: "SAVI suggested these", symbolName: "tag.fill"))
-        detailsStack.addArrangedSubview(tagWrapStack)
-        detailsStack.addArrangedSubview(tagInputRow)
-        detailsStack.setCustomSpacing(12, after: tagInputRow)
-        detailsStack.addArrangedSubview(makeInlineControlHeader(title: "Note", subtitle: "Optional context for later", symbolName: "note.text"))
-        notesActionsRow.layer.cornerRadius = 17
-        notesActionsRow.isLayoutMarginsRelativeArrangement = true
-        notesActionsRow.layoutMargins = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-        detailsStack.addArrangedSubview(notesActionsRow)
-        detailsStack.addArrangedSubview(notesPreviewLabel)
-        detailsStack.addArrangedSubview(notesTextView)
-
-        cardStack.addArrangedSubview(innerStack)
-        cardStack.addArrangedSubview(titleField)
-        cardStack.addArrangedSubview(detailsStack)
+        detailsSection.addArrangedSubview(makeInlineControlHeader(title: "Tags", subtitle: "Suggested for this save", symbolName: "tag.fill"))
+        detailsSection.addArrangedSubview(tagWrapStack)
+        detailsSection.addArrangedSubview(tagInputRow)
+        detailsSection.setCustomSpacing(12, after: tagInputRow)
+        detailsSection.addArrangedSubview(makeInlineControlHeader(title: "Note", subtitle: "Optional context", symbolName: "note.text"))
+        detailsSection.addArrangedSubview(notesActionsRow)
+        detailsSection.addArrangedSubview(notesPreviewLabel)
+        detailsSection.addArrangedSubview(notesTextView)
     }
 
     private func configureFolderSummaryCard() {
@@ -962,17 +990,6 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         notesClearButton.contentHorizontalAlignment = .trailing
         notesClearButton.addTarget(self, action: #selector(clearNotesTapped), for: .touchUpInside)
         notesClearButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 34).isActive = true
-    }
-
-    private func makeQuickDetailsStack() -> UIStackView {
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 8
-        stack.isLayoutMarginsRelativeArrangement = true
-        stack.layoutMargins = UIEdgeInsets(top: 11, left: 11, bottom: 11, right: 11)
-        stack.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.56 : 0.32)
-        stack.layer.cornerRadius = 17
-        return stack
     }
 
     private func makeInlineControlHeader(title: String, subtitle: String, symbolName: String) -> UIStackView {
@@ -2000,8 +2017,10 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         let measuredWidth: CGFloat
         if tagWrapStack.bounds.width > 10 {
             measuredWidth = tagWrapStack.bounds.width
+        } else if detailsSection.bounds.width > 10 {
+            measuredWidth = detailsSection.bounds.width - 24
         } else if previewCard.bounds.width > 10 {
-            measuredWidth = previewCard.bounds.width - 28
+            measuredWidth = previewCard.bounds.width - 26
         } else if contentStack.bounds.width > 10 {
             measuredWidth = contentStack.bounds.width - 28
         } else {
@@ -2322,6 +2341,11 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         previewCard.backgroundColor = ShareTheme.surface
         previewCard.layer.shadowColor = ShareTheme.shadow.cgColor
         previewCard.layer.shadowOpacity = isLightAppearance ? 0.045 : 0.16
+        previewMediaWrap.layer.borderColor = ShareTheme.subtleStroke.withAlphaComponent(0.52).cgColor
+        detailsSection.backgroundColor = ShareTheme.surface
+        detailsSection.layer.borderColor = ShareTheme.subtleStroke.cgColor
+        detailsSection.layer.shadowColor = ShareTheme.shadow.cgColor
+        detailsSection.layer.shadowOpacity = isLightAppearance ? 0.035 : 0.12
         notesTextView.textColor = ShareTheme.text
         notesTextView.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.82 : 1)
         notesTextView.layer.borderColor = ShareTheme.subtleStroke.cgColor
@@ -2336,7 +2360,8 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         config.image = isReady ? UIImage(systemName: "checkmark") : nil
         config.imagePlacement = .leading
         config.imagePadding = isReady ? 4 : 0
-        config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 16)
+        config.cornerStyle = .capsule
+        config.contentInsets = NSDirectionalEdgeInsets(top: 9, leading: 14, bottom: 9, trailing: 16)
         config.baseBackgroundColor = isReady ? ShareTheme.accent : ShareTheme.surfaceRaised
         config.baseForegroundColor = isReady ? .black : ShareTheme.muted
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
