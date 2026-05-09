@@ -16,6 +16,26 @@ working in `/Users/guest1/Documents/SAVI-iOS` at the same time.
 
 ## Active / Recent Entries
 
+### 2026-05-09 14:03 CEST - Share Sheet tags and note visual balance
+
+- Owner: current Codex chat
+- Status: completed at 2026-05-09 14:47 CEST
+- Intended files:
+  - `/Users/guest1/Documents/SAVI-iOS/SAVIShareExtension/ShareViewController.swift`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/Handoffs/SAVI_ACTIVE_WORK_LOG.md`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/ChangeLog/2026-05-09.md`
+- Notes:
+  - User wants tags and note to feel more designed/balanced in the Share Sheet.
+  - Keep the single note button, tags/details above folders, share extraction, metadata, persistence, build/TestFlight settings unchanged.
+- Result:
+  - Rebalanced the details card spacing and margins around tags/note.
+  - Made selected tag chips read more clearly, quieted suggested chips, and improved the custom tag input/add button styling.
+  - Added a subtle divider before the note action and kept only one note button, with a compact preview only after the user writes a note.
+- Verification:
+  - `git diff --check` passed.
+  - Debug iPhone simulator build passed with `SAVIShareExtension`.
+  - Latest Debug app/share extension was reinstalled/launched on the iPhone 17 Pro simulator.
+
 ### 2026-05-09 13:42 CEST - Share Sheet single note label
 
 - Owner: current Codex chat

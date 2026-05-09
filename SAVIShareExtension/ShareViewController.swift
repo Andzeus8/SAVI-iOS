@@ -208,6 +208,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     private let tagsField = UITextField()
     private let addTagButton = UIButton(type: .system)
 
+    private let detailsDivider = UIView()
     private let notesToggleButton = UIButton(type: .system)
     private let notesClearButton = UIButton(type: .system)
     private let notesPreviewLabel = PaddedLabel()
@@ -721,9 +722,9 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     private func configureDetailsSection() {
         detailsSection.axis = .vertical
-        detailsSection.spacing = 8
+        detailsSection.spacing = 9
         detailsSection.isLayoutMarginsRelativeArrangement = true
-        detailsSection.layoutMargins = UIEdgeInsets(top: 12, left: 12, bottom: 13, right: 12)
+        detailsSection.layoutMargins = UIEdgeInsets(top: 13, left: 13, bottom: 13, right: 13)
         detailsSection.backgroundColor = ShareTheme.surface
         detailsSection.layer.cornerRadius = 21
         detailsSection.layer.borderWidth = 1
@@ -767,9 +768,9 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         notesHeightConstraint?.isActive = true
 
         notesPreviewLabel.font = .preferredFont(forTextStyle: .footnote)
-        notesPreviewLabel.textColor = ShareTheme.muted
-        notesPreviewLabel.numberOfLines = 1
-        notesPreviewLabel.contentInsets = UIEdgeInsets(top: 8, left: 11, bottom: 8, right: 11)
+        notesPreviewLabel.textColor = ShareTheme.text.withAlphaComponent(0.72)
+        notesPreviewLabel.numberOfLines = 2
+        notesPreviewLabel.contentInsets = UIEdgeInsets(top: 8, left: 12, bottom: 9, right: 12)
         notesPreviewLabel.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.62 : 1)
         notesPreviewLabel.layer.cornerRadius = 14
         notesPreviewLabel.layer.borderWidth = 1
@@ -777,10 +778,15 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         notesPreviewLabel.layer.masksToBounds = true
         notesPreviewLabel.isHidden = true
 
+        detailsDivider.backgroundColor = ShareTheme.subtleStroke.withAlphaComponent(isLightAppearance ? 0.62 : 0.36)
+        detailsDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
+
         detailsSection.addArrangedSubview(makeInlineControlHeader(title: "Tags", subtitle: "Suggested for this save", symbolName: "tag.fill"))
         detailsSection.addArrangedSubview(tagWrapStack)
         detailsSection.addArrangedSubview(tagInputRow)
-        detailsSection.setCustomSpacing(10, after: tagInputRow)
+        detailsSection.setCustomSpacing(11, after: tagInputRow)
+        detailsSection.addArrangedSubview(detailsDivider)
+        detailsSection.setCustomSpacing(9, after: detailsDivider)
         detailsSection.addArrangedSubview(notesActionsRow)
         detailsSection.addArrangedSubview(notesPreviewLabel)
         detailsSection.addArrangedSubview(notesTextView)
@@ -890,7 +896,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         tagsField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         var config = UIButton.Configuration.filled()
-        config.image = UIImage(systemName: "plus")
+        config.image = UIImage(systemName: "plus.circle.fill")
         config.cornerStyle = .capsule
         config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 6, bottom: 6, trailing: 6)
         addTagButton.configuration = config
@@ -907,10 +913,10 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     private func configureTextField(_ textField: UITextField, placeholder: String) {
         textField.borderStyle = .none
-        textField.backgroundColor = ShareTheme.tagNeutral
+        textField.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.72 : 0.34)
         textField.layer.cornerRadius = 15
         textField.layer.borderWidth = 1
-        textField.layer.borderColor = ShareTheme.subtleStroke.cgColor
+        textField.layer.borderColor = ShareTheme.subtleStroke.withAlphaComponent(isLightAppearance ? 0.82 : 0.52).cgColor
         textField.textColor = ShareTheme.text
         textField.tintColor = ShareTheme.text
         textField.attributedPlaceholder = NSAttributedString(
@@ -961,21 +967,24 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         let hasText = normalizedManualTags(from: tagsField.text ?? "").isEmpty == false
         addTagButton.isEnabled = hasText
         var config = addTagButton.configuration ?? UIButton.Configuration.filled()
-        config.baseBackgroundColor = hasText ? ShareTheme.text : ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.74 : 1)
-        config.baseForegroundColor = hasText ? ShareTheme.surface : ShareTheme.muted.withAlphaComponent(0.68)
+        config.baseBackgroundColor = hasText
+            ? ShareTheme.text
+            : ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.78 : 0.28)
+        config.baseForegroundColor = hasText ? ShareTheme.surface : ShareTheme.muted.withAlphaComponent(0.72)
         addTagButton.configuration = config
         addTagButton.alpha = hasText ? 1 : 0.78
     }
 
     private func configureNotesToggle() {
-        var config = UIButton.Configuration.plain()
-        config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 11, bottom: 6, trailing: 12)
+        var config = UIButton.Configuration.filled()
+        config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 13)
         config.cornerStyle = .capsule
         config.baseForegroundColor = ShareTheme.muted
+        config.baseBackgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.76 : 0.24)
         notesToggleButton.configuration = config
         notesToggleButton.contentHorizontalAlignment = .leading
         notesToggleButton.addTarget(self, action: #selector(toggleNotes), for: .touchUpInside)
-        notesToggleButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 34).isActive = true
+        notesToggleButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
 
         var clearConfig = UIButton.Configuration.tinted()
         clearConfig.title = "Clear"
@@ -988,7 +997,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         notesClearButton.configuration = clearConfig
         notesClearButton.contentHorizontalAlignment = .trailing
         notesClearButton.addTarget(self, action: #selector(clearNotesTapped), for: .touchUpInside)
-        notesClearButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 34).isActive = true
+        notesClearButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
     }
 
     private func makeInlineControlHeader(title: String, subtitle: String, symbolName: String) -> UIStackView {
@@ -2055,14 +2064,14 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         }
         config.cornerStyle = .capsule
         config.baseBackgroundColor = selected
-            ? ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.92 : 0.24)
-            : ShareTheme.tagNeutral.withAlphaComponent(isLightAppearance ? 0.70 : 0.18)
-        config.baseForegroundColor = selected ? ShareTheme.text.withAlphaComponent(0.74) : ShareTheme.text.withAlphaComponent(0.62)
-        config.contentInsets = NSDirectionalEdgeInsets(top: 3, leading: 9, bottom: 3, trailing: selected ? 7 : 9)
+            ? ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.48 : 0.24)
+            : ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.78 : 0.22)
+        config.baseForegroundColor = selected ? ShareTheme.text.withAlphaComponent(0.84) : ShareTheme.text.withAlphaComponent(0.66)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 10, bottom: 4, trailing: selected ? 8 : 10)
         config.titleLineBreakMode = .byTruncatingTail
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 11.2, weight: .semibold)
+            outgoing.font = .systemFont(ofSize: 11.4, weight: .semibold)
             return outgoing
         }
 
@@ -2073,12 +2082,12 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         button.titleLabel?.allowsDefaultTighteningForTruncation = true
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.78
-        button.layer.cornerRadius = 13
+        button.layer.cornerRadius = 14
         button.layer.borderWidth = 1
         button.layer.borderColor = selected
-            ? ShareTheme.stroke.withAlphaComponent(isLightAppearance ? 0.58 : 0.24).cgColor
+            ? ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.56 : 0.30).cgColor
             : ShareTheme.stroke.withAlphaComponent(isLightAppearance ? 0.34 : 0.16).cgColor
-        button.heightAnchor.constraint(equalToConstant: 27).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 29).isActive = true
         button.accessibilityLabel = selected ? "Remove tag \(value)" : "Add tag \(value)"
         button.addAction(UIAction(handler: { [weak self] _ in
             self?.toggleTag(value, forceSelection: !selected)
@@ -2088,17 +2097,25 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     private func makeTagEditorButton(hiddenCount: Int) -> UIButton {
         var config = UIButton.Configuration.filled()
-        config.title = tagsExpanded ? "Done" : "More"
-        config.image = UIImage(systemName: tagsExpanded ? "checkmark.circle.fill" : "ellipsis.circle")
+        if tagsExpanded {
+            config.title = "Done"
+            config.image = UIImage(systemName: "checkmark.circle.fill")
+        } else if hiddenCount > 0 {
+            config.title = "More"
+            config.image = UIImage(systemName: "ellipsis.circle")
+        } else {
+            config.title = "Edit"
+            config.image = UIImage(systemName: "slider.horizontal.3")
+        }
         config.imagePadding = 4
         config.cornerStyle = .capsule
-        config.baseBackgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.76 : 0.22)
-        config.baseForegroundColor = ShareTheme.text.withAlphaComponent(0.62)
-        config.contentInsets = NSDirectionalEdgeInsets(top: 3, leading: 9, bottom: 3, trailing: 9)
+        config.baseBackgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.84 : 0.26)
+        config.baseForegroundColor = ShareTheme.text.withAlphaComponent(0.66)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10)
         config.titleLineBreakMode = .byTruncatingTail
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 11.2, weight: .semibold)
+            outgoing.font = .systemFont(ofSize: 11.4, weight: .semibold)
             return outgoing
         }
 
@@ -2109,7 +2126,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.78
         button.addTarget(self, action: #selector(toggleTagsEditor), for: .touchUpInside)
-        button.heightAnchor.constraint(equalToConstant: 27).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 29).isActive = true
         if tagsExpanded {
             button.accessibilityLabel = "Done editing tags"
         } else if hiddenCount > 0 {
@@ -2352,10 +2369,13 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         detailsSection.layer.borderColor = ShareTheme.subtleStroke.cgColor
         detailsSection.layer.shadowColor = ShareTheme.shadow.cgColor
         detailsSection.layer.shadowOpacity = isLightAppearance ? 0.035 : 0.12
+        tagsField.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.72 : 0.34)
+        tagsField.layer.borderColor = ShareTheme.subtleStroke.withAlphaComponent(isLightAppearance ? 0.82 : 0.52).cgColor
+        detailsDivider.backgroundColor = ShareTheme.subtleStroke.withAlphaComponent(isLightAppearance ? 0.62 : 0.36)
         notesTextView.textColor = ShareTheme.text
         notesTextView.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.82 : 1)
         notesTextView.layer.borderColor = ShareTheme.subtleStroke.cgColor
-        notesPreviewLabel.textColor = ShareTheme.muted
+        notesPreviewLabel.textColor = ShareTheme.text.withAlphaComponent(0.72)
         notesPreviewLabel.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.62 : 1)
         notesPreviewLabel.layer.borderColor = ShareTheme.subtleStroke.withAlphaComponent(0.82).cgColor
     }
@@ -2453,6 +2473,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     private func updateNotesPresentation(animated: Bool) {
         let trimmedNotes = notesTextView.text.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasNotes = !trimmedNotes.isEmpty
+        let hasManualNote = hasNotes && didEditNotesManually
         notesPreviewLabel.text = hasNotes ? trimmedNotes : ""
 
         applyNotesToggleConfiguration(hasNotes: hasNotes)
@@ -2460,8 +2481,8 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         let changes = {
             self.notesTextView.isHidden = !self.notesExpanded
             self.notesTextView.alpha = self.notesExpanded ? 1 : 0
-            self.notesPreviewLabel.isHidden = true
-            self.notesPreviewLabel.alpha = 0
+            self.notesPreviewLabel.isHidden = self.notesExpanded || !hasManualNote
+            self.notesPreviewLabel.alpha = self.notesExpanded || !hasManualNote ? 0 : 1
             self.notesClearButton.isHidden = !self.notesExpanded || !hasNotes
             self.notesClearButton.isEnabled = hasNotes
             self.notesClearButton.alpha = hasNotes ? 1 : 0.42
@@ -2479,17 +2500,17 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         let hasManualNote = hasNotes && didEditNotesManually
         var config = UIButton.Configuration.filled()
         config.title = notesExpanded ? "Done" : hasManualNote ? "Edit note" : "Add note"
-        config.image = UIImage(systemName: notesExpanded ? "checkmark.circle.fill" : "note.text")
+        config.image = UIImage(systemName: notesExpanded ? "checkmark.circle.fill" : hasManualNote ? "square.and.pencil" : "note.text")
         config.imagePadding = 5
         config.cornerStyle = .capsule
         config.baseBackgroundColor = notesExpanded
             ? ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.62 : 0.28)
-            : ShareTheme.surface.withAlphaComponent(isLightAppearance ? 0.94 : 0.52)
-        config.baseForegroundColor = notesExpanded ? ShareTheme.text.withAlphaComponent(0.84) : ShareTheme.muted
-        config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 11, bottom: 6, trailing: 12)
+            : ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.82 : 0.28)
+        config.baseForegroundColor = notesExpanded ? ShareTheme.text.withAlphaComponent(0.86) : ShareTheme.text.withAlphaComponent(0.70)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 13)
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 12.5, weight: .semibold)
+            outgoing.font = .systemFont(ofSize: 12.8, weight: .semibold)
             return outgoing
         }
         notesToggleButton.configuration = config
