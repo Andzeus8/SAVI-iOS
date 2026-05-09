@@ -16,6 +16,26 @@ working in `/Users/guest1/Documents/SAVI-iOS` at the same time.
 
 ## Active / Recent Entries
 
+### 2026-05-09 16:12 CEST - Share Sheet visible details refresh
+
+- Owner: current Codex chat
+- Status: completed at 2026-05-09 16:12 CEST
+- Intended files:
+  - `/Users/guest1/Documents/SAVI-iOS/SAVIShareExtension/ShareViewController.swift`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/Handoffs/SAVI_ACTIVE_WORK_LOG.md`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/ChangeLog/2026-05-09.md`
+- Notes:
+  - User reported the Share Sheet still looked the same; likely due to subtle previous styling and/or a cached share-extension process.
+  - Make the details card visibly different without changing share extraction, metadata, persistence, build/TestFlight settings, or folder ordering.
+- Result:
+  - Made the details area visibly distinct with a subtle accent-tinted card, top accent bar, stronger `Smart tags` header, larger tag input/add button, and more obvious selected chips.
+  - Kept one note button and made the note row feel more integrated under the tag controls.
+  - Hard-uninstalled and reinstalled the Debug simulator app to clear share-extension caching.
+- Verification:
+  - `git diff --check` passed.
+  - Debug iPhone simulator build passed with `SAVIShareExtension`.
+  - Latest Debug app/share extension was clean-installed/launched on the iPhone 17 Pro simulator.
+
 ### 2026-05-09 14:03 CEST - Share Sheet tags and note visual balance
 
 - Owner: current Codex chat

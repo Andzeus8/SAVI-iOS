@@ -208,6 +208,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
     private let tagsField = UITextField()
     private let addTagButton = UIButton(type: .system)
 
+    private let detailsAccentBar = UIView()
     private let detailsDivider = UIView()
     private let notesToggleButton = UIButton(type: .system)
     private let notesClearButton = UIButton(type: .system)
@@ -722,17 +723,22 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     private func configureDetailsSection() {
         detailsSection.axis = .vertical
-        detailsSection.spacing = 9
+        detailsSection.spacing = 10
         detailsSection.isLayoutMarginsRelativeArrangement = true
         detailsSection.layoutMargins = UIEdgeInsets(top: 13, left: 13, bottom: 13, right: 13)
-        detailsSection.backgroundColor = ShareTheme.surface
+        detailsSection.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.46 : 0.92)
         detailsSection.layer.cornerRadius = 21
         detailsSection.layer.borderWidth = 1
-        detailsSection.layer.borderColor = ShareTheme.subtleStroke.cgColor
+        detailsSection.layer.borderColor = ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.28 : 0.18).cgColor
         detailsSection.layer.shadowColor = ShareTheme.shadow.cgColor
-        detailsSection.layer.shadowOpacity = isLightAppearance ? 0.035 : 0.12
-        detailsSection.layer.shadowRadius = 12
-        detailsSection.layer.shadowOffset = CGSize(width: 0, height: 5)
+        detailsSection.layer.shadowOpacity = isLightAppearance ? 0.055 : 0.14
+        detailsSection.layer.shadowRadius = 14
+        detailsSection.layer.shadowOffset = CGSize(width: 0, height: 6)
+
+        detailsAccentBar.backgroundColor = ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.78 : 0.48)
+        detailsAccentBar.layer.cornerRadius = 2
+        detailsAccentBar.layer.masksToBounds = true
+        detailsAccentBar.heightAnchor.constraint(equalToConstant: 4).isActive = true
 
         configureTagWrapStack()
         configureTextField(tagsField, placeholder: "Add custom tag")
@@ -781,10 +787,12 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         detailsDivider.backgroundColor = ShareTheme.subtleStroke.withAlphaComponent(isLightAppearance ? 0.62 : 0.36)
         detailsDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
 
-        detailsSection.addArrangedSubview(makeInlineControlHeader(title: "Tags", subtitle: "Suggested for this save", symbolName: "tag.fill"))
+        detailsSection.addArrangedSubview(detailsAccentBar)
+        detailsSection.setCustomSpacing(11, after: detailsAccentBar)
+        detailsSection.addArrangedSubview(makeInlineControlHeader(title: "Smart tags", subtitle: "Tap chips or add your own", symbolName: "tag.fill"))
         detailsSection.addArrangedSubview(tagWrapStack)
         detailsSection.addArrangedSubview(tagInputRow)
-        detailsSection.setCustomSpacing(11, after: tagInputRow)
+        detailsSection.setCustomSpacing(12, after: tagInputRow)
         detailsSection.addArrangedSubview(detailsDivider)
         detailsSection.setCustomSpacing(9, after: detailsDivider)
         detailsSection.addArrangedSubview(notesActionsRow)
@@ -903,8 +911,8 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         addTagButton.accessibilityLabel = "Add tag"
         addTagButton.addTarget(self, action: #selector(addTagButtonTapped), for: .touchUpInside)
         addTagButton.setContentCompressionResistancePriority(.required, for: .horizontal)
-        addTagButton.widthAnchor.constraint(equalToConstant: 36).isActive = true
-        addTagButton.heightAnchor.constraint(equalToConstant: 36).isActive = true
+        addTagButton.widthAnchor.constraint(equalToConstant: 38).isActive = true
+        addTagButton.heightAnchor.constraint(equalToConstant: 38).isActive = true
         updateAddTagButtonState()
 
         tagInputRow.addArrangedSubview(tagsField)
@@ -913,8 +921,8 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     private func configureTextField(_ textField: UITextField, placeholder: String) {
         textField.borderStyle = .none
-        textField.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.72 : 0.34)
-        textField.layer.cornerRadius = 15
+        textField.backgroundColor = ShareTheme.surface.withAlphaComponent(isLightAppearance ? 0.92 : 0.42)
+        textField.layer.cornerRadius = 16
         textField.layer.borderWidth = 1
         textField.layer.borderColor = ShareTheme.subtleStroke.withAlphaComponent(isLightAppearance ? 0.82 : 0.52).cgColor
         textField.textColor = ShareTheme.text
@@ -924,7 +932,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
             attributes: [.foregroundColor: ShareTheme.muted.withAlphaComponent(0.72)]
         )
         textField.clearButtonMode = .whileEditing
-        textField.heightAnchor.constraint(equalToConstant: 34).isActive = true
+        textField.heightAnchor.constraint(equalToConstant: 38).isActive = true
         textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 1))
         textField.leftViewMode = .always
         textField.delegate = self
@@ -969,7 +977,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         var config = addTagButton.configuration ?? UIButton.Configuration.filled()
         config.baseBackgroundColor = hasText
             ? ShareTheme.text
-            : ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.78 : 0.28)
+            : ShareTheme.surface.withAlphaComponent(isLightAppearance ? 0.82 : 0.32)
         config.baseForegroundColor = hasText ? ShareTheme.surface : ShareTheme.muted.withAlphaComponent(0.72)
         addTagButton.configuration = config
         addTagButton.alpha = hasText ? 1 : 0.78
@@ -977,14 +985,14 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
     private func configureNotesToggle() {
         var config = UIButton.Configuration.filled()
-        config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 13)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 9, leading: 13, bottom: 9, trailing: 14)
         config.cornerStyle = .capsule
         config.baseForegroundColor = ShareTheme.muted
-        config.baseBackgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.76 : 0.24)
+        config.baseBackgroundColor = ShareTheme.surface.withAlphaComponent(isLightAppearance ? 0.90 : 0.36)
         notesToggleButton.configuration = config
         notesToggleButton.contentHorizontalAlignment = .leading
         notesToggleButton.addTarget(self, action: #selector(toggleNotes), for: .touchUpInside)
-        notesToggleButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
+        notesToggleButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 40).isActive = true
 
         var clearConfig = UIButton.Configuration.tinted()
         clearConfig.title = "Clear"
@@ -2064,10 +2072,10 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         }
         config.cornerStyle = .capsule
         config.baseBackgroundColor = selected
-            ? ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.48 : 0.24)
-            : ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.78 : 0.22)
-        config.baseForegroundColor = selected ? ShareTheme.text.withAlphaComponent(0.84) : ShareTheme.text.withAlphaComponent(0.66)
-        config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 10, bottom: 4, trailing: selected ? 8 : 10)
+            ? ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.72 : 0.34)
+            : ShareTheme.surface.withAlphaComponent(isLightAppearance ? 0.86 : 0.30)
+        config.baseForegroundColor = selected ? ShareTheme.text.withAlphaComponent(0.90) : ShareTheme.text.withAlphaComponent(0.68)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 11, bottom: 5, trailing: selected ? 8 : 11)
         config.titleLineBreakMode = .byTruncatingTail
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
@@ -2082,12 +2090,12 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         button.titleLabel?.allowsDefaultTighteningForTruncation = true
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.78
-        button.layer.cornerRadius = 14
+        button.layer.cornerRadius = 15
         button.layer.borderWidth = 1
         button.layer.borderColor = selected
-            ? ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.56 : 0.30).cgColor
+            ? ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.74 : 0.38).cgColor
             : ShareTheme.stroke.withAlphaComponent(isLightAppearance ? 0.34 : 0.16).cgColor
-        button.heightAnchor.constraint(equalToConstant: 29).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 31).isActive = true
         button.accessibilityLabel = selected ? "Remove tag \(value)" : "Add tag \(value)"
         button.addAction(UIAction(handler: { [weak self] _ in
             self?.toggleTag(value, forceSelection: !selected)
@@ -2109,9 +2117,9 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         }
         config.imagePadding = 4
         config.cornerStyle = .capsule
-        config.baseBackgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.84 : 0.26)
+        config.baseBackgroundColor = ShareTheme.surface.withAlphaComponent(isLightAppearance ? 0.88 : 0.34)
         config.baseForegroundColor = ShareTheme.text.withAlphaComponent(0.66)
-        config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 11, bottom: 5, trailing: 11)
         config.titleLineBreakMode = .byTruncatingTail
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
@@ -2126,7 +2134,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.78
         button.addTarget(self, action: #selector(toggleTagsEditor), for: .touchUpInside)
-        button.heightAnchor.constraint(equalToConstant: 29).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 31).isActive = true
         if tagsExpanded {
             button.accessibilityLabel = "Done editing tags"
         } else if hiddenCount > 0 {
@@ -2365,11 +2373,12 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         previewCard.layer.shadowColor = ShareTheme.shadow.cgColor
         previewCard.layer.shadowOpacity = isLightAppearance ? 0.045 : 0.16
         previewMediaWrap.layer.borderColor = ShareTheme.subtleStroke.withAlphaComponent(0.52).cgColor
-        detailsSection.backgroundColor = ShareTheme.surface
-        detailsSection.layer.borderColor = ShareTheme.subtleStroke.cgColor
+        detailsSection.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.46 : 0.92)
+        detailsSection.layer.borderColor = ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.28 : 0.18).cgColor
         detailsSection.layer.shadowColor = ShareTheme.shadow.cgColor
-        detailsSection.layer.shadowOpacity = isLightAppearance ? 0.035 : 0.12
-        tagsField.backgroundColor = ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.72 : 0.34)
+        detailsSection.layer.shadowOpacity = isLightAppearance ? 0.055 : 0.14
+        detailsAccentBar.backgroundColor = ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.78 : 0.48)
+        tagsField.backgroundColor = ShareTheme.surface.withAlphaComponent(isLightAppearance ? 0.92 : 0.42)
         tagsField.layer.borderColor = ShareTheme.subtleStroke.withAlphaComponent(isLightAppearance ? 0.82 : 0.52).cgColor
         detailsDivider.backgroundColor = ShareTheme.subtleStroke.withAlphaComponent(isLightAppearance ? 0.62 : 0.36)
         notesTextView.textColor = ShareTheme.text
@@ -2505,9 +2514,9 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         config.cornerStyle = .capsule
         config.baseBackgroundColor = notesExpanded
             ? ShareTheme.accent.withAlphaComponent(isLightAppearance ? 0.62 : 0.28)
-            : ShareTheme.surfaceRaised.withAlphaComponent(isLightAppearance ? 0.82 : 0.28)
+            : ShareTheme.surface.withAlphaComponent(isLightAppearance ? 0.90 : 0.36)
         config.baseForegroundColor = notesExpanded ? ShareTheme.text.withAlphaComponent(0.86) : ShareTheme.text.withAlphaComponent(0.70)
-        config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 13)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 9, leading: 13, bottom: 9, trailing: 14)
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
             outgoing.font = .systemFont(ofSize: 12.8, weight: .semibold)
