@@ -37,10 +37,13 @@ Multiple Codex chats may work in this repo at the same time. Before editing:
 
 - Run `git status --short`.
 - Read `/Users/guest1/Documents/SAVI-iOS/Docs/Handoffs/SAVI_ACTIVE_WORK_LOG.md`.
+- Treat the active work log as the fast cross-chat source of truth. If the user asks what another chat did, summarize the newest entries there before guessing from memory.
 - Add a short work-log entry listing the files you expect to touch.
 - Avoid files another active chat has claimed unless the change is necessary.
 - Never revert unrelated changes from another chat.
 - After verification, update the work-log entry with status and test notes.
+- For meaningful app changes, simulator refreshes, archives, or TestFlight uploads, also add/update the dated changelog in `/Users/guest1/Documents/SAVI-iOS/Docs/ChangeLog/`.
+- For coordination-only turns, update the active work log instead of adding noise to the changelog.
 
 ## Fast UI Iteration Rule
 

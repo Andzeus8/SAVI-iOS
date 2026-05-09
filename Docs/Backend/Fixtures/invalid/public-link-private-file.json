@@ -1,0 +1,16 @@
+{
+  "id": "1cddfa40-c433-45bb-a18d-9ad4d52229bc",
+  "ownerId": "6b3d60a9-b4fb-4359-8b64-73a28434fe5a",
+  "localItemId": "item_private_pdf",
+  "title": "Private insurance PDF",
+  "description": "This should never be publishable.",
+  "url": "file:///private/insurance.pdf",
+  "canonicalUrl": "file:///private/insurance.pdf",
+  "domain": "local-file",
+  "itemType": "pdf",
+  "folderId": "f-private-vault",
+  "folderName": "Private Vault",
+  "tags": ["private", "insurance", "pdf"],
+  "sharedAt": "2026-05-08T12:50:00Z",
+  "isHidden": false
+}

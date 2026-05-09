@@ -52,6 +52,26 @@ Pass criteria:
 - Full archive export warns that private/locked content may be included.
 - Restore/import does not publish social or public data without explicit user action.
 
+## Archive Export And Restore Gate
+
+Operational runbook:
+
+- `Docs/Architecture/Runbooks/ArchiveExportRestoreQA.md`
+- `scripts/savi-archive-restore-check.py`
+
+Archive export and restore gate:
+
+- Profile > Backup > Export full archive shows a preparing/loading state, then
+  opens the iOS share/file sheet.
+- The exported archive can be saved to Files or iCloud Drive and has a non-zero
+  size.
+- Restore shows a preview and requires confirmation before replacing the
+  current local library.
+- At least one fresh-install restore has passed before a wider release.
+- Private Vault and locked-folder content stay protected after restore.
+- Restore never publishes public links, enables social, or uploads restored
+  content in Release.
+
 ## App Store Gate
 
 - Build Release for `SAVI` and `SAVIShareExtension`.
@@ -64,8 +84,16 @@ Pass criteria:
 - Confirm privacy labels match local storage, CloudKit/social sync, image search proxy, metadata fetching, and analytics status.
 - Confirm the App Store Connect export-compliance answer matches
   `ITSAppUsesNonExemptEncryption = NO` in the app and share extension.
+- Run `scripts/savi-appstore-export-compliance-check.py` and follow
+  `Docs/Architecture/Runbooks/AppStoreExportCompliance.md` before relying on
+  the export-compliance answer.
 
 ## Share Extension Gate
+
+Operational runbook:
+
+- `Docs/Architecture/Runbooks/ShareExtensionRealDeviceQA.md`
+- `scripts/savi-share-extension-qa-check.py`
 
 Test from real share sheets where possible:
 
@@ -83,9 +111,21 @@ Pass criteria:
 - Metadata and AI never trap the user.
 - Pending share imports into the main app on foreground.
 
+Share Extension real-device gate:
+
+- Test Release `SAVI` / `com.altatecrd.savi`, not only Debug.
+- Include one modern iPhone and one iPhone 11 / iOS 17-class device when
+  available.
+- Verify metadata fallback by saving at least one URL/video under poor network
+  or offline conditions.
+- Do not ask testers to share private documents, IDs, passwords, recovery
+  codes, Private Vault content, or exported archives while testing.
+
 ## Feedback Gate
 
 - App Store Connect Beta Feedback Email is `1080solutionsA@gmail.com`.
+- Crash/performance triage runbook:
+  `Docs/Architecture/Runbooks/CrashAndPerformanceTriage.md`.
 - Profile > Help & Feedback opens a prefilled bug report with build/device/iOS
   context and does not attach logs or saved content automatically.
 - If Mail is unavailable, the app copies `1080solutionsA@gmail.com`.
@@ -94,6 +134,9 @@ Pass criteria:
 
 ## Performance Gate
 
+- Run `scripts/savi-crash-performance-check.py` before TestFlight handoffs
+  that involve launch crashes, iPhone 11/iOS 17 reports, slow Home/Search
+  scroll, thumbnail jank, or share extension stalls.
 - Cold launch feels immediate on a fresh install.
 - Home and Search scroll without visible hitching on seeded/demo data.
 - Explore mosaic loads without overlapping cards.

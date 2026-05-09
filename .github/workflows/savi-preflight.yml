@@ -1,0 +1,69 @@
+name: SAVI Preflight
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      run_builds:
+        description: "Run iOS Release and SAVI Mac build checks"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: savi-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quick-preflight:
+    name: Quick Preflight
+    runs-on: macos-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          python3 --version
+
+      - name: Ensure ripgrep
+        run: |
+          if ! command -v rg >/dev/null 2>&1; then
+            brew install ripgrep
+          fi
+
+      - name: Run SAVI quick preflight
+        run: scripts/savi-preflight.sh
+
+  build-preflight:
+    name: Build Preflight
+    runs-on: macos-latest
+    timeout-minutes: 45
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_builds }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          python3 --version
+
+      - name: Ensure ripgrep
+        run: |
+          if ! command -v rg >/dev/null 2>&1; then
+            brew install ripgrep
+          fi
+
+      - name: Run SAVI full build preflight
+        run: scripts/savi-preflight.sh --all-builds

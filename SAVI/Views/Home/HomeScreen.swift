@@ -29,66 +29,76 @@ struct HomeScreen: View {
             : []
 
         ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Color.clear
-                        .frame(height: 0)
-                        .id(HomeScrollTarget.top)
+            ZStack(alignment: .bottom) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Color.clear
+                            .frame(height: 0)
+                            .id(HomeScrollTarget.top)
 
-                    HomeHeader(saveCount: store.items.count) {
-                        customizeHomePresented = true
-                    }
-
-                    HomeSearchLauncher()
-                        .environmentObject(store)
-
-                    if SaviReleaseGate.demoLibraryEnabled, store.hasSampleLibraryContent {
-                        HomeSampleLibraryNotice()
-                            .environmentObject(store)
-                    }
-
-                    if visibleWidgets.isEmpty {
-                        HomeWidgetRecoveryCard {
+                        HomeHeader(saveCount: store.items.count) {
                             customizeHomePresented = true
                         }
-                    } else {
-                        ForEach(visibleWidgets) { widget in
-                            HomeWidgetHost(
-                                widget: widget,
-                                allRecentItems: allRecentItems,
-                                recentGroups: recentGroups,
-                                layoutMode: layoutMode,
-                                visibleRecentCount: recentItems.count,
-                                totalRecentCount: allRecentItems.count,
-                                loadMoreRecentItems: loadMoreRecentItems
-                            )
-                            .id(widget.id)
+
+                        HomeSearchLauncher()
                             .environmentObject(store)
+
+                        if SaviReleaseGate.demoLibraryEnabled, store.hasSampleLibraryContent {
+                            HomeSampleLibraryNotice()
+                                .environmentObject(store)
+                        }
+
+                        if visibleWidgets.isEmpty {
+                            HomeWidgetRecoveryCard {
+                                customizeHomePresented = true
+                            }
+                        } else {
+                            ForEach(visibleWidgets) { widget in
+                                HomeWidgetHost(
+                                    widget: widget,
+                                    allRecentItems: allRecentItems,
+                                    recentGroups: recentGroups,
+                                    layoutMode: layoutMode,
+                                    visibleRecentCount: recentItems.count,
+                                    totalRecentCount: allRecentItems.count,
+                                    loadMoreRecentItems: loadMoreRecentItems
+                                )
+                                .id(widget.id)
+                                .environmentObject(store)
+                            }
+                        }
+
+                        if allRecentItems.isEmpty {
+                            HomeEmptyLibraryView()
+                                .environmentObject(store)
                         }
                     }
-
-                    if allRecentItems.isEmpty {
-                        HomeEmptyLibraryView()
-                            .environmentObject(store)
-                    }
+                    .padding(.horizontal, 18)
+                    .padding(.top, -10)
+                    .padding(.bottom, 28)
                 }
-                .padding(.horizontal, 18)
-                .padding(.top, -10)
-                .padding(.bottom, 28)
+                .scrollContentBackground(.hidden)
+
+                if store.shouldShowSampleLibraryWelcome {
+                    HomeSampleLibraryWelcomeOverlay()
+                        .environmentObject(store)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .zIndex(1)
+                }
             }
-            .scrollContentBackground(.hidden)
+            .animation(.spring(response: 0.34, dampingFraction: 0.86), value: store.shouldShowSampleLibraryWelcome)
             .background(SaviTheme.background.ignoresSafeArea())
-            .onAppear {
-                handleScrollToTopIfNeeded(proxy: proxy, animated: false)
-            }
-            .onChange(of: store.homeScrollToTopRequest) { _ in
-                handleScrollToTopIfNeeded(proxy: proxy, animated: true)
-            }
             .sheet(isPresented: $customizeHomePresented) {
                 HomeWidgetBuilderSheet()
                     .environmentObject(store)
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
+            }
+            .onAppear {
+                handleScrollToTopIfNeeded(proxy: proxy, animated: false)
+            }
+            .onChange(of: store.homeScrollToTopRequest) { _ in
+                handleScrollToTopIfNeeded(proxy: proxy, animated: true)
             }
         }
     }
@@ -1162,39 +1172,172 @@ private struct HomeSearchLauncher: View {
 private struct HomeSampleLibraryNotice: View {
     @EnvironmentObject private var store: SaviStore
     @Environment(\.colorScheme) private var colorScheme
+    @State private var confirmClearSamples = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Image(systemName: "sparkles")
+        VStack(alignment: .leading, spacing: 11) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(SaviType.ui(.caption2, weight: .black))
+                    .foregroundStyle(.black)
+                    .frame(width: 26, height: 26)
+                    .background(SaviTheme.chartreuse)
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Sample library is loaded")
+                        .font(SaviType.ui(.subheadline, weight: .black))
+                        .foregroundStyle(SaviTheme.text)
+                    Text("Play with the examples, then clear them when you want SAVI to feel like yours. Your own saves stay safe.")
+                        .font(SaviType.reading(.caption, weight: .regular))
+                        .foregroundStyle(SaviTheme.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Button {
+                confirmClearSamples = true
+            } label: {
+                Label("Clear sample saves", systemImage: "trash.fill")
+                    .font(SaviType.ui(.caption, weight: .black))
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 38)
+            }
+            .foregroundStyle(Color.white)
+            .background(Color.red.opacity(colorScheme == .dark ? 0.84 : 0.92))
+            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .stroke(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.24), lineWidth: 1)
+            )
+            .shadow(color: Color.red.opacity(colorScheme == .dark ? 0.18 : 0.12), radius: 10, x: 0, y: 5)
+            .buttonStyle(SaviPressScaleButtonStyle())
+            .accessibilityHint("Only SAVI's sample saves will be removed. Personal saves stay untouched.")
+        }
+        .alert("Clear sample saves?", isPresented: $confirmClearSamples) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear samples", role: .destructive) {
+                store.clearDemoContent()
+            }
+        } message: {
+            Text("You can clear the examples whenever you are ready. This only removes SAVI's sample saves. Anything you added stays untouched.")
+        }
+        .padding(12)
+        .background(
+            LinearGradient(
+                colors: [
+                    SaviTheme.surface.opacity(colorScheme == .dark ? 0.88 : 0.96),
+                    SaviTheme.surfaceRaised.opacity(colorScheme == .dark ? 0.62 : 0.74)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(SaviTheme.chartreuse.opacity(colorScheme == .dark ? 0.20 : 0.30), lineWidth: 1)
+        )
+        .shadow(color: SaviTheme.cardShadow.opacity(colorScheme == .dark ? 0.10 : 0.08), radius: 14, x: 0, y: 7)
+    }
+}
+
+private struct HomeSampleLibraryWelcomeOverlay: View {
+    @EnvironmentObject private var store: SaviStore
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(SaviType.display(size: 21, weight: .black))
+                    .foregroundStyle(.black)
+                    .frame(width: 48, height: 48)
+                    .background(SaviTheme.chartreuse)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .shadow(color: SaviTheme.chartreuse.opacity(colorScheme == .light ? 0.22 : 0.34), radius: 14, x: 0, y: 8)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("START HERE")
+                        .font(SaviType.ui(.caption2, weight: .black))
+                        .tracking(1.2)
+                        .foregroundStyle(SaviTheme.accentText)
+
+                    Text("SAVI comes with examples.")
+                        .font(SaviType.display(size: 22, weight: .black))
+                        .foregroundStyle(SaviTheme.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Text("Poke around, see how SAVI works, and find something useful before adding your own saves.")
+                .font(SaviType.ui(.subheadline, weight: .semibold))
+                .foregroundStyle(SaviTheme.text)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 8) {
+                HomeSampleLibraryPromise(
+                    symbolName: "checkmark.shield.fill",
+                    text: "Clear examples anytime. Your saves stay untouched."
+                )
+                HomeSampleLibraryPromise(
+                    symbolName: "arrow.clockwise.circle.fill",
+                    text: "You can restore the examples anytime."
+                )
+            }
+
+            Button {
+                store.dismissSampleLibraryWelcome()
+            } label: {
+                Text("Got it")
+                    .font(SaviType.ui(.subheadline, weight: .black))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(SaviTheme.chartreuse)
+                    .foregroundStyle(.black)
+                    .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [
+                    SaviTheme.surface,
+                    SaviTheme.surfaceRaised.opacity(colorScheme == .light ? 0.94 : 0.82)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.5 : 0.7), lineWidth: 1)
+        )
+        .shadow(color: SaviTheme.cardShadow.opacity(colorScheme == .light ? 0.22 : 0.32), radius: 22, x: 0, y: 12)
+        .padding(.horizontal, 18)
+        .padding(.bottom, 94)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+private struct HomeSampleLibraryPromise: View {
+    let symbolName: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: symbolName)
                 .font(SaviType.ui(.caption, weight: .black))
                 .foregroundStyle(SaviTheme.accentText)
-                .frame(width: 26, height: 26)
-                .background(SaviTheme.chartreuse.opacity(colorScheme == .light ? 0.18 : 0.26))
-                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .frame(width: 18, height: 18)
 
-            Text("Sample saves are included so you can explore SAVI.")
+            Text(text)
                 .font(SaviType.ui(.caption, weight: .semibold))
                 .foregroundStyle(SaviTheme.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 6)
-
-            Button("Clear") {
-                store.clearDemoContent()
-            }
-            .font(SaviType.ui(.caption, weight: .black))
-            .foregroundStyle(SaviTheme.accentText)
-            .buttonStyle(.plain)
-            .accessibilityLabel("Clear sample saves")
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(SaviTheme.subtleSurface.opacity(colorScheme == .light ? 0.58 : 0.34))
-        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.42 : 0.62), lineWidth: 1)
-        )
     }
 }
 

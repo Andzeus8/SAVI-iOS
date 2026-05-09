@@ -1,0 +1,351 @@
+openapi: 3.1.0
+info:
+  title: SAVI Social V1 API Contract
+  version: 0.1.0
+  description: >
+    Platform-neutral contract for future SAVI social/account features. The first
+    implementation may use Supabase directly, but iOS, Android, Mac, and admin
+    surfaces should behave as if this contract exists.
+servers:
+  - url: https://api.example-savi-domain.com/v1
+    description: Placeholder only.
+security:
+  - bearerAuth: []
+paths:
+  /me/account:
+    delete:
+      summary: Delete current account and social data
+      description: >
+        Required before accounts are enabled externally. The server must revoke
+        Sign in with Apple credentials where applicable and delete/cascade user
+        profile, follows, public links, likes, reports, and blocks. Private
+        on-device library data remains controlled by the client/local archive
+        path.
+      responses:
+        "204":
+          description: Account deletion accepted/completed
+  /me/profile:
+    get:
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current profile
+    put:
+      summary: Update display profile and username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+  /profiles/{username}:
+    get:
+      summary: Look up a public profile by username
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public profile
+  /follows/{username}:
+    post:
+      summary: Follow user by username
+      description: Self-follow and duplicate follow must be rejected.
+      responses:
+        "204":
+          description: Followed
+    delete:
+      summary: Unfollow user by username
+      responses:
+        "204":
+          description: Unfollowed
+  /public-links:
+    get:
+      summary: Fetch current user's public links
+      responses:
+        "200":
+          description: Public links
+    post:
+      summary: Publish an eligible public web link
+      description: Files, PDFs, screenshots, images, Private Vault, and private notes are not eligible.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishPublicLinkRequest"
+      responses:
+        "201":
+          description: Published public link
+  /public-links/{id}:
+    delete:
+      summary: Unpublish/delete own public link
+      responses:
+        "204":
+          description: Removed
+  /feed/friends:
+    get:
+      summary: Fetch friends feed of visible public links
+      responses:
+        "200":
+          description: Feed
+  /public-links/{id}/like:
+    post:
+      summary: Heart a public link
+      responses:
+        "204":
+          description: Liked
+    delete:
+      summary: Remove heart
+      responses:
+        "204":
+          description: Unliked
+  /public-links/{id}/save:
+    post:
+      summary: Save a friend's public link into personal library
+      description: Creates a private copy in the user's local/personal SAVI library.
+      responses:
+        "201":
+          description: Private copy created
+  /reports:
+    post:
+      summary: Report a public link or profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportRequest"
+      responses:
+        "201":
+          description: Report submitted
+  /blocks/{username}:
+    post:
+      summary: Block user
+      responses:
+        "204":
+          description: Blocked
+    delete:
+      summary: Unblock user
+      responses:
+        "204":
+          description: Unblocked
+  /me/device-tokens:
+    post:
+      summary: Register APNs device token
+      description: >
+        Future account-only endpoint. Clients register their own APNs token with
+        user auth; only a protected backend sends pushes. Never include private
+        note text, file names, screenshots, vault content, or raw search queries.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceTokenRegistration"
+      responses:
+        "201":
+          description: Device token registered
+  /me/device-tokens/{id}:
+    delete:
+      summary: Delete/disable APNs device token
+      description: Used on logout, account deletion, or notification opt-out.
+      responses:
+        "204":
+          description: Device token disabled
+  /me/notification-settings:
+    get:
+      summary: Get notification settings
+      responses:
+        "200":
+          description: Current notification settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettings"
+    put:
+      summary: Update notification settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationSettings"
+      responses:
+        "200":
+          description: Updated notification settings
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      required: [code, message, retryable]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        requestId:
+          type: string
+    PublicLink:
+      type: object
+      required: [id, ownerId, title, url, canonicalUrl, domain, itemType, sharedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        url:
+          type: string
+          format: uri
+        canonicalUrl:
+          type: string
+          format: uri
+        domain:
+          type: string
+        itemType:
+          type: string
+          enum: [link, article, video, place]
+        thumbnailUrl:
+          type: string
+          format: uri
+        sharedAt:
+          type: string
+          format: date-time
+    Profile:
+      type: object
+      required: [id, username, displayName, isLinkSharingEnabled]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+          pattern: "^[a-z0-9_]{3,24}$"
+        displayName:
+          type: string
+        bio:
+          type: string
+        avatarColor:
+          type: string
+        isLinkSharingEnabled:
+          type: boolean
+    ProfileUpdate:
+      type: object
+      required: [username, displayName]
+      properties:
+        username:
+          type: string
+          pattern: "^[a-z0-9_]{3,24}$"
+        displayName:
+          type: string
+        bio:
+          type: string
+        avatarColor:
+          type: string
+        isLinkSharingEnabled:
+          type: boolean
+    PublishPublicLinkRequest:
+      type: object
+      required: [localItemId, title, url, canonicalUrl, domain, itemType, folderId, folderName, savedAt]
+      properties:
+        localItemId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        url:
+          type: string
+          format: uri
+        canonicalUrl:
+          type: string
+          format: uri
+        domain:
+          type: string
+        source:
+          type: string
+        itemType:
+          type: string
+          enum: [link, article, video, place]
+        folderId:
+          type: string
+        folderName:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        thumbnailUrl:
+          type: string
+          format: uri
+        savedAt:
+          type: string
+          format: date-time
+    ReportRequest:
+      type: object
+      required: [reason]
+      properties:
+        targetUserId:
+          type: string
+          format: uuid
+        targetLinkId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          enum: [spam, harassment, illegal, harmful, copyright, other]
+    DeviceTokenRegistration:
+      type: object
+      required: [token, platform, environment, appBuild]
+      properties:
+        token:
+          type: string
+          description: APNs token. Store server-side only; never send to analytics.
+        platform:
+          type: string
+          enum: [ios, macos]
+        environment:
+          type: string
+          enum: [sandbox, production]
+        appBuild:
+          type: string
+        appVersion:
+          type: string
+    NotificationSettings:
+      type: object
+      required:
+        - notificationsEnabled
+        - socialEnabled
+        - moderationEnabled
+        - accountSecurityEnabled
+        - backupSyncEnabled
+      properties:
+        notificationsEnabled:
+          type: boolean
+        socialEnabled:
+          type: boolean
+        moderationEnabled:
+          type: boolean
+        accountSecurityEnabled:
+          type: boolean
+        backupSyncEnabled:
+          type: boolean

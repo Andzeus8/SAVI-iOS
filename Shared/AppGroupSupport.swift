@@ -36,6 +36,7 @@ struct PendingShare: Codable, Identifiable {
     var folderConfidence: Int? = nil
     var folderReason: String? = nil
     var tags: [String]?
+    var titleEdited: Bool? = nil
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -55,6 +56,7 @@ struct PendingShare: Codable, Identifiable {
         case folderConfidence = "folder_confidence"
         case folderReason = "folder_reason"
         case tags
+        case titleEdited = "title_edited"
     }
 }
 
@@ -107,6 +109,7 @@ enum SAVIDeepLinkShare {
         append("folder_source", share.folderSource, to: &queryItems)
         append("folder_confidence", share.folderConfidence.map(String.init), to: &queryItems)
         append("folder_reason", share.folderReason, to: &queryItems)
+        append("title_edited", share.titleEdited == true ? "1" : nil, to: &queryItems)
 
         for tag in (share.tags ?? []).prefix(maxTags) {
             append("tag", tag, to: &queryItems, limit: 48)
@@ -157,7 +160,8 @@ enum SAVIDeepLinkShare {
             folderSource: first("folder_source"),
             folderConfidence: first("folder_confidence").flatMap(Int.init),
             folderReason: first("folder_reason"),
-            tags: tags.isEmpty ? nil : tags
+            tags: tags.isEmpty ? nil : tags,
+            titleEdited: first("title_edited").map { ["1", "true", "yes"].contains($0.lowercased()) }
         )
     }
 
@@ -187,10 +191,11 @@ enum SAVIPasteboardShare {
     private static let payloadType = "com.savi.pending-share+json"
     private static let handoffHost = "handoff"
     private static let acceptedSchemes: Set<String> = ["savi", "savi-debug"]
+    private static let maxInlineImageBytes = 12 * 1024 * 1024
 
     static func save(_ share: PendingShare) -> Bool {
-        guard SAVIDeepLinkShare.supportsFallback(share),
-              let data = try? JSONEncoder().encode(share)
+        guard let payload = pasteboardPayload(for: share),
+              let data = try? JSONEncoder().encode(payload)
         else {
             return false
         }
@@ -203,6 +208,39 @@ enum SAVIPasteboardShare {
             ]
         )
         return true
+    }
+
+    private static func pasteboardPayload(for share: PendingShare) -> PendingShare? {
+        if SAVIDeepLinkShare.supportsFallback(share) {
+            return share
+        }
+
+        var payload = share
+        let shareType = clean(share.type)?.lowercased() ?? ""
+        let mimeType = clean(share.mimeType)?.lowercased() ?? ""
+        let isImage = shareType == "image" || mimeType.hasPrefix("image/")
+
+        if isImage,
+           let thumbnail = clean(share.thumbnail),
+           thumbnail.hasPrefix("data:") {
+            payload.filePath = nil
+            payload.thumbnail = thumbnail
+            return payload
+        }
+
+        if isImage,
+           let filePath = clean(share.filePath),
+           let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)),
+           data.count <= maxInlineImageBytes {
+            let mime = clean(share.mimeType) ?? "image/png"
+            payload.filePath = nil
+            payload.thumbnail = "data:\(mime);base64,\(data.base64EncodedString())"
+            payload.fileName = clean(share.fileName) ?? URL(fileURLWithPath: filePath).lastPathComponent
+            payload.mimeType = mime
+            return payload
+        }
+
+        return nil
     }
 
     static func load() -> PendingShare? {
@@ -230,6 +268,15 @@ enum SAVIPasteboardShare {
     static func isHandoffURL(_ url: URL) -> Bool {
         guard let scheme = url.scheme?.lowercased() else { return false }
         return acceptedSchemes.contains(scheme) && url.host == handoffHost
+    }
+
+    private static func clean(_ value: String?) -> String? {
+        guard let cleaned = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !cleaned.isEmpty
+        else {
+            return nil
+        }
+        return cleaned
     }
 }
 #endif
@@ -754,17 +801,33 @@ final class PendingShareStore {
     func copyAssetToSharedContainer(from sourceURL: URL, preferredName: String? = nil) throws -> URL {
         guard sourceURL.isFileURL else { throw PendingShareStoreError.invalidFileURL }
         let directory = try pendingAssetsDirectoryURL()
-        let fileName = preferredName ?? sourceURL.lastPathComponent
-        let destination = directory
-            .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension((fileName as NSString).pathExtension)
+        let fileName = safeSharedAssetName(preferredName ?? sourceURL.lastPathComponent)
+        var destination = directory.appendingPathComponent(fileName)
 
         if FileManager.default.fileExists(atPath: destination.path) {
-            try FileManager.default.removeItem(at: destination)
+            let base = (fileName as NSString).deletingPathExtension
+            let ext = (fileName as NSString).pathExtension
+            let suffix = UUID().uuidString.prefix(8)
+            let uniqueName = ext.isEmpty ? "\(base)-\(suffix)" : "\(base)-\(suffix).\(ext)"
+            destination = directory.appendingPathComponent(uniqueName)
         }
 
         try FileManager.default.copyItem(at: sourceURL, to: destination)
         return destination
+    }
+
+    private func safeSharedAssetName(_ preferredName: String) -> String {
+        let fallback = "Shared item"
+        let lastPathComponent = (preferredName as NSString).lastPathComponent
+        let trimmed = lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
+        let candidate = trimmed.isEmpty ? fallback : trimmed
+        let invalid = CharacterSet(charactersIn: "/:\\\n\r\t")
+        let cleaned = candidate
+            .components(separatedBy: invalid)
+            .filter { !$0.isEmpty }
+            .joined(separator: "-")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? fallback : cleaned
     }
 }
 
@@ -954,7 +1017,7 @@ enum SAVIFolderClassifier {
         .init(id: "f-life-admin", name: "Life Admin"),
         .init(id: "f-must-see", name: "Watch / Read Later"),
         .init(id: "f-growth", name: "AI & Work"),
-        .init(id: "f-lmao", name: "Memes & Laughs"),
+        .init(id: "f-lmao", name: "LOLZ"),
         .init(id: "f-travel", name: "Places & Trips"),
         .init(id: "f-recipes", name: "Recipes & Food"),
         .init(id: "f-paste-bin", name: "Notes & Clips"),

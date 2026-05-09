@@ -845,7 +845,7 @@ struct ItemDetailSheet: View {
 
     private func openPrimaryContent() {
         if let itemURL {
-            openURL(itemURL)
+            webPreview = WebPreviewURL(url: itemURL)
         } else if let quickLookURL = store.quickLookURL(for: item) {
             assetPreview = AssetPreviewURL(url: quickLookURL)
         } else if item.thumbnail?.nilIfBlank != nil {
@@ -907,35 +907,37 @@ private struct SaviThumbnailPreviewContent: View {
     let item: SaviItem
 
     var body: some View {
-        if let thumbnail = item.thumbnail?.nilIfBlank,
-           thumbnail.hasPrefix("http"),
-           let url = URL(string: thumbnail) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFit()
-                case .failure:
-                    fallback
-                case .empty:
-                    ProgressView()
-                        .tint(SaviTheme.chartreuse)
-                @unknown default:
-                    fallback
+        SaviZoomablePreview {
+            if let thumbnail = item.thumbnail?.nilIfBlank,
+               thumbnail.hasPrefix("http"),
+               let url = URL(string: thumbnail) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                    case .failure:
+                        fallback
+                    case .empty:
+                        ProgressView()
+                            .tint(SaviTheme.chartreuse)
+                    @unknown default:
+                        fallback
+                    }
                 }
+            } else if let thumbnail = item.thumbnail?.nilIfBlank,
+                      let image = SaviImageCache.image(fromDataURL: thumbnail) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+            } else if let thumbnail = item.thumbnail?.nilIfBlank,
+                      SaviText.isSVGDataURL(thumbnail) {
+                SaviSVGDataThumbnail(dataURL: thumbnail)
+                    .aspectRatio(1, contentMode: .fit)
+            } else {
+                fallback
             }
-        } else if let thumbnail = item.thumbnail?.nilIfBlank,
-                  let image = SaviImageCache.image(fromDataURL: thumbnail) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-        } else if let thumbnail = item.thumbnail?.nilIfBlank,
-                  SaviText.isSVGDataURL(thumbnail) {
-            SaviSVGDataThumbnail(dataURL: thumbnail)
-                .aspectRatio(1, contentMode: .fit)
-        } else {
-            fallback
         }
     }
 
@@ -949,6 +951,65 @@ private struct SaviThumbnailPreviewContent: View {
                 .foregroundStyle(SaviTheme.textMuted)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct SaviZoomablePreview<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+    @State private var scale: CGFloat = 1
+    @State private var lastScale: CGFloat = 1
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+
+    var body: some View {
+        content()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .scaleEffect(scale)
+            .offset(offset)
+            .contentShape(Rectangle())
+            .gesture(
+                MagnificationGesture()
+                    .onChanged { value in
+                        scale = min(max(lastScale * value, 1), 5)
+                    }
+                    .onEnded { _ in
+                        lastScale = scale
+                        if scale <= 1.02 {
+                            reset()
+                        }
+                    }
+            )
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        guard scale > 1 else { return }
+                        offset = CGSize(
+                            width: lastOffset.width + value.translation.width,
+                            height: lastOffset.height + value.translation.height
+                        )
+                    }
+                    .onEnded { _ in
+                        lastOffset = offset
+                    }
+            )
+            .onTapGesture(count: 2) {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                    if scale > 1 {
+                        reset()
+                    } else {
+                        scale = 2.3
+                        lastScale = scale
+                    }
+                }
+            }
+            .accessibilityHint("Pinch to zoom or double tap to enlarge.")
+    }
+
+    private func reset() {
+        scale = 1
+        lastScale = 1
+        offset = .zero
+        lastOffset = .zero
     }
 }
 

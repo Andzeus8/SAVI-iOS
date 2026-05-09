@@ -1,0 +1,18 @@
+{
+  "id": "item_airbnb_chat_screenshot",
+  "title": "Airbnb door code + Wi-Fi",
+  "createdAt": "2026-05-08T12:00:00Z",
+  "updatedAt": "2026-05-08T12:00:00Z",
+  "folderId": "f-life-admin",
+  "type": "screenshot",
+  "source": "Photos",
+  "tags": ["screenshot", "airbnb", "door-code", "wifi", "travel", "chat"],
+  "isPrivate": false,
+  "isArchived": false,
+  "isDemo": true,
+  "mimeType": "image/png",
+  "folderConfidence": 0.94,
+  "titleEdited": false,
+  "folderEdited": false,
+  "tagsEdited": false
+}

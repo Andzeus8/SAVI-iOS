@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example-savi-domain.com/schemas/savi-item.schema.json",
+  "title": "SAVI Item",
+  "type": "object",
+  "required": ["id", "title", "createdAt", "updatedAt", "folderId", "type", "source", "tags", "isPrivate", "isArchived"],
+  "properties": {
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "folderId": { "type": "string" },
+    "type": {
+      "type": "string",
+      "enum": ["link", "video", "image", "screenshot", "audio", "note", "pdf", "file", "place"]
+    },
+    "source": { "type": "string" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "isPrivate": { "type": "boolean" },
+    "isArchived": { "type": "boolean" },
+    "isDemo": { "type": "boolean" },
+    "canonicalUrl": { "type": "string", "format": "uri" },
+    "domain": { "type": "string" },
+    "mimeType": { "type": "string" },
+    "thumbnailUrl": { "type": "string", "format": "uri" },
+    "folderConfidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "titleEdited": { "type": "boolean" },
+    "folderEdited": { "type": "boolean" },
+    "tagsEdited": { "type": "boolean" }
+  },
+  "additionalProperties": true
+}

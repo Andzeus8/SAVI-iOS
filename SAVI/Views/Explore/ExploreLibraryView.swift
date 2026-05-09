@@ -74,7 +74,7 @@ struct ExploreLibraryView: View {
 
                 if visibleItems.count < snapshot.items.count {
                     FeedPageLoader(label: "Loading more finds") {
-                        visibleExploreLimit = min(visibleExploreLimit + SaviPerformancePolicy.current.explorePageSize, snapshot.items.count)
+                        loadMoreExploreItems(total: snapshot.items.count)
                     }
                     .id("explore-loader-\(visibleItems.count)-\(snapshot.items.count)")
                 }
@@ -92,6 +92,14 @@ struct ExploreLibraryView: View {
     private func resetVisibleExploreLimit() {
         visibleExploreLimit = SaviPerformancePolicy.current.exploreInitialLimit
     }
+
+    private func loadMoreExploreItems(total: Int) {
+        guard visibleExploreLimit < total else { return }
+        visibleExploreLimit = min(
+            visibleExploreLimit + SaviPerformancePolicy.current.explorePageSize,
+            total
+        )
+    }
 }
 
 private struct ExploreCompactHeader: View {
@@ -107,8 +115,8 @@ private struct ExploreCompactHeader: View {
                     .lineLimit(1)
 
                 Text(SaviReleaseGate.socialFeaturesEnabled
-                    ? "A fun mix of favorites from you and your friends."
-                    : "A fun way to browse the links, videos, places, memes, and rabbit holes you saved.")
+                    ? "A fun random mix of your saves and your friends' favorites."
+                    : "A fun random mix of your saved links, videos, places, memes, and rabbit holes.")
                     .font(SaviType.reading(.subheadline, weight: .semibold))
                     .foregroundStyle(SaviTheme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -218,8 +226,17 @@ private struct ExploreSocialTeaserCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
+                Text("NEW AGE OF CONTENT CURATION")
+                    .font(SaviType.ui(.caption2, weight: .black))
+                    .tracking(0.6)
+                    .padding(.horizontal, 8)
+                    .frame(height: 20)
+                    .background(SaviTheme.softAccent.opacity(0.72))
+                    .foregroundStyle(SaviTheme.accentText)
+                    .clipShape(Capsule())
+
                 HStack(spacing: 7) {
-                    Text("Friends' favorites are next")
+                    Text("Curated by friends")
                         .font(SaviType.ui(.subheadline, weight: .black))
                         .foregroundStyle(SaviTheme.text)
 
@@ -233,7 +250,7 @@ private struct ExploreSocialTeaserCard: View {
                         .clipShape(Capsule())
                 }
 
-                Text("Soon Explore can also mix in links, videos, places, and ideas curated by friends you trust.")
+                Text("Soon: your friends' best links, videos, places, and ideas. Not chosen by a bot. Curated by people you trust.")
                     .font(SaviType.reading(.caption, weight: .regular))
                     .foregroundStyle(SaviTheme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -249,7 +266,7 @@ private struct ExploreSocialTeaserCard: View {
                 .stroke(SaviTheme.cardStroke.opacity(0.72), lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Friends' favorites are next. Beta. Soon Explore can also mix in links, videos, places, and ideas curated by friends you trust.")
+        .accessibilityLabel("New age of content curation. Friends' favorites are next. Beta. Soon Explore can mix in links, videos, places, and ideas curated by people you trust, not chosen by a bot.")
     }
 }
 

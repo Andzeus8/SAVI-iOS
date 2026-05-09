@@ -263,6 +263,260 @@ enum SaviReleaseGate {
     }
 }
 
+struct SaviBackendConfig: Equatable {
+    var supabaseURL: String?
+    var supabaseAnonKey: String?
+    var postHogHost: String?
+    var postHogProjectToken: String?
+
+    static var current: SaviBackendConfig {
+        SaviBackendConfig(
+            supabaseURL: value(for: "SAVISupabaseURL", environment: "SAVI_SUPABASE_URL"),
+            supabaseAnonKey: value(for: "SAVISupabaseAnonKey", environment: "SAVI_SUPABASE_ANON_KEY"),
+            postHogHost: value(for: "SAVIPostHogHost", environment: "SAVI_POSTHOG_HOST"),
+            postHogProjectToken: value(for: "SAVIPostHogProjectToken", environment: "SAVI_POSTHOG_PROJECT_TOKEN")
+        )
+    }
+
+    var hasSupabaseConfig: Bool {
+        supabaseURL?.nilIfBlank != nil && supabaseAnonKey?.nilIfBlank != nil
+    }
+
+    var hasPostHogConfig: Bool {
+        postHogHost?.nilIfBlank != nil && postHogProjectToken?.nilIfBlank != nil
+    }
+
+    var containsUnsafeSecret: Bool {
+        [supabaseURL, supabaseAnonKey, postHogHost, postHogProjectToken]
+            .compactMap { $0?.lowercased() }
+            .contains { value in
+                value.contains("service_role") ||
+                    value.contains("service-role") ||
+                    value.contains("supabase_service") ||
+                    value.contains("secret=")
+            }
+    }
+
+    private static func value(for infoKey: String, environment: String) -> String? {
+#if DEBUG
+        if let environmentValue = ProcessInfo.processInfo.environment[environment]?.nilIfBlank {
+            return environmentValue
+        }
+#endif
+        return (Bundle.main.object(forInfoDictionaryKey: infoKey) as? String)?.nilIfBlank
+    }
+}
+
+enum SaviSyncStrategy: String, CaseIterable, Identifiable {
+    case localOnly
+    case supabaseSocial
+    case iCloudPrivateBackup
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .localOnly: return "Local only"
+        case .supabaseSocial: return "Supabase social"
+        case .iCloudPrivateBackup: return "iCloud private backup"
+        }
+    }
+}
+
+enum SaviAnalyticsEventName: String, CaseIterable {
+    case appOpened = "app_opened"
+    case sessionDuration = "session_duration"
+    case onboardingStarted = "onboarding_started"
+    case onboardingCompleted = "onboarding_completed"
+    case shareExtensionOpened = "share_extension_opened"
+    case saveCompleted = "save_completed"
+    case saveFailed = "save_failed"
+    case metadataSucceeded = "metadata_success"
+    case metadataFailed = "metadata_failure"
+    case folderCreated = "folder_created"
+    case folderSelected = "folder_selected"
+    case searchPerformed = "search_performed"
+    case publicLinkPublished = "public_link_published"
+    case feedViewed = "feed_viewed"
+    case friendAdded = "friend_added"
+    case likeAdded = "like_added"
+    case friendLinkSaved = "friend_link_saved"
+    case reportSubmitted = "report_submitted"
+    case blockAction = "block_action"
+}
+
+enum SaviAnalyticsPropertyKey: String, CaseIterable {
+    case appVersion = "app_version"
+    case buildNumber = "build_number"
+    case buildChannel = "build_channel"
+    case osVersion = "os_version"
+    case deviceTier = "device_tier"
+    case sourceSurface = "source_surface"
+    case itemType = "item_type"
+    case saveSourceGroup = "save_source_group"
+    case folderId = "folder_id"
+    case folderCategory = "folder_category"
+    case isPublic = "is_public"
+    case domain = "domain"
+    case canonicalURL = "canonical_url"
+    case result = "result"
+    case reason = "reason"
+    case durationSeconds = "duration_seconds"
+    case count = "count"
+    case socialProvider = "social_provider"
+}
+
+struct SaviAnalyticsEvent: Identifiable, Equatable {
+    static let maxPropertyLength = 240
+    let id = UUID()
+    let name: SaviAnalyticsEventName
+    let occurredAt: Date
+    let properties: [String: String]
+
+    init(
+        _ name: SaviAnalyticsEventName,
+        occurredAt: Date = Date(),
+        properties: [SaviAnalyticsPropertyKey: String] = [:]
+    ) {
+        self.name = name
+        self.occurredAt = occurredAt
+        self.properties = Dictionary(uniqueKeysWithValues: properties.compactMap { key, value in
+            let cleaned = SaviAnalyticsEvent.safeValue(value)
+            guard !cleaned.isEmpty else { return nil }
+            return (key.rawValue, cleaned)
+        })
+    }
+
+    private static func safeValue(_ rawValue: String) -> String {
+        rawValue
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .prefix(maxPropertyLength)
+            .description
+    }
+}
+
+struct SaviAnalyticsDebugEvent: Identifiable, Equatable {
+    let id = UUID()
+    let name: String
+    let occurredAt: Date
+    let properties: [String: String]
+}
+
+protocol SaviAnalyticsService {
+    var providerName: String { get }
+    func track(_ event: SaviAnalyticsEvent)
+}
+
+struct SaviNoopAnalyticsService: SaviAnalyticsService {
+    let providerName = "noop"
+    func track(_ event: SaviAnalyticsEvent) {}
+}
+
+struct SaviConsoleAnalyticsService: SaviAnalyticsService {
+    let providerName = "debug-console"
+
+    func track(_ event: SaviAnalyticsEvent) {
+        NSLog("[SAVI Analytics] %@ %@", event.name.rawValue, event.properties)
+    }
+}
+
+enum SaviAnalyticsServiceFactory {
+    static func make(config: SaviBackendConfig = .current) -> any SaviAnalyticsService {
+        guard !config.containsUnsafeSecret else {
+            NSLog("[SAVI Analytics] refusing unsafe backend config.")
+            return SaviNoopAnalyticsService()
+        }
+#if DEBUG
+        return SaviConsoleAnalyticsService()
+#else
+        return SaviNoopAnalyticsService()
+#endif
+    }
+}
+
+struct SaviSocialSyncRequest {
+    let profile: SaviPublicProfile
+    let shareableLinks: [SaviSharedLink]
+    let friendUsernames: [String]
+    let existingFriendLinks: [SaviSharedLink]
+    let blockedUsernames: [String]
+}
+
+struct SaviSocialSyncResult {
+    let publishedLinkIds: [String]
+    let friendLinks: [SaviSharedLink]
+    let statusMessage: String
+}
+
+protocol SaviSocialBackendService {
+    var providerName: String { get }
+    func sync(request: SaviSocialSyncRequest) async throws -> SaviSocialSyncResult
+    func deletePublicProfile(username: String, publishedLinkIds: [String]) async throws
+    func recordLike(linkId: String, liked: Bool) async throws
+    func recordReport(kind: String, targetId: String) async throws
+    func recordBlock(username: String, blocked: Bool) async throws
+}
+
+extension SaviSocialBackendService {
+    func deletePublicProfile(username: String, publishedLinkIds: [String]) async throws {}
+    func recordLike(linkId: String, liked: Bool) async throws {}
+    func recordReport(kind: String, targetId: String) async throws {}
+    func recordBlock(username: String, blocked: Bool) async throws {}
+}
+
+struct SaviDisabledSocialBackendService: SaviSocialBackendService {
+    let providerName = "disabled"
+
+    func sync(request: SaviSocialSyncRequest) async throws -> SaviSocialSyncResult {
+        SaviSocialSyncResult(
+            publishedLinkIds: [],
+            friendLinks: [],
+            statusMessage: "Social Beta is off for this build."
+        )
+    }
+}
+
+struct SaviMockSocialBackendService: SaviSocialBackendService {
+    let providerName = "debug-mock"
+
+    func sync(request: SaviSocialSyncRequest) async throws -> SaviSocialSyncResult {
+        let blocked = Set(request.blockedUsernames.map(SaviSocialText.normalizedUsername))
+        let friendSet = Set(request.friendUsernames.map(SaviSocialText.normalizedUsername))
+        let visibleFriendLinks = request.existingFriendLinks
+            .filter { link in
+                let owner = SaviSocialText.normalizedUsername(link.ownerUsername)
+                return owner != request.profile.normalizedUsername &&
+                    !blocked.contains(owner) &&
+                    (friendSet.isEmpty || friendSet.contains(owner))
+            }
+            .sorted { $0.sharedAt > $1.sharedAt }
+
+        let published = request.profile.isLinkSharingEnabled ? request.shareableLinks.map(\.id).sorted() : []
+        return SaviSocialSyncResult(
+            publishedLinkIds: published,
+            friendLinks: visibleFriendLinks,
+            statusMessage: request.profile.isLinkSharingEnabled
+                ? "Mock social prepared \(published.count) public link preview\(published.count == 1 ? "" : "s")."
+                : "Mock friend feed refreshed."
+        )
+    }
+}
+
+enum SaviSocialBackendFactory {
+    static func make(config: SaviBackendConfig = .current) -> any SaviSocialBackendService {
+        guard !config.containsUnsafeSecret else {
+            NSLog("[SAVI Social] refusing unsafe backend config.")
+            return SaviDisabledSocialBackendService()
+        }
+#if DEBUG
+        return SaviMockSocialBackendService()
+#else
+        return SaviDisabledSocialBackendService()
+#endif
+    }
+}
+
 enum SaviTab: Hashable {
     case home
     case search
@@ -324,7 +578,7 @@ enum SaviTabTip: String, CaseIterable, Identifiable {
         switch self {
         case .home: return "Your saved things land here"
         case .search: return "Find it when you need it"
-        case .explore: return "Browse without a search"
+        case .explore: return "Browse your saved universe"
         case .folders: return "Keep things tidy"
         case .profile: return "Help, backup, and settings"
         }
@@ -337,7 +591,7 @@ enum SaviTabTip: String, CaseIterable, Identifiable {
         case .search:
             return "Search by title, note, tag, folder, file type, or where a save came from."
         case .explore:
-            return "Explore is for browsing when you do not know exactly what to type."
+            return "Explore is a fun way to wander through the things you saved. Soon, it can mix in links, videos, places, and ideas curated by friends too."
         case .folders:
             return "Folders organize your library. Private Vault is for sensitive saves."
         case .profile:
@@ -797,8 +1051,8 @@ enum SaviCoachStep: String, CaseIterable, Identifiable {
             return "Search looks across titles, notes, Folders, tags, sources, file names, PDFs, videos, screenshots, and places."
         case .explore:
             return SaviReleaseGate.socialFeaturesEnabled
-                ? "Explore is a fun way to browse your links, videos, places, and the favorites curated by friends."
-                : "Explore is a fun way to browse your saved favorites. Later, it can mix in favorites curated by friends you trust."
+                ? "Explore is a fun way to browse your saved links, videos, places, and friends' curated favorites."
+                : "Explore is a fun way to browse your saved links, videos, places, and ideas. Soon, friends' curated favorites can join the mix."
         case .folders:
             return "Folders are your main categories. The important stuff can live in Private Vault, and your folder order follows you when you save."
         case .profile:
@@ -814,7 +1068,7 @@ enum SaviCoachStep: String, CaseIterable, Identifiable {
         case .add: return "Look for the chartreuse + in the bottom bar."
         case .share: return "Use this after you have seen Home, Search, and Folders."
         case .search: return "Try the search bar, type rail, and Refine button."
-        case .explore: return "Tap Explore when you want SAVI to surprise you."
+        case .explore: return "Open Explore when you want to wander through your saved favorites."
         case .folders: return "Open a Folder to see how saves are grouped."
         case .profile: return "Replay this from the Guide card any time."
         }
@@ -1193,6 +1447,7 @@ struct SaviItem: Codable, Identifiable, Equatable {
     var thumbnailRetryCount: Int
     var thumbnailLastAttemptAt: Double?
     var metadataPolicy: SaviMetadataPolicy?
+    var titleEdited: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -1216,6 +1471,7 @@ struct SaviItem: Codable, Identifiable, Equatable {
         case thumbnailRetryCount
         case thumbnailLastAttemptAt
         case metadataPolicy
+        case titleEdited
     }
 
     init(
@@ -1239,7 +1495,8 @@ struct SaviItem: Codable, Identifiable, Equatable {
         height: Int? = nil,
         thumbnailRetryCount: Int = 0,
         thumbnailLastAttemptAt: Double? = nil,
-        metadataPolicy: SaviMetadataPolicy? = nil
+        metadataPolicy: SaviMetadataPolicy? = nil,
+        titleEdited: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -1262,6 +1519,7 @@ struct SaviItem: Codable, Identifiable, Equatable {
         self.thumbnailRetryCount = thumbnailRetryCount
         self.thumbnailLastAttemptAt = thumbnailLastAttemptAt
         self.metadataPolicy = metadataPolicy
+        self.titleEdited = titleEdited
     }
 
     init(from decoder: Decoder) throws {
@@ -1300,6 +1558,7 @@ struct SaviItem: Codable, Identifiable, Equatable {
         thumbnailRetryCount = try container.decodeIfPresent(Int.self, forKey: .thumbnailRetryCount) ?? 0
         thumbnailLastAttemptAt = try container.decodeIfPresent(Double.self, forKey: .thumbnailLastAttemptAt)
         metadataPolicy = try container.decodeIfPresent(SaviMetadataPolicy.self, forKey: .metadataPolicy)
+        titleEdited = try container.decodeIfPresent(Bool.self, forKey: .titleEdited) ?? false
     }
 }
 
@@ -1348,6 +1607,8 @@ struct SaviPrefs: Codable, Equatable {
     var shareSetupSnoozedUntil: Double?
     var shareSetupDontRemindAgain: Bool = false
     var privateVaultLockPromptShown: Bool = false
+    var sampleLibraryWelcomeDismissed: Bool = false
+    var analyticsEnabled: Bool = false
 
     enum CodingKeys: String, CodingKey {
         case viewMode
@@ -1390,6 +1651,8 @@ struct SaviPrefs: Codable, Equatable {
         case shareSetupSnoozedUntil
         case shareSetupDontRemindAgain
         case privateVaultLockPromptShown
+        case sampleLibraryWelcomeDismissed
+        case analyticsEnabled
     }
 
     init() {}
@@ -1448,6 +1711,8 @@ struct SaviPrefs: Codable, Equatable {
         shareSetupSnoozedUntil = try container.decodeIfPresent(Double.self, forKey: .shareSetupSnoozedUntil)
         shareSetupDontRemindAgain = try container.decodeIfPresent(Bool.self, forKey: .shareSetupDontRemindAgain) ?? false
         privateVaultLockPromptShown = try container.decodeIfPresent(Bool.self, forKey: .privateVaultLockPromptShown) ?? false
+        sampleLibraryWelcomeDismissed = try container.decodeIfPresent(Bool.self, forKey: .sampleLibraryWelcomeDismissed) ?? false
+        analyticsEnabled = try container.decodeIfPresent(Bool.self, forKey: .analyticsEnabled) ?? false
     }
 }
 
@@ -1594,6 +1859,7 @@ enum SaviSafety {
 
 enum SaviSupport {
     static let feedbackEmail = "1080solutionsA@gmail.com"
+    static let feedbackDisplayName = "SAVI Support"
 
     static func bugReportURL(area: String = "General") -> URL? {
         var components = URLComponents()
@@ -1662,7 +1928,7 @@ struct SaviArchiveExportStatus: Equatable {
     var title: String {
         switch phase {
         case .preparing:
-            return "Preparing your archive"
+            return "Packing your SAVI archive"
         case .openingShareSheet:
             return "Opening the iOS share sheet"
         }
@@ -1671,7 +1937,7 @@ struct SaviArchiveExportStatus: Equatable {
     var message: String {
         switch phase {
         case .preparing:
-            return "SAVI is packing your folders, saves, files, PDFs, images, and private vault items into a ZIP. Keep SAVI open."
+            return "SAVI is bundling your folders, saves, files, PDFs, images, and Private Vault items into one portable ZIP. Keep SAVI open."
         case .openingShareSheet:
             return "Your ZIP is ready. Choose where to save, send, or AirDrop it next."
         }
@@ -2267,6 +2533,7 @@ final class SaviStore: ObservableObject {
     @Published var appleAccountStatus = "Not linked"
     @Published var socialSyncMessage: String?
     @Published var isSocialSyncing = false
+    @Published private(set) var analyticsDebugEvents: [SaviAnalyticsDebugEvent] = []
     @Published var folderAuditReport: SAVIFolderAuditReport?
     @Published var appleIntelligenceStatus = "Checking"
     @Published private(set) var isNetworkReachable = true
@@ -2281,6 +2548,9 @@ final class SaviStore: ObservableObject {
     private let metadataService = SaviMetadataService()
     private let intelligenceService = SaviAppleIntelligenceService()
     private let cloudKitService = SaviCloudKitService()
+    private let backendConfig: SaviBackendConfig
+    private let analyticsService: any SaviAnalyticsService
+    private let socialBackendService: any SaviSocialBackendService
     private let shareStore = PendingShareStore.shared
     private let networkMonitor = NWPathMonitor()
     private let networkMonitorQueue = DispatchQueue(label: "SAVI.NetworkMonitor")
@@ -2305,6 +2575,8 @@ final class SaviStore: ObservableObject {
     private var metadataEnrichmentInFlightIds = Set<String>()
     private var pendingBackupImportPayload: SaviArchiveImportPayload?
     private var deferredPresentation: SaviDeferredPresentation?
+    private var currentSessionStartedAt: Date?
+    private var lastAppOpenedTrackedAt: Date?
     private var lastSlowFilterLogAt = Date.distantPast
     private var searchRefineOpenRequestedAt: Date?
     private static let thumbnailRetryDelays: [TimeInterval] = [0, 30, 60, 180, 600, 1_800, 3_600]
@@ -2320,15 +2592,16 @@ final class SaviStore: ObservableObject {
     private static let shareSetupPracticeItemId = "practice-share-setup-savi-first-card"
     private static let shareSetupPracticeAssetId = "asset-practice-share-setup-savi-first-card"
     private static let shareSetupPracticeImageName = "share-setup-practice-savi-first-card"
-    private static let shareSetupPracticeFileName = "I love SAVI - practice image.png"
-    private static let shareSetupPracticeTitle = "I love SAVI - practice image"
-    private static let shareSetupPracticeDescription = "A sample image for testing the iOS Share Sheet. No personal data, just a quick way to confirm SAVI is pinned and saving."
-    private static let shareSetupPracticeTags = ["practice", "share-sheet", "image", "getting-started", "sample"]
+    private static let shareSetupPracticeFolderId = "f-paste-bin"
+    private static let shareSetupPracticeFileName = "SAVI Share Sheet Practice.png"
+    private static let shareSetupPracticeTitle = "SAVI Share Sheet Practice"
+    private static let shareSetupPracticeDescription = "A tiny practice card for learning the Share Sheet. Save it once, then future-you can stop hunting through apps."
+    private static let shareSetupPracticeTags = ["savi", "share-sheet", "setup", "practice", "first-save", "screenshot"]
     private static let sampleFriendTargetLinkCount = 24
-    private static let currentLegacySeedVersion = 29
+    private static let currentLegacySeedVersion = 30
     private static let currentFolderRepairVersion = 2
     private static let currentSearchTagRepairVersion = 1
-    private static let currentFolderLayoutVersion = 5
+    private static let currentFolderLayoutVersion = 9
     private static let currentCoachMarksVersion = 1
     private static let currentHomePresentationVersion = SaviPrefs.currentHomePresentationVersion
 
@@ -2355,6 +2628,10 @@ final class SaviStore: ObservableObject {
     }
 
     init() {
+        let config = SaviBackendConfig.current
+        self.backendConfig = config
+        self.analyticsService = SaviAnalyticsServiceFactory.make(config: config)
+        self.socialBackendService = SaviSocialBackendFactory.make(config: config)
         let loaded = try? storage.loadLibrary()
         let seedFolders = SaviSeeds.folders
         var loadedPrefs = loaded?.prefs ?? SaviPrefs()
@@ -2678,6 +2955,10 @@ final class SaviStore: ObservableObject {
         if let scope = environment["SAVI_EXPLORE_SCOPE"].flatMap(ExploreScope.init(rawValue:)) {
             exploreScope = scope
         }
+
+        if environment["SAVI_QA_ADD_SHARE_SETUP_PRACTICE_SAVE"] == "1" {
+            _ = addShareSetupPracticeSave(showToast: false)
+        }
     }
 #endif
 
@@ -2753,10 +3034,11 @@ final class SaviStore: ObservableObject {
         NSLog("[SAVI Native] bootstrap scheduled in %.3fs", Date().timeIntervalSince(startedAt))
     }
 
-    func refreshForegroundWork() async {
+    func refreshForegroundWork(force: Bool = false) async {
         guard !isForegroundRefreshRunning else { return }
         let now = Date()
-        if let lastForegroundRefreshAt,
+        if !force,
+           let lastForegroundRefreshAt,
            now.timeIntervalSince(lastForegroundRefreshAt) < Self.foregroundRefreshCooldown {
             return
         }
@@ -2794,11 +3076,142 @@ final class SaviStore: ObservableObject {
         }
     }
 
+    var analyticsStatusText: String {
+        if prefs.analyticsEnabled, backendConfig.hasPostHogConfig {
+            return "Analytics ready"
+        }
+        if prefs.analyticsEnabled {
+            return "Analytics opt-in is on; PostHog config is not set yet."
+        }
+        return "Analytics is off."
+    }
+
+    var socialBackendStatusText: String {
+        if SaviReleaseGate.socialFeaturesEnabled {
+            return "Social backend: \(socialBackendService.providerName)"
+        }
+        return "Social is off for TestFlight."
+    }
+
+    func setAnalyticsEnabled(_ enabled: Bool) {
+        prefs.analyticsEnabled = enabled
+        persist()
+        toast = enabled ? "Analytics opt-in enabled." : "Analytics is off."
+    }
+
+    func recordAppBecameActive() {
+        currentSessionStartedAt = Date()
+        if let lastAppOpenedTrackedAt,
+           Date().timeIntervalSince(lastAppOpenedTrackedAt) < 5 {
+            return
+        }
+        lastAppOpenedTrackedAt = Date()
+        track(.appOpened, properties: [.sourceSurface: "app"])
+    }
+
+    func recordAppWillResignActive() {
+        guard let currentSessionStartedAt else { return }
+        let duration = max(0, Date().timeIntervalSince(currentSessionStartedAt))
+        self.currentSessionStartedAt = nil
+        guard duration >= 1 else { return }
+        track(
+            .sessionDuration,
+            properties: [
+                .sourceSurface: "app",
+                .durationSeconds: String(format: "%.1f", duration)
+            ]
+        )
+    }
+
+    func recordSearchPerformed(surface: String = "search") {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty || refineFilterCount > 0 else { return }
+        track(
+            .searchPerformed,
+            properties: [
+                .sourceSurface: surface,
+                .result: trimmed.isEmpty ? "filters" : "query",
+                .count: "\(filteredItems().count)"
+            ]
+        )
+    }
+
+    private func trackSaveCompleted(item: SaviItem, surface: String) {
+        track(.saveCompleted, properties: analyticsProperties(for: item, surface: surface, result: "completed"))
+    }
+
+    private func trackSaveFailed(surface: String, reason: String, itemType: SaviItemType? = nil) {
+        var properties: [SaviAnalyticsPropertyKey: String] = [
+            .sourceSurface: surface,
+            .result: "failed",
+            .reason: reason
+        ]
+        if let itemType {
+            properties[.itemType] = itemType.rawValue
+        }
+        track(.saveFailed, properties: properties)
+    }
+
+    private func track(_ name: SaviAnalyticsEventName, properties: [SaviAnalyticsPropertyKey: String] = [:]) {
+        var merged = baseAnalyticsProperties()
+        properties.forEach { merged[$0.key] = $0.value }
+        let event = SaviAnalyticsEvent(name, properties: merged)
+#if DEBUG
+        analyticsDebugEvents.insert(
+            SaviAnalyticsDebugEvent(
+                name: event.name.rawValue,
+                occurredAt: event.occurredAt,
+                properties: event.properties
+            ),
+            at: 0
+        )
+        if analyticsDebugEvents.count > 50 {
+            analyticsDebugEvents.removeLast(analyticsDebugEvents.count - 50)
+        }
+#endif
+        guard prefs.analyticsEnabled || SaviReleaseGate.debugToolsEnabled else { return }
+        analyticsService.track(event)
+    }
+
+    private func baseAnalyticsProperties() -> [SaviAnalyticsPropertyKey: String] {
+        [
+            .appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
+            .buildNumber: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown",
+            .buildChannel: SaviReleaseGate.buildChannel,
+            .osVersion: UIDevice.current.systemVersion,
+            .deviceTier: SaviPerformancePolicy.current.rawValue
+        ]
+    }
+
+    private func analyticsProperties(for item: SaviItem, surface: String, result: String) -> [SaviAnalyticsPropertyKey: String] {
+        var properties: [SaviAnalyticsPropertyKey: String] = [
+            .sourceSurface: surface,
+            .itemType: item.type.rawValue,
+            .saveSourceGroup: sourceKey(for: item),
+            .folderId: item.folderId,
+            .folderCategory: folder(for: item.folderId)?.name ?? item.folderId,
+            .isPublic: "\(SaviReleaseGate.socialFeaturesEnabled && publicSharedLinks().contains(where: { $0.id == item.id }))",
+            .result: result
+        ]
+        if let domain = analyticsDomain(for: item.url) {
+            properties[.domain] = domain
+        }
+        return properties
+    }
+
+    private func analyticsDomain(for urlString: String?) -> String? {
+        guard let urlString,
+              let host = URL(string: SaviText.normalizedURL(urlString))?.host?.nilIfBlank
+        else { return nil }
+        return host.lowercased()
+    }
+
     func finishOnboarding(startTour: Bool = false) {
         prefs.onboarded = true
         if prefs.shareSetupFirstEligibleAt == nil && prefs.shareExtensionSaveCount == 0 {
             prefs.shareSetupFirstEligibleAt = Date().timeIntervalSince1970
         }
+        track(.onboardingCompleted, properties: [.sourceSurface: startTour ? "tour" : "onboarding"])
         persist()
         if startTour {
             startCoachTour()
@@ -2817,11 +3230,30 @@ final class SaviStore: ObservableObject {
         activeCoachStep = nil
         activeTabTip = nil
         isShareSetupReminderPresented = false
+        track(.onboardingCompleted, properties: [.sourceSurface: "share-setup"])
         persist()
 
         DispatchQueue.main.async { [weak self] in
             self?.isShareSetupGuidePresented = true
         }
+    }
+
+    func replayOnboarding() {
+        activeCoachStep = nil
+        activeTabTip = nil
+        presentedSheet = nil
+        presentedItem = nil
+        editingItem = nil
+        quickLookAssetURL = nil
+        webPreviewURL = nil
+        isShareSetupGuidePresented = false
+        isShareSetupReminderPresented = false
+        prefs.onboarded = false
+        prefs.sampleLibraryWelcomeDismissed = false
+        selectedTab = .home
+        previousTab = .home
+        track(.onboardingStarted, properties: [.sourceSurface: "profile"])
+        persist()
     }
 
     var isShareExtensionSetupComplete: Bool {
@@ -2854,7 +3286,7 @@ final class SaviStore: ObservableObject {
 
     @discardableResult
     func addShareSetupPracticeSave(showToast: Bool = true) -> SaviItem? {
-        let targetFolderId = "f-life-admin"
+        let targetFolderId = Self.shareSetupPracticeFolderId
 
         if let existingIndex = items.firstIndex(where: Self.isShareSetupPracticeItem) {
             var existing = items[existingIndex]
@@ -2879,14 +3311,14 @@ final class SaviStore: ObservableObject {
                 existing.tags = Self.shareSetupPracticeTags
                 changed = true
             }
-            if existing.folderId.isEmpty {
+            if existing.folderId != targetFolderId {
                 existing.folderId = targetFolderId
                 existing.color = folder(for: targetFolderId)?.color
                 changed = true
             }
 
             if let data = shareSetupPracticeImageData(),
-               existing.assetName != Self.shareSetupPracticeFileName {
+               Self.needsShareSetupPracticeAssetRefresh(existing) {
                 do {
                     let asset = try storage.writeAssetData(
                         data,
@@ -2974,6 +3406,36 @@ final class SaviStore: ObservableObject {
         }
     }
 
+    func refreshAfterShareSetupPracticeShare(fallbackToLocalPracticeSave: Bool = false) {
+        toast = "Saving your first SAVI..."
+        Task { [weak self] in
+            let retryDelays: [UInt64] = [0, 350_000_000, 1_000_000_000, 1_800_000_000]
+            for delay in retryDelays {
+                if delay > 0 {
+                    try? await Task.sleep(nanoseconds: delay)
+                }
+                guard let self else { return }
+                await self.refreshForegroundWork(force: true)
+                if self.hasShareSetupPracticeSave {
+                    self.isShareSetupGuidePresented = false
+                    self.selectedTab = .home
+                    self.previousTab = .home
+                    self.toast = "Saved to Your Folders."
+                    return
+                }
+            }
+            if fallbackToLocalPracticeSave,
+               self?.addShareSetupPracticeSave(showToast: false) != nil {
+                self?.isShareSetupGuidePresented = false
+                self?.selectedTab = .home
+                self?.previousTab = .home
+                self?.toast = "Saved to Your Folders."
+                return
+            }
+            self?.toast = "If you chose SAVI, your save should appear in a second."
+        }
+    }
+
     func makeShareSetupPracticeShareURL() -> URL? {
         guard let data = shareSetupPracticeImageData() else {
             toast = "Could not load the SAVI example."
@@ -2998,15 +3460,49 @@ final class SaviStore: ObservableObject {
 
     private static func isShareSetupPracticeItem(_ item: SaviItem) -> Bool {
         if item.id == shareSetupPracticeItemId { return true }
-        let targetFileName = shareSetupPracticeFileName.lowercased()
-        if item.assetName?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == targetFileName {
+        let knownFileNames = [
+            shareSetupPracticeFileName.lowercased(),
+            "i love savi - practice image.png",
+            "savi first save.png"
+        ]
+        if let assetName = item.assetName?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+           knownFileNames.contains(assetName) {
             return true
         }
-        if item.title.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(shareSetupPracticeTitle) == .orderedSame,
+        let knownTitles = [
+            shareSetupPracticeTitle.lowercased(),
+            "\(shareSetupPracticeTitle).png".lowercased(),
+            "savi first save",
+            "savi first save.png",
+            "i love savi - practice image",
+            "i love savi - practice image.png",
+            "i love savi practice image"
+        ]
+        let normalizedTitle = item.title
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        if knownTitles.contains(normalizedTitle),
            item.type == .image {
             return true
         }
+        let tagSet = Set(item.tags.map { $0.lowercased() })
+        if item.type == .image,
+           tagSet.isSuperset(of: ["practice", "share-sheet"]) {
+            return true
+        }
         return false
+    }
+
+    private static func needsShareSetupPracticeAssetRefresh(_ item: SaviItem) -> Bool {
+        let thumbnail = item.thumbnail?.nilIfBlank
+        return thumbnail == nil ||
+            thumbnail?.hasPrefix("data:image/png;base64,") != true ||
+            item.assetName != shareSetupPracticeFileName ||
+            item.assetId != shareSetupPracticeAssetId ||
+            item.assetMime != "image/png" ||
+            (item.assetSize ?? 0) <= 0 ||
+            item.width != 1170 ||
+            item.height != 2532
     }
 
     func snoozeShareSetupReminder() {
@@ -3024,6 +3520,14 @@ final class SaviStore: ObservableObject {
     func dismissActiveTabTip() {
         activeTabTip = nil
         evaluateShareSetupReminder()
+    }
+
+    func resetLearningTips() {
+        activeTabTip = nil
+        prefs.seenTabTipIds = []
+        prefs.tabTipsVersion = SaviPrefs.currentTabTipsVersion
+        persist()
+        toast = "Learning tips reset."
     }
 
     func evaluateTabTipAfterPresentation() {
@@ -3527,6 +4031,14 @@ final class SaviStore: ObservableObject {
             guard await unlockKeeperIfNeeded(folder) else { return }
             folderFilter = folder.id
             activeSearchFacet = nil
+            track(
+                .folderSelected,
+                properties: [
+                    .sourceSurface: "search_filter",
+                    .folderId: folder.id,
+                    .folderCategory: folder.name
+                ]
+            )
         }
     }
 
@@ -3957,6 +4469,15 @@ final class SaviStore: ObservableObject {
         sampleItemCount > 0
     }
 
+    var shouldShowSampleLibraryWelcome: Bool {
+        false
+    }
+
+    func dismissSampleLibraryWelcome() {
+        prefs.sampleLibraryWelcomeDismissed = true
+        persist()
+    }
+
     func homeFolders(limit: Int? = 6) -> [SaviFolder] {
         let visibleFolders = folders.filter { $0.id != "f-all" }
         let visibleBrowsingItems = visibleItemsForBrowsing()
@@ -4046,13 +4567,16 @@ final class SaviStore: ObservableObject {
 
     var appleAccountDisplayName: String {
         prefs.appleFullName?.nilIfBlank ??
-            prefs.appleEmail?.nilIfBlank ??
             (isAppleAccountLinked ? "Apple ID linked" : "Not linked")
     }
 
+    var hasAppleAccountEmail: Bool {
+        prefs.appleEmail?.nilIfBlank != nil
+    }
+
     var appleAccountDetail: String {
-        if let email = prefs.appleEmail?.nilIfBlank {
-            return email
+        if hasAppleAccountEmail {
+            return "Email is saved privately for account recovery."
         }
         if let authorizedAt = prefs.appleAuthorizedAt {
             return "Linked \(SaviText.relativeSavedTime(authorizedAt, now: Date())) ago"
@@ -4061,6 +4585,16 @@ final class SaviStore: ObservableObject {
             return "Optional for private iCloud backup. Social Beta is off in this build."
         }
         return "Use Apple ID for public sharing and recovery-ready account identity."
+    }
+
+    func copyAppleAccountEmail() {
+        guard let email = prefs.appleEmail?.nilIfBlank else {
+            toast = "No account email saved."
+            return
+        }
+
+        UIPasteboard.general.string = email
+        toast = "Account email copied."
     }
 
     func configureAppleSignIn(_ request: ASAuthorizationAppleIDRequest) {
@@ -4214,23 +4748,14 @@ final class SaviStore: ObservableObject {
         }
         persist()
 
-        await refreshCloudKitStatus()
-        guard cloudKitStatus == "iCloud ready" else {
-            socialSyncMessage = "Public sharing is off locally. \(cloudKitStatus) to remove cloud copies."
-            toast = "Public sharing turned off locally."
-            return
-        }
-
         do {
-            try await cloudKitService.deleteSharedLinks(ids: publishedIds)
-            try await cloudKitService.deleteSharedLinks(ownerUsername: username)
-            try await cloudKitService.deleteProfile(username: username)
+            try await socialBackendService.deletePublicProfile(username: username, publishedLinkIds: publishedIds)
             socialSyncMessage = "Public profile and shared links deleted."
             toast = "Public profile deleted."
         } catch {
             socialSyncMessage = "Could not delete every public record yet."
-            toast = "Public sharing is off. Try deleting again when iCloud is ready."
-            NSLog("[SAVI Native] delete public profile failed: \(error.localizedDescription)")
+            toast = "Public sharing is off locally. Try deleting again when social sync is ready."
+            NSLog("[SAVI Native] delete public profile via \(socialBackendService.providerName) failed: \(error.localizedDescription)")
         }
     }
 
@@ -4261,6 +4786,13 @@ final class SaviStore: ObservableObject {
         )
         persist()
         toast = "Added @\(username)."
+        track(
+            .friendAdded,
+            properties: [
+                .sourceSurface: "profile",
+                .socialProvider: socialBackendService.providerName
+            ]
+        )
         Task { await syncSocialLinks() }
     }
 
@@ -4742,6 +5274,17 @@ final class SaviStore: ObservableObject {
         }
         persist()
         toast = "Blocked @\(username)."
+        track(
+            .blockAction,
+            properties: [
+                .sourceSurface: "social",
+                .result: "blocked",
+                .socialProvider: socialBackendService.providerName
+            ]
+        )
+        Task {
+            try? await socialBackendService.recordBlock(username: username, blocked: true)
+        }
     }
 
     func unblockFriend(username rawUsername: String) {
@@ -4751,11 +5294,33 @@ final class SaviStore: ObservableObject {
         prefs.blockedFriendUsernames.removeAll { SaviSocialText.normalizedUsername($0) == username }
         persist()
         toast = "Unblocked @\(username)."
+        track(
+            .blockAction,
+            properties: [
+                .sourceSurface: "social",
+                .result: "unblocked",
+                .socialProvider: socialBackendService.providerName
+            ]
+        )
+        Task {
+            try? await socialBackendService.recordBlock(username: username, blocked: false)
+        }
         Task { await syncSocialLinks() }
     }
 
     func reportFriend(_ friend: SaviFriend) {
         guard SaviReleaseGate.socialFeaturesEnabled else { return }
+        track(
+            .reportSubmitted,
+            properties: [
+                .sourceSurface: "profile",
+                .result: "profile",
+                .socialProvider: socialBackendService.providerName
+            ]
+        )
+        Task {
+            try? await socialBackendService.recordReport(kind: "profile", targetId: friend.normalizedUsername)
+        }
         openModerationEmail(
             subject: "SAVI report: @\(friend.username)",
             body: """
@@ -4770,6 +5335,18 @@ final class SaviStore: ObservableObject {
 
     func reportFriendLink(_ link: SaviSharedLink) {
         guard SaviReleaseGate.socialFeaturesEnabled else { return }
+        track(
+            .reportSubmitted,
+            properties: [
+                .sourceSurface: "friend_link",
+                .result: "link",
+                .domain: analyticsDomain(for: link.url) ?? "",
+                .socialProvider: socialBackendService.providerName
+            ]
+        )
+        Task {
+            try? await socialBackendService.recordReport(kind: "link", targetId: link.id)
+        }
         openModerationEmail(
             subject: "SAVI report: link from @\(link.ownerUsername)",
             body: """
@@ -4794,6 +5371,18 @@ final class SaviStore: ObservableObject {
         }
         prefs.likedFriendLinkIds = Array(liked).sorted()
         persist()
+        track(
+            .likeAdded,
+            properties: [
+                .sourceSurface: "friend_link",
+                .result: liked.contains(link.id) ? "liked" : "unliked",
+                .domain: analyticsDomain(for: link.url) ?? "",
+                .socialProvider: socialBackendService.providerName
+            ]
+        )
+        Task {
+            try? await socialBackendService.recordLike(linkId: link.id, liked: liked.contains(link.id))
+        }
     }
 
     func isFriendLinkLiked(_ link: SaviSharedLink) -> Bool {
@@ -4956,6 +5545,11 @@ final class SaviStore: ObservableObject {
         }
         persist()
         toast = "Saved from @\(link.ownerUsername)."
+        track(
+            .friendLinkSaved,
+            properties: analyticsProperties(for: item, surface: "friend_link", result: "completed")
+                .merging([.socialProvider: socialBackendService.providerName]) { current, _ in current }
+        )
         scheduleAppleIntelligenceRefinement(id: item.id, allowFolderChange: usesAutoFolder)
         if let url = URL(string: normalized) {
             scheduleMetadataEnrichment(id: item.id, url: url, reason: "friend-save")
@@ -5026,11 +5620,6 @@ final class SaviStore: ObservableObject {
         isSocialSyncing = true
         defer { isSocialSyncing = false }
 
-        await refreshCloudKitStatus()
-        guard cloudKitStatus == "iCloud ready" else {
-            socialSyncMessage = cloudKitStatus
-            return
-        }
         guard !publicProfile.isLinkSharingEnabled || isAppleAccountLinked else {
             publicProfile.isLinkSharingEnabled = false
             persist()
@@ -5040,39 +5629,39 @@ final class SaviStore: ObservableObject {
 
         do {
             let shareableLinks = publicSharedLinks()
-            if publicProfile.isLinkSharingEnabled {
-                try await cloudKitService.saveProfile(publicProfile)
-                try await cloudKitService.publishSharedLinks(shareableLinks)
-                let nextIds = Set(shareableLinks.map(\.id))
-                let staleIds = Set(prefs.publishedPublicLinkIds).subtracting(nextIds)
-                if !staleIds.isEmpty {
-                    try await cloudKitService.deleteSharedLinks(ids: Array(staleIds))
-                }
-                prefs.publishedPublicLinkIds = Array(nextIds).sorted()
-            } else {
-                if !prefs.publishedPublicLinkIds.isEmpty {
-                    try await cloudKitService.deleteSharedLinks(ids: prefs.publishedPublicLinkIds)
-                    prefs.publishedPublicLinkIds = []
-                } else {
-                    try await cloudKitService.deleteSharedLinks(ownerUsername: publicProfile.normalizedUsername)
-                }
-            }
-            let fetched = try await cloudKitService.fetchSharedLinks(friendUsernames: visibleFriends.map(\.username))
-            var refreshedLinks = fetched.filter { $0.ownerUserId != publicProfile.userId }
+            let result = try await socialBackendService.sync(
+                request: SaviSocialSyncRequest(
+                    profile: publicProfile,
+                    shareableLinks: shareableLinks,
+                    friendUsernames: visibleFriends.map(\.username),
+                    existingFriendLinks: friendLinks,
+                    blockedUsernames: prefs.blockedFriendUsernames
+                )
+            )
+            var refreshedLinks = result.friendLinks.filter { $0.ownerUserId != publicProfile.userId }
                 .filter(isAllowedSharedLink)
 #if targetEnvironment(simulator)
             let demoLinks = friendLinks.filter { $0.ownerUserId == "demo-friend-ava" }
             let fetchedIds = Set(refreshedLinks.map(\.id))
             refreshedLinks.append(contentsOf: demoLinks.filter { !fetchedIds.contains($0.id) && isAllowedSharedLink($0) })
 #endif
+            prefs.publishedPublicLinkIds = result.publishedLinkIds
             friendLinks = refreshedLinks.sorted { $0.sharedAt > $1.sharedAt }
-            socialSyncMessage = publicProfile.isLinkSharingEnabled
-                ? "Shared \(shareableLinks.count) link preview\(shareableLinks.count == 1 ? "" : "s")."
-                : "Friend feed refreshed."
+            socialSyncMessage = result.statusMessage
             persist()
+            if publicProfile.isLinkSharingEnabled, !result.publishedLinkIds.isEmpty {
+                track(
+                    .publicLinkPublished,
+                    properties: [
+                        .sourceSurface: "social_sync",
+                        .count: "\(result.publishedLinkIds.count)",
+                        .socialProvider: socialBackendService.providerName
+                    ]
+                )
+            }
         } catch {
-            socialSyncMessage = "CloudKit sync needs setup."
-            NSLog("[SAVI Native] CloudKit social sync failed: \(error.localizedDescription)")
+            socialSyncMessage = "Social sync needs setup."
+            NSLog("[SAVI Native] \(socialBackendService.providerName) social sync failed: \(error.localizedDescription)")
         }
     }
 
@@ -5778,13 +6367,15 @@ final class SaviStore: ObservableObject {
             folderId: targetFolderId,
             tags: SaviText.dedupeTags(tags + SaviText.inferredTags(type: inferred, url: normalized, title: fallbackTitle, description: description)),
             thumbnail: immediateThumbnail,
-            color: folder(for: targetFolderId)?.color
+            color: folder(for: targetFolderId)?.color,
+            titleEdited: title.nilIfBlank != nil
         )
         items.insert(item, at: 0)
         if usesAutoFolder { autoFolderItemIds.insert(item.id) }
         if !usesAutoFolder { learnFolderSelection(for: item) }
         persist()
         toast = "Saved. Metadata and tags can catch up."
+        trackSaveCompleted(item: item, surface: "manual_link")
         scheduleAppleIntelligenceRefinement(id: item.id, allowFolderChange: usesAutoFolder)
         if let url {
             scheduleMetadataEnrichment(id: item.id, url: url, reason: "manual-save")
@@ -5814,6 +6405,7 @@ final class SaviStore: ObservableObject {
         if !usesAutoFolder { learnFolderSelection(for: item) }
         persist()
         toast = "Text saved."
+        trackSaveCompleted(item: item, surface: "manual_text")
         scheduleAppleIntelligenceRefinement(id: item.id, allowFolderChange: usesAutoFolder && !sensitive)
     }
 
@@ -5856,9 +6448,11 @@ final class SaviStore: ObservableObject {
             if !usesAutoFolder { learnFolderSelection(for: item) }
             persist()
             toast = "File saved."
+            trackSaveCompleted(item: item, surface: "manual_file")
             scheduleAppleIntelligenceRefinement(id: item.id, allowFolderChange: usesAutoFolder)
         } catch {
             toast = "Could not save that file."
+            trackSaveFailed(surface: "manual_file", reason: "import_failed")
             NSLog("[SAVI Native] file import failed: \(error.localizedDescription)")
         }
     }
@@ -5896,9 +6490,11 @@ final class SaviStore: ObservableObject {
             if !usesAutoFolder { learnFolderSelection(for: item) }
             persist()
             toast = "Clipboard saved."
+            trackSaveCompleted(item: item, surface: "clipboard")
             scheduleAppleIntelligenceRefinement(id: item.id, allowFolderChange: usesAutoFolder)
         } catch {
             toast = "Could not save clipboard file."
+            trackSaveFailed(surface: "clipboard", reason: "import_failed")
             NSLog("[SAVI Native] clipboard file import failed: \(error.localizedDescription)")
         }
     }
@@ -5906,13 +6502,17 @@ final class SaviStore: ObservableObject {
     func saveEditedItem(_ item: SaviItem) {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
         let previous = items[index]
-        items[index] = item
-        if previous.folderId != item.folderId {
-            autoFolderItemIds.remove(item.id)
-            learnFolderSelection(for: item)
+        var updated = item
+        if previous.title.trimmingCharacters(in: .whitespacesAndNewlines) != item.title.trimmingCharacters(in: .whitespacesAndNewlines) {
+            updated.titleEdited = true
+        }
+        items[index] = updated
+        if previous.folderId != updated.folderId {
+            autoFolderItemIds.remove(updated.id)
+            learnFolderSelection(for: updated)
             recordFolderDecision(
-                input: classificationInput(for: item),
-                result: .init(folderId: item.folderId, confidence: 100, reason: "manual-correction"),
+                input: classificationInput(for: updated),
+                result: .init(folderId: updated.folderId, confidence: 100, reason: "manual-correction"),
                 context: "Manual edit",
                 source: .manual
             )
@@ -5964,6 +6564,15 @@ final class SaviStore: ObservableObject {
         applyFolderOrder(orderedIds)
         persist()
         toast = "Folder created."
+        track(
+            .folderCreated,
+            properties: [
+                .sourceSurface: "folder_editor",
+                .folderId: folder.id,
+                .folderCategory: folder.name,
+                .isPublic: "\(folder.isPublic)"
+            ]
+        )
     }
 
     func saveFolder(_ folder: SaviFolder) {
@@ -6073,6 +6682,7 @@ final class SaviStore: ObservableObject {
 
     func prepareFullArchiveForSharing(folderIds: Set<String>? = nil) async {
         guard !isPreparingArchiveExport else { return }
+        let startedAt = Date()
         let exportScope = fullArchiveScope(folderIds: folderIds)
         let isAllFolders = folderIds == nil || exportScope.folders.count == folders.count
         isPreparingArchiveExport = true
@@ -6101,8 +6711,12 @@ final class SaviStore: ObservableObject {
             }
             try data.write(to: url, options: [.atomic])
             archiveExportFilename = filename
+            let elapsed = Date().timeIntervalSince(startedAt)
+            if elapsed < 1.1 {
+                try? await Task.sleep(nanoseconds: UInt64((1.1 - elapsed) * 1_000_000_000))
+            }
             archiveExportStatus?.phase = .openingShareSheet
-            try? await Task.sleep(nanoseconds: 350_000_000)
+            try? await Task.sleep(nanoseconds: 450_000_000)
             archiveShareFileURL = url
             archiveExportStatus = nil
             isPreparingArchiveExport = false
@@ -6461,6 +7075,7 @@ final class SaviStore: ObservableObject {
         let pending = shareStore.loadPendingShares()
         guard !pending.isEmpty else { return }
         NSLog("[SAVI Native] found %d pending share(s) to import", pending.count)
+        track(.shareExtensionOpened, properties: [.sourceSurface: "pending_share", .count: "\(pending.count)"])
 
         var importedCount = 0
         for share in pending where !importedShareIds.contains(share.id) {
@@ -6468,8 +7083,9 @@ final class SaviStore: ObservableObject {
             let folderSource = (share.folderSource ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             let usesAutoFolder = share.folderId?.nilIfBlank == nil || folderSource != "manual"
             let item = await createItem(from: share)
-            items.insert(item, at: 0)
+            insertOrReplaceImportedItem(item)
             importedCount += 1
+            trackSaveCompleted(item: item, surface: "share_extension")
             if usesAutoFolder { autoFolderItemIds.insert(item.id) }
             if !usesAutoFolder { learnFolderSelection(for: item) }
             shareStore.remove(share)
@@ -6513,7 +7129,9 @@ final class SaviStore: ObservableObject {
         let folderSource = (share.folderSource ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let usesAutoFolder = share.folderId?.nilIfBlank == nil || folderSource != "manual"
         let item = await createItem(from: share)
-        items.insert(item, at: 0)
+        insertOrReplaceImportedItem(item)
+        track(.shareExtensionOpened, properties: [.sourceSurface: "deep_link"])
+        trackSaveCompleted(item: item, surface: "share_deeplink")
         if usesAutoFolder { autoFolderItemIds.insert(item.id) }
         if !usesAutoFolder { learnFolderSelection(for: item) }
         recordShareExtensionCompletion(folderId: item.folderId)
@@ -6545,7 +7163,9 @@ final class SaviStore: ObservableObject {
         let folderSource = (share.folderSource ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let usesAutoFolder = share.folderId?.nilIfBlank == nil || folderSource != "manual"
         let item = await createItem(from: share)
-        items.insert(item, at: 0)
+        insertOrReplaceImportedItem(item)
+        track(.shareExtensionOpened, properties: [.sourceSurface: "pasteboard_fallback"])
+        trackSaveCompleted(item: item, surface: "share_pasteboard")
         if usesAutoFolder { autoFolderItemIds.insert(item.id) }
         if !usesAutoFolder { learnFolderSelection(for: item) }
         recordShareExtensionCompletion(folderId: item.folderId)
@@ -6562,6 +7182,14 @@ final class SaviStore: ObservableObject {
         SAVIPasteboardShare.clearIfCurrent(share)
         NSLog("[SAVI Native] imported pasteboard fallback share %@ as item %@ in %.3fs", share.id, item.id, Date().timeIntervalSince(startedAt))
         toast = "Shared item saved."
+    }
+
+    private func insertOrReplaceImportedItem(_ item: SaviItem) {
+        if Self.isShareSetupPracticeItem(item),
+           let existingIndex = items.firstIndex(where: Self.isShareSetupPracticeItem) {
+            items.remove(at: existingIndex)
+        }
+        items.insert(item, at: 0)
     }
 
     private func mergeImportedItems(_ imported: [SaviItem], preserving personalItems: [SaviItem]) -> [SaviItem] {
@@ -6678,10 +7306,11 @@ final class SaviStore: ObservableObject {
             mimeType: asset?.type ?? share.mimeType
         )
         let immediateThumbnail = share.thumbnail?.nilIfBlank ??
+            imageThumbnailDataURL(for: asset) ??
             share.url
                 .flatMap(URL.init(string:))
                 .flatMap { SaviText.isYouTube($0) ? SaviText.youtubeThumbnailURL(for: $0) : nil }
-        return SaviItem(
+        var item = SaviItem(
             id: share.id,
             title: share.title.nilIfBlank ?? SaviText.fallbackTitle(for: share.url ?? ""),
             itemDescription: description,
@@ -6696,8 +7325,56 @@ final class SaviStore: ObservableObject {
             assetId: asset?.id,
             assetName: asset?.name ?? share.fileName,
             assetMime: asset?.type ?? share.mimeType,
-            assetSize: asset?.size
+            assetSize: asset?.size,
+            titleEdited: share.titleEdited == true
         )
+        normalizeShareSetupPracticeItemIfNeeded(&item)
+        return item
+    }
+
+    private func imageThumbnailDataURL(for asset: SaviAsset?) -> String? {
+        guard let asset,
+              asset.type.lowercased().hasPrefix("image/"),
+              let url = storage.assetURL(for: asset),
+              let data = try? Data(contentsOf: url)
+        else { return nil }
+
+        return "data:\(asset.type);base64,\(data.base64EncodedString())"
+    }
+
+    private func normalizeShareSetupPracticeItemIfNeeded(_ item: inout SaviItem) {
+        guard Self.isShareSetupPracticeItem(item) else { return }
+
+        let targetFolderId = Self.shareSetupPracticeFolderId
+        item.title = Self.shareSetupPracticeTitle
+        item.itemDescription = Self.shareSetupPracticeDescription
+        item.source = "Photos"
+        item.type = .image
+        item.folderId = targetFolderId
+        item.tags = Self.shareSetupPracticeTags
+        item.color = folder(for: targetFolderId)?.color
+        item.url = nil
+        item.width = 1170
+        item.height = 2532
+
+        guard let data = shareSetupPracticeImageData() else { return }
+        do {
+            let asset = try storage.writeAssetData(
+                data,
+                preferredName: Self.shareSetupPracticeFileName,
+                mimeType: "image/png",
+                id: Self.shareSetupPracticeAssetId
+            )
+            assets.removeAll { $0.id == asset.id }
+            assets.append(asset)
+            item.thumbnail = "data:image/png;base64,\(data.base64EncodedString())"
+            item.assetId = asset.id
+            item.assetName = asset.name
+            item.assetMime = asset.type
+            item.assetSize = asset.size
+        } catch {
+            NSLog("[SAVI Native] share setup practice import normalization failed: \(error.localizedDescription)")
+        }
     }
 
     private func enrichItem(id: String, url: URL) async {
@@ -6709,6 +7386,15 @@ final class SaviStore: ObservableObject {
         guard let metadata = await metadataService.fetch(for: url, waitsForThumbnail: shouldWaitForThumbnail) else {
             applyMetadataFallback(id: id, url: url)
             scheduleThumbnailRetryIfNeeded(id: id, url: url)
+            var properties: [SaviAnalyticsPropertyKey: String] = [
+                .sourceSurface: "metadata",
+                .result: "failed",
+                .reason: "empty"
+            ]
+            if let domain = analyticsDomain(for: url.absoluteString) {
+                properties[.domain] = domain
+            }
+            track(.metadataFailed, properties: properties)
             NSLog("[SAVI Native] metadata fetch returned no data for %@", url.absoluteString)
             return
         }
@@ -6717,9 +7403,9 @@ final class SaviStore: ObservableObject {
         let before = item
         let prefersLiveMetadata = item.metadataPolicy == .liveMetadata
 
-        if prefersLiveMetadata, let title = metadata.title?.nilIfBlank {
+        if !item.titleEdited, prefersLiveMetadata, let title = metadata.title?.nilIfBlank {
             item.title = title
-        } else if SaviText.shouldReplaceTitle(current: item.title, fetched: metadata.title) {
+        } else if !item.titleEdited, SaviText.shouldReplaceTitle(current: item.title, fetched: metadata.title) {
             item.title = metadata.title ?? item.title
         }
         if prefersLiveMetadata, let description = metadata.description?.nilIfBlank {
@@ -6773,6 +7459,9 @@ final class SaviStore: ObservableObject {
         if item.thumbnail?.nilIfBlank == nil {
             scheduleThumbnailRetryIfNeeded(id: id, url: url)
         }
+        var metadataProperties = analyticsProperties(for: item, surface: "metadata", result: "succeeded")
+        metadataProperties[.reason] = metadata.provider?.nilIfBlank ?? "metadata"
+        track(.metadataSucceeded, properties: metadataProperties)
         scheduleAppleIntelligenceRefinement(id: id, allowFolderChange: autoFolderItemIds.contains(id) || item.folderId == "f-random")
     }
 
@@ -7993,7 +8682,7 @@ private struct SaviAppleIntelligenceService {
         Only choose Private Vault for genuinely private documents, credentials, IDs, receipts, medical, insurance, banking, or tax material.
         Actual private IDs, passwords, banking, medical, tax, or credential scans must stay in Private Vault, not Life Admin.
         Entertainment, trailers, news, and fandom posts are not private just because their title says secret, leaked, vault, or password.
-        Entertainment videos default to Watch / Read Later unless clearly comedy/meme, then Memes & LOLs.
+        Entertainment videos default to Watch / Read Later unless clearly comedy/meme, then LOLZ.
         Never choose Science Finds unless the item has real science, space, research, or discovery intent.
         Return only JSON.
         """
@@ -8343,6 +9032,11 @@ struct SaviStorage {
 
     func loadLibrary() throws -> SaviLibraryState? {
         let url = try libraryFileURL()
+        if !fileManager.fileExists(atPath: url.path),
+           let migratedURL = try migrateLegacyDocumentsLibraryIfNeeded(targetRoot: rootURL()) {
+            let data = try Data(contentsOf: migratedURL)
+            return try JSONDecoder().decode(SaviLibraryState.self, from: data)
+        }
         guard fileManager.fileExists(atPath: url.path) else { return nil }
         let data = try Data(contentsOf: url)
         return try JSONDecoder().decode(SaviLibraryState.self, from: data)
@@ -8352,6 +9046,33 @@ struct SaviStorage {
         let encoder = JSONEncoder()
         let data = try encoder.encode(state)
         try data.write(to: try libraryFileURL(), options: .atomic)
+    }
+
+    private func migrateLegacyDocumentsLibraryIfNeeded(targetRoot: URL) throws -> URL? {
+        let legacyRoot = try fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            .appendingPathComponent("SAVI-native", isDirectory: true)
+        guard legacyRoot.standardizedFileURL.path != targetRoot.standardizedFileURL.path else { return nil }
+
+        let legacyLibraryURL = legacyRoot.appendingPathComponent(libraryFileName)
+        let targetLibraryURL = targetRoot.appendingPathComponent(libraryFileName)
+        guard fileManager.fileExists(atPath: legacyLibraryURL.path),
+              !fileManager.fileExists(atPath: targetLibraryURL.path)
+        else {
+            return nil
+        }
+
+        try fileManager.createDirectory(at: targetRoot, withIntermediateDirectories: true)
+        try fileManager.copyItem(at: legacyLibraryURL, to: targetLibraryURL)
+
+        let legacyAssetsURL = legacyRoot.appendingPathComponent(assetsDirectoryName, isDirectory: true)
+        let targetAssetsURL = targetRoot.appendingPathComponent(assetsDirectoryName, isDirectory: true)
+        if fileManager.fileExists(atPath: legacyAssetsURL.path),
+           !fileManager.fileExists(atPath: targetAssetsURL.path) {
+            try? fileManager.copyItem(at: legacyAssetsURL, to: targetAssetsURL)
+        }
+
+        NSLog("[SAVI Native] migrated legacy Documents library into App Group storage")
+        return targetLibraryURL
     }
 
     func copyAsset(from sourceURL: URL, preferredName: String? = nil) throws -> SaviAsset {

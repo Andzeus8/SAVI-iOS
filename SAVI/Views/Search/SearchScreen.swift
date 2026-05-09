@@ -166,6 +166,7 @@ struct SearchScreen: View {
         if store.query != draftQuery {
             store.query = draftQuery
         }
+        store.recordSearchPerformed()
     }
 
     private func dismissSearchKeyboard() {

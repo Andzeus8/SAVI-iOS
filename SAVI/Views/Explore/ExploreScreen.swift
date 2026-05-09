@@ -20,7 +20,7 @@ struct ExploreScreen: View {
         NavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
+                    LazyVStack(alignment: .leading, spacing: 12) {
                         Color.clear
                             .frame(height: 0)
                             .id("explore-top")

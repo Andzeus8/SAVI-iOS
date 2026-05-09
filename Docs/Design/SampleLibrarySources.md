@@ -35,6 +35,7 @@ These links are used as removable sample-library examples. They are selected to 
 
 ## Safety Notes
 
+- Full review checklist: `Docs/Architecture/SampleContentReview.md`.
 - Real stock photos are used only for food, door/access, and hotel room samples.
 - Driver license, insurance card, passport, birth certificate, medical, receipt, and other sensitive/admin examples are generated fake sample art with invented data and visible `SAMPLE` marking.
 - Health examples are saved as research/questions-for-doctor material, not medical advice.
@@ -44,4 +45,5 @@ These links are used as removable sample-library examples. They are selected to 
 
 - `folder-cover-memes-laughing-kid`: generated original SAVI artwork with laughing/reaction energy. It does not use Success Kid, Disaster Girl, or any recognizable third-party meme photo.
 - `share-setup-practice-savi-first-card`: generated original SAVI practice poster used only as a sample image for Share Sheet setup.
-- `onboarding-share-extension-real` and refreshed `onboarding-folders-real`: generated SAVI UI mock screenshots for onboarding guidance.
+- `onboarding-home-real` and `onboarding-search-real`: simulator screenshots from the current SAVI app used in first-run onboarding.
+- `onboarding-share-extension-real`: generated SAVI UI mock screenshot for the smart-save onboarding card.

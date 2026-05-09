@@ -1,20 +1,23 @@
 # SAVI TestFlight Readiness
 
-Last updated: 2026-05-06
+Last updated: 2026-05-08
 
 ## Current Beta Posture
 
 The first external TestFlight should ship as a private, local-first SAVI beta:
 
 - Main app: `SAVI`
-- App Store Connect name: `SAVI: Save Anything`
+- App Store Connect name request: `SAVI: Save it now, Find it later.`
+  Apple App Store names are capped at 30 characters, so use
+  `SAVI: Save Now, Find Later.` if App Store Connect rejects the longer name.
 - Main bundle ID: `com.altatecrd.savi`
 - Share extension bundle ID: `com.altatecrd.savi.ShareExtension`
 - App Group: `group.com.altatecrd.savi.shared`
 - iCloud container: `iCloud.com.altatecrd.savi`
-- Build number: `4`
+- Current local project build number: `34`
+- Latest uploaded TestFlight build: `1.0 (34)` processing in App Store Connect
 - Latest uploaded archive:
-  `/Users/guest1/Desktop/SAVI_QA/Archives/SAVI-20260506-143531-b4.xcarchive`
+  `/Users/guest1/Documents/SAVI-iOS/build/qa/archives/SAVI-20260508-232717-b34.xcarchive`
 - Supported devices for first beta: iPhone only
 - Supported phone orientation for first beta: portrait
 - Release/TestFlight social posture: Social Beta disabled
@@ -57,23 +60,37 @@ existing channels.
 
 ## Apple-Side Checklist
 
+Operational runbook:
+
+- `Docs/Architecture/Runbooks/TestFlightOperations.md`
+- `scripts/savi-testflight-ops-check.py`
+- Share extension real-device QA:
+  `Docs/Architecture/Runbooks/ShareExtensionRealDeviceQA.md`
+- Share extension checker: `scripts/savi-share-extension-qa-check.py`
+- Archive export/restore QA:
+  `Docs/Architecture/Runbooks/ArchiveExportRestoreQA.md`
+- Archive export/restore checker: `scripts/savi-archive-restore-check.py`
+
 Created/verified in Apple Developer and App Store Connect:
 
 - App ID: `com.altatecrd.savi`
 - Share extension App ID: `com.altatecrd.savi.ShareExtension`
 - App Group: `group.com.altatecrd.savi.shared`
 - iCloud container: `iCloud.com.altatecrd.savi`
-- App Store Connect app record: `SAVI: Save Anything`
+- App Store Connect app record: `SAVI: Save Now, Find Later.`
 - Production signing/provisioning for the app and extension via Xcode automatic
   provisioning
-- Latest App Store Connect upload succeeded; build `1.0 (4)` is complete and
-  attached to `SAVI Internal`.
+- Latest App Store Connect upload succeeded; build `1.0 (34)` was uploaded and
+  should be assigned to `SAVI Internal` after processing completes.
 - Internal TestFlight group `SAVI Internal` exists and currently includes the
   active account holder `altatecrd@gmail.com` and
   `matti.lamminsalo@gmail.com`.
 - App Store Connect invitations have been sent to `andreusbl@icloud.com` and
   `andreusbl@mac.com`; add them to `SAVI Internal` after they accept.
-- Build-level `What to Test` notes have been saved for version `1.0` build `4`.
+- Verify `luimi2k1@gmail.com` and `j.rodriguez28@icloud.com` as additional
+  internal testers if they should receive the current build.
+- Build-level `What to Test` notes should use the current friend-facing copy
+  below for build `34`.
 
 Still verify before upload:
 
@@ -88,8 +105,8 @@ You still need to provide:
 - App category
 - Age rating
 - Screenshots
-- Beta description
-- What to Test notes
+- Confirm Beta description
+- Confirm What to Test notes
 - Export compliance answers
 
 SAVI appears to use standard Apple/HTTPS/CloudKit encryption only, but export
@@ -97,8 +114,12 @@ compliance is a legal declaration. Do not set or submit the final export answer
 until you confirm no custom/non-exempt encryption is used. The app and share
 extension Info.plists include `ITSAppUsesNonExemptEncryption = NO` to match the
 current code posture; confirm this in App Store Connect before upload.
+Use the export compliance packet,
+`Docs/Architecture/Runbooks/AppStoreExportCompliance.md`, and run
+`scripts/savi-appstore-export-compliance-check.py` before relying on that
+answer for a submitted build.
 
-## Hardening Applied For Build 4
+## Hardening Applied For Current Release Channel
 
 - Release `SAVI` resolves to `com.altatecrd.savi`; Debug `SAVI Test` resolves to
   `com.altatecrd.savi.personaldebug`.
@@ -124,6 +145,61 @@ current code posture; confirm this in App Store Connect before upload.
   paste it into any email client.
 - TestFlight screenshot/comment feedback remains the primary Apple beta channel
   and should be checked in App Store Connect after each internal testing pass.
+
+## Current TestFlight Metadata Copy
+
+App name:
+
+Requested: `SAVI: Save it now, Find it later.`
+
+30-character fallback: `SAVI: Save Now, Find Later.`
+
+Beta description:
+
+SAVI is a pocket organizer for the useful things you find across your digital
+life: links, screenshots, PDFs, videos, Wi-Fi codes, notes, files, and little
+ideas you may want again later.
+
+Add SAVI to the iOS Share Sheet once, then save from Safari, YouTube, Photos,
+Files, Messages, and the apps you already use. SAVI helps name each save, add
+smart tags, choose a folder, and make it easy to search by title, note, tag,
+folder, source, file type, or the tiny clue you remember.
+
+This beta is focused on the everyday basics: quick saving, search, folders,
+Private Vault, archive backup, and feedback. Explore is a fun way to browse
+your own saved favorites, and later it can include great things curated by
+friends too.
+
+Thank you for helping shape SAVI early. When something feels confusing, broken,
+slow, surprisingly nice, or just a little off, please send Andreus a note
+directly or email 1080solutionsA@gmail.com.
+
+What to Test:
+
+Try SAVI the way you would naturally use it:
+
+1. Open the welcome flow and pin SAVI in your iOS Share Sheet.
+2. Save a normal link, YouTube video, screenshot, image, PDF/file, and plain
+   text from the Share Sheet.
+3. Open SAVI and check that the save appears with a useful title, thumbnail,
+   smart tags, and a sensible folder.
+4. Try Home, Search, Explore, Folders, Private Vault, preview opening, archive
+   export, and Help & Feedback.
+5. Send Andreus feedback personally or email 1080solutionsA@gmail.com. Bugs,
+   screenshots, confusing moments, and small “this feels weird” notes are all
+   welcome.
+
+Thanks for helping build SAVI. You are seeing it early, and your notes will
+help make it feel better for everyone.
+
+Recommended screenshot order:
+
+1. Welcome/onboarding: `Save it now. Find it later.`
+2. Share extension: polished `Save to SAVI` flow with YouTube/video metadata.
+3. Home: recent saves plus Your Folders/LOLZ cover visible.
+4. Search: clear results with tags/folders.
+5. Explore: curated saved favorites and soon-friends teaser.
+6. Profile: Help & Feedback, backup/export, and setup controls.
 
 ## Suggested TestFlight Review Notes
 
@@ -152,11 +228,17 @@ are hidden for this beta while moderation, reporting, and terms are prepared.
 
 - Fresh install: onboarding, Home sample library, Search, Explore, Folders, Profile.
 - Share extension: URL, YouTube, TikTok, Instagram, X/Twitter, text, image, PDF, generic file.
+- Share extension real-device QA: run the SAVI Share Extension Real-Device QA
+  flow on Release `SAVI`, including Safari, Photos, Files, a video/social link,
+  and a poor-network metadata fallback.
 - Feedback: Profile > Help & Feedback opens a prefilled bug email or copies
   `1080solutionsA@gmail.com` if Mail is unavailable.
 - Metadata/AI: save remains instant if metadata or Apple Intelligence times out.
 - Privacy: locked folders and Private Vault stay hidden until Face ID/passcode.
 - Archive: export warns about private content, restore does not publish anything.
+- Archive export/restore QA: run the SAVI Archive Export And Restore QA flow on
+  Release `SAVI`, including full archive export, compact JSON backup export,
+  cancel states, invalid-file restore, and fresh-install restore.
 - Offline: app remains usable without network.
 - Large library: Home/Search scroll smoothly.
 - Light/dark: no unreadable cards, folder names, timeline text, or sheets.

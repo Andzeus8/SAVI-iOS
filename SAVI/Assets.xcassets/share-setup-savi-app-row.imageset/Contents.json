@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "share-setup-savi-app-row.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

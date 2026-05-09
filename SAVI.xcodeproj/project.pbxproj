@@ -12,8 +12,11 @@
 		1EBFE9922D71262ABD190A52 /* Views/Components/AppComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EAF1025489363942E32DA03 /* Views/Components/AppComponents.swift */; };
 		2C2C1C0A4325CB28983D7BF1 /* Views/Folders/FolderComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2826535DAA243707DBEDB4 /* Views/Folders/FolderComponents.swift */; };
 		2E1362452A98F02BB35F1D8B /* Views/Items/ItemViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D338123ABAC95D43929E065 /* Views/Items/ItemViews.swift */; };
+		44EEB26194DCDF46B3CBE04B /* SAVIMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E72A3F1D518067E0908815 /* SAVIMacApp.swift */; };
 		501CDA10B3D3B6325275890E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5E40DFD2F8E0A52A92271618 /* PrivacyInfo.xcprivacy */; };
 		5AE55BEA7ADDEE6F74212BED /* ShareItemExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADB78E370A042E025ABF5D4 /* ShareItemExtractor.swift */; };
+		606F694FBA63878E00E46B6D /* SAVIMacRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29AE10294C2FA1BB2B066AE2 /* SAVIMacRootView.swift */; };
+		E3A0C8A9F8D94B4BA4F00102 /* SaviFounderDashboardCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3A0C8A9F8D94B4BA4F00101 /* SaviFounderDashboardCore.swift */; };
 		6F56B5EA8EC5CA14D357CD09 /* SAVIShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, CodeSignOnCopy, ); }; };
 		75AB82B9897966CCF7028E0D /* AppGroupSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */; };
 		82457E00F8DA24234859881F /* Views/Folders/FolderBrainSettingsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF227CBE023EB9CCF3F90E6D /* Views/Folders/FolderBrainSettingsCard.swift */; };
@@ -23,6 +26,7 @@
 		A17CCA65790D2FB31D47B528 /* Views/Home/HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A72A0A4826AA5DC66A583B8 /* Views/Home/HomeScreen.swift */; };
 		AE1ADBE2271AF0A051249779 /* Views/Explore/ExploreLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C73790530FCF6C539CE4E6 /* Views/Explore/ExploreLibraryView.swift */; };
 		B1E3D6A7B0FF22BD01EB91E2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 98D87BA38D841BBC3186FCAC /* Assets.xcassets */; };
+		B9E654C4034B085214F99DDE /* SaviCompanionCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77399E724F8A488293732BA /* SaviCompanionCore.swift */; };
 		B9DEBF48B85A9BE25A8B9E5C /* Views/Search/SearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A1AB9F2889CE8E1FD7F9F9 /* Views/Search/SearchScreen.swift */; };
 		BA473D208670028D4C739F0C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B719040B173AD971B5BA57EF /* PrivacyInfo.xcprivacy */; };
 		BFACB20FD6E3BBEF240293E5 /* Services/LegacyAndUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C6C7F73B112A00ABB33153 /* Services/LegacyAndUtilities.swift */; };
@@ -33,6 +37,7 @@
 		CEB167C7DFEC74A86ABB4BB2 /* Views/Search/SearchComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F8AC7B1B96FA8214BA76D83 /* Views/Search/SearchComponents.swift */; };
 		C6A9D4E7B15249388F70D222 /* Core/SaviArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F13A7C8B394D2F9234A111 /* Core/SaviArchive.swift */; };
 		DBA16A16F0625D365A2C825A /* Core/SaviCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE6624FFF9F559ACAF7E9441 /* Core/SaviCore.swift */; };
+		94AE704FA4D94609D1DF6E09 /* SaviCompanionCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77399E724F8A488293732BA /* SaviCompanionCore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,21 +70,26 @@
 		1EAF1025489363942E32DA03 /* Views/Components/AppComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Components/AppComponents.swift; sourceTree = "<group>"; };
 		23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupSupport.swift; sourceTree = "<group>"; };
 		2F8AC7B1B96FA8214BA76D83 /* Views/Search/SearchComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Search/SearchComponents.swift; sourceTree = "<group>"; };
+		29AE10294C2FA1BB2B066AE2 /* SAVIMacRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAVIMacRootView.swift; sourceTree = "<group>"; };
 		31C73790530FCF6C539CE4E6 /* Views/Explore/ExploreLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Explore/ExploreLibraryView.swift; sourceTree = "<group>"; };
 		53945E235AEE3372A7962B6C /* Views/Explore/ExploreScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Explore/ExploreScreen.swift; sourceTree = "<group>"; };
 		5A72A0A4826AA5DC66A583B8 /* Views/Home/HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Home/HomeScreen.swift; sourceTree = "<group>"; };
 		5E40DFD2F8E0A52A92271618 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		62E72A3F1D518067E0908815 /* SAVIMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAVIMacApp.swift; sourceTree = "<group>"; };
 		8065247801A22C3651B51CB2 /* SAVI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SAVI.entitlements; sourceTree = "<group>"; };
 		8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SAVIShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8D338123ABAC95D43929E065 /* Views/Items/ItemViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Items/ItemViews.swift; sourceTree = "<group>"; };
+		920FDE00AA3F364ABF497C55 /* SAVIMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SAVIMac.entitlements; sourceTree = "<group>"; };
 		9151FAEC9F2FF69E40F6E10A /* Views/Root/NativeSaviRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Root/NativeSaviRootView.swift; sourceTree = "<group>"; };
 		9245D7F6243B8F5E2DCBA4AE /* SAVIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAVIApp.swift; sourceTree = "<group>"; };
 		98D87BA38D841BBC3186FCAC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E3A0C8A9F8D94B4BA4F00101 /* SaviFounderDashboardCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaviFounderDashboardCore.swift; sourceTree = "<group>"; };
 		A7E49273AD35B2A825630406 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		A8A1AB9F2889CE8E1FD7F9F9 /* Views/Search/SearchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Search/SearchScreen.swift; sourceTree = "<group>"; };
 		AADB78E370A042E025ABF5D4 /* ShareItemExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareItemExtractor.swift; sourceTree = "<group>"; };
 		AF227CBE023EB9CCF3F90E6D /* Views/Folders/FolderBrainSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Folders/FolderBrainSettingsCard.swift; sourceTree = "<group>"; };
 		B719040B173AD971B5BA57EF /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B77399E724F8A488293732BA /* SaviCompanionCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaviCompanionCore.swift; sourceTree = "<group>"; };
 		C03382BE6DF2A2C64092D179 /* SAVIShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SAVIShareExtension.entitlements; sourceTree = "<group>"; };
 		CEBE255DC1157E1A7DA4FD96 /* Views/Save/SaveAndEditSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Save/SaveAndEditSheets.swift; sourceTree = "<group>"; };
 		CED720D56919D0A52DB70DC3 /* Views/Folders/FoldersScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Folders/FoldersScreen.swift; sourceTree = "<group>"; };
@@ -88,12 +98,20 @@
 		E5F13A7C8B394D2F9234A111 /* Core/SaviArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/SaviArchive.swift; sourceTree = "<group>"; };
 		E6C6C7F73B112A00ABB33153 /* Services/LegacyAndUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LegacyAndUtilities.swift; sourceTree = "<group>"; };
 		E816792053DE2717A057744F /* SAVI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SAVI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4E6B98197AFD0F08DACDB209 /* SAVI Mac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SAVI Mac.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FB2826535DAA243707DBEDB4 /* Views/Folders/FolderComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Folders/FolderComponents.swift; sourceTree = "<group>"; };
 		FB7D49DEB6A5B38091231594 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		0F87A878AEB94E823836E22B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F2EDC5AA19A93B5B1603A6CF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -115,6 +133,7 @@
 			children = (
 				E816792053DE2717A057744F /* SAVI.app */,
 				8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */,
+				4E6B98197AFD0F08DACDB209 /* SAVI Mac.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -126,6 +145,7 @@
 				42006AB264CF2AB66A8087C0 /* SAVI */,
 				3AC73B1B9BE32CC7AB22405E /* Shared */,
 				DF34336E66928187F4B1CAB6 /* SAVIShareExtension */,
+				A468383E6B0B7E4C6B9744EB /* SAVIMac */,
 			);
 			sourceTree = "<group>";
 		};
@@ -133,8 +153,20 @@
 			isa = PBXGroup;
 			children = (
 				23DA86610A6C5BA890F0C6A2 /* AppGroupSupport.swift */,
+				B77399E724F8A488293732BA /* SaviCompanionCore.swift */,
 			);
 			path = Shared;
+			sourceTree = "<group>";
+		};
+		A468383E6B0B7E4C6B9744EB /* SAVIMac */ = {
+			isa = PBXGroup;
+				children = (
+					62E72A3F1D518067E0908815 /* SAVIMacApp.swift */,
+					E3A0C8A9F8D94B4BA4F00101 /* SaviFounderDashboardCore.swift */,
+					29AE10294C2FA1BB2B066AE2 /* SAVIMacRootView.swift */,
+					920FDE00AA3F364ABF497C55 /* SAVIMac.entitlements */,
+				);
+			path = SAVIMac;
 			sourceTree = "<group>";
 		};
 		42006AB264CF2AB66A8087C0 /* SAVI */ = {
@@ -206,6 +238,23 @@
 			productReference = 8CDCC7FAAFB540FE9F6D2F9E /* SAVIShareExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		5A5DA3AED68DC72668B194B2 /* SAVI Mac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 19D28F5F705AF7CC7B1BD72A /* Build configuration list for PBXNativeTarget "SAVI Mac" */;
+			buildPhases = (
+				AF9242C84FC00622E3249FFF /* Sources */,
+				F2EDC5AA19A93B5B1603A6CF /* Frameworks */,
+				65C4E5D5C8DAF74ECDE455FC /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "SAVI Mac";
+			productName = "SAVI Mac";
+			productReference = 4E6B98197AFD0F08DACDB209 /* SAVI Mac.app */;
+			productType = "com.apple.product-type.application";
+		};
 		F01C2E624E08A72BC055B46F /* SAVI */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A25A21380B352A4D587DB751 /* Build configuration list for PBXNativeTarget "SAVI" */;
@@ -239,6 +288,10 @@
 						CreatedOnToolsVersion = 16.0;
 						ProvisioningStyle = Automatic;
 					};
+					5A5DA3AED68DC72668B194B2 = {
+						CreatedOnToolsVersion = 16.0;
+						ProvisioningStyle = Automatic;
+					};
 					F01C2E624E08A72BC055B46F = {
 						CreatedOnToolsVersion = 16.0;
 						ProvisioningStyle = Automatic;
@@ -260,6 +313,7 @@
 			targets = (
 				F01C2E624E08A72BC055B46F /* SAVI */,
 				9E164028DD14F61737EB4356 /* SAVIShareExtension */,
+				5A5DA3AED68DC72668B194B2 /* SAVI Mac */,
 			);
 		};
 /* End PBXProject section */
@@ -279,6 +333,13 @@
 			files = (
 				B1E3D6A7B0FF22BD01EB91E2 /* Assets.xcassets in Resources */,
 				BA473D208670028D4C739F0C /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65C4E5D5C8DAF74ECDE455FC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -308,7 +369,19 @@
 				CEB167C7DFEC74A86ABB4BB2 /* Views/Search/SearchComponents.swift in Sources */,
 				B9DEBF48B85A9BE25A8B9E5C /* Views/Search/SearchScreen.swift in Sources */,
 				17450B03B5250677DE7C0400 /* AppGroupSupport.swift in Sources */,
+				94AE704FA4D94609D1DF6E09 /* SaviCompanionCore.swift in Sources */,
 			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AF9242C84FC00622E3249FFF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+				files = (
+					44EEB26194DCDF46B3CBE04B /* SAVIMacApp.swift in Sources */,
+					E3A0C8A9F8D94B4BA4F00102 /* SaviFounderDashboardCore.swift in Sources */,
+					606F694FBA63878E00E46B6D /* SAVIMacRootView.swift in Sources */,
+					B9E654C4034B085214F99DDE /* SaviCompanionCore.swift in Sources */,
+				);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		976F22E240CEDCB52F1EB2AF /* Sources */ = {
@@ -352,7 +425,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = SAVI/SAVI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+					CURRENT_PROJECT_VERSION = 35;
 				DEVELOPMENT_TEAM = 887JW5T2M8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SAVI/Info.plist;
@@ -379,7 +452,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "SAVI/SAVI-PersonalDebug.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+					CURRENT_PROJECT_VERSION = 35;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 887JW5T2M8;
 				ENABLE_TESTABILITY = YES;
@@ -413,7 +486,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = SAVIShareExtension/SAVIShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+					CURRENT_PROJECT_VERSION = 35;
 				DEVELOPMENT_TEAM = 887JW5T2M8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SAVIShareExtension/Info.plist;
@@ -455,13 +528,72 @@
 			};
 			name = Debug;
 		};
+		1849CB62C688D8E658890268 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SAVIMac/SAVIMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 887JW5T2M8;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_TESTABILITY = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INFOPLIST_KEY_CFBundleDisplayName = "SAVI Mac";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.altatecrd.savi.mac;
+				PRODUCT_NAME = "SAVI Mac";
+				SDKROOT = macosx;
+				SKIP_INSTALL = NO;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_COMPILATION_MODE = incremental;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D56326C9E3B5A94CF2599D28 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SAVIMac/SAVIMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 887JW5T2M8;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "SAVI Mac";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.altatecrd.savi.mac;
+				PRODUCT_NAME = "SAVI Mac";
+				SDKROOT = macosx;
+				SKIP_INSTALL = NO;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		B75ACF8F6CBFFD86C332C9D6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "SAVIShareExtension/SAVIShareExtension-PersonalDebug.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+					CURRENT_PROJECT_VERSION = 35;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 887JW5T2M8;
 				ENABLE_TESTABILITY = YES;
@@ -518,6 +650,15 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		19D28F5F705AF7CC7B1BD72A /* Build configuration list for PBXNativeTarget "SAVI Mac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1849CB62C688D8E658890268 /* Debug */,
+				D56326C9E3B5A94CF2599D28 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

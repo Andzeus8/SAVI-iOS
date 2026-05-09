@@ -249,12 +249,14 @@ struct SafariLinkPreview: UIViewControllerRepresentable {
 struct SaviActivityView: UIViewControllerRepresentable {
     let activityItems: [Any]
     var completion: ((Bool) -> Void)? = nil
+    var detailedCompletion: ((UIActivity.ActivityType?, Bool) -> Void)? = nil
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-        controller.completionWithItemsHandler = { _, completed, _, _ in
+        controller.completionWithItemsHandler = { activityType, completed, _, _ in
             DispatchQueue.main.async {
                 completion?(completed)
+                detailedCompletion?(activityType, completed)
             }
         }
         return controller
@@ -266,14 +268,10 @@ struct SaviActivityView: UIViewControllerRepresentable {
 // MARK: - Seeds
 
 enum SaviSeeds {
-    private static var defaultMemesFolderCover: String {
-        samplePhotoThumb(imageName: "folder-cover-memes-laughing-kid", fallbackAccentHex: "#D6F83A") { _, _ in }
-    }
-
     static let folders: [SaviFolder] = [
         .init(id: "f-private-vault", name: "Private Vault", color: "#171026", image: nil, system: false, symbolName: "lock.open.fill", order: 0),
         .init(id: "f-health", name: "Health Hacks", color: "#70D59B", image: nil, system: false, symbolName: "heart.fill", order: 1),
-        .init(id: "f-lmao", name: "Memes & LOLs", color: "#D6F83A", image: defaultMemesFolderCover, system: false, symbolName: "theatermasks.fill", order: 2, usesImageBackground: true),
+        .init(id: "f-lmao", name: "Memes & LOLZ", color: "#D6F83A", image: nil, system: false, symbolName: "theatermasks.fill", order: 2),
         .init(id: "f-must-see", name: "Watch / Read Later", color: "#7A35E8", image: nil, system: false, symbolName: "bookmark.fill", order: 3),
         .init(id: "f-life-admin", name: "Life Admin", color: "#FFD15C", image: nil, system: false, symbolName: "key.fill", order: 4),
         .init(id: "f-travel", name: "Places & Trips", color: "#68C6E8", image: nil, system: false, symbolName: "mappin.and.ellipse", order: 5),
@@ -1497,11 +1495,12 @@ enum SaviSeeds {
         // First-run storyboard: practical saves first, then search breadth and fun.
         item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi screenshot", description: "SAMPLE screenshot: Airbnb host texted door code 2486, Wi-Fi Pinehouse Guest, and checkout at 11 AM.", source: "Photos", type: .image, folderId: "f-life-admin", tags: ["sample", "screenshot", "airbnb", "door-code", "wifi", "travel", "chat", "check-in"], thumbnail: sampleAirbnbChatScreenshotThumb(), hoursAgo: 1, assetName: "sample-airbnb-door-code-screenshot.png", assetMime: "image/png", assetSize: 176_000),
         item(id: "sample-food-mom-lasagna-audio", title: "Mom's lasagna sauce voice note", description: "Audio note sample: brown the garlic slowly, simmer the sauce, and add the basil at the end.", source: "Voice Memo", type: .file, folderId: "f-recipes", tags: ["audio", "voice-note", "recipe", "mom", "sauce", "lasagna"], thumbnail: sampleAudioRecipeThumb(), hoursAgo: 2, assetName: "moms-lasagna-sauce.m4a", assetMime: "audio/mp4", assetSize: 824_000),
-        item(id: "sample-health-cpr", title: "Hands-only CPR: what to do before help arrives", description: "Red Cross guide saved for the kind of emergency note you hope you never need.", url: "https://www.redcross.org/take-a-class/hands-only-cpr.html", source: "Red Cross", type: .article, folderId: "f-health", tags: ["cpr", "emergency", "first-aid", "lifesaving", "health"], thumbnail: sampleGraphicThumb(title: "Hands-only CPR", subtitle: "Emergency note", accentHex: "#70D59B", symbolName: "heart.fill", rows: ["Call emergency help", "Push hard + fast", "Stay with them", "Learn before you need it"]), hoursAgo: 4, metadataPolicy: .liveMetadata),
+        item(id: "sample-health-cpr", title: "Hands-only CPR: what to do before help arrives", description: "Red Cross guide saved for the kind of emergency note you hope you never need.", url: "https://www.redcross.org/take-a-class/cpr/performing-cpr/hands-only-cpr", source: "Red Cross", type: .article, folderId: "f-health", tags: ["cpr", "emergency", "first-aid", "lifesaving", "health"], thumbnail: sampleGraphicThumb(title: "Hands-only CPR", subtitle: "Emergency note", accentHex: "#70D59B", symbolName: "heart.fill", rows: ["Call emergency help", "Push hard + fast", "Stay with them", "Learn before you need it"]), hoursAgo: 4, metadataPolicy: .liveMetadata),
         item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 11),
         item(id: "sample-life-ac-warranty-screenshot", title: "A/C warranty screenshot", description: "SAMPLE iPhone screenshot of an air-conditioner warranty, serial number, support phone, receipt note, and install detail.", source: "Photos", type: .image, folderId: "f-life-admin", tags: ["sample", "screenshot", "warranty", "air-conditioner", "serial-number", "receipt", "life-admin", "appliance"], thumbnail: sampleWarrantyScreenshotThumb(), hoursAgo: 7, assetName: "sample-ac-warranty-screenshot.png", assetMime: "image/png", assetSize: 188_000),
         item(id: "sample-life-credit-freeze", title: "How to freeze your credit before someone steals it", description: "Official FTC guide to credit freezes and fraud alerts, saved for the admin task you want before you need it.", url: "https://consumer.ftc.gov/articles/credit-freeze-or-fraud-alert-whats-right-your-credit-report", source: "FTC", type: .article, folderId: "f-life-admin", tags: ["credit-freeze", "identity-theft", "fraud-alert", "life-admin", "security"], thumbnail: sampleGraphicThumb(title: "Credit freeze", subtitle: "Before you need it", accentHex: "#FFD15C", symbolName: "lock.shield.fill", rows: ["Freeze reports", "Fraud alerts", "Identity theft", "FTC guide"]), hoursAgo: 15, metadataPolicy: .liveMetadata),
         item(id: "sample-place-ramen", title: "Jennifer's ramen recommendation", description: "Jennifer said to order the spicy miso, sit at the counter, and save the pin before the group chat buries it.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Jennifer", type: .place, folderId: "f-travel", tags: ["maps", "restaurant", "friend-rec", "tokyo", "food"], thumbnail: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=720&q=80", hoursAgo: 6),
+        item(id: "sample-ai-love-structural-law", title: "Love as Structural Law: AI coherence preprint", description: "SSRN preprint exploring whether love, compassion, and coherence can be understood as structural requirements for stable advanced intelligence and human systems.", url: "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6424639", source: "SSRN", type: .article, folderId: "f-growth", tags: ["ai", "research", "ssrn", "coherence", "technotheology", "paper", "read-later"], thumbnail: sampleGraphicThumb(title: "Love as Structural Law", subtitle: "AI coherence preprint", accentHex: "#F47A3B", symbolName: "brain.head.profile", rows: ["Advanced intelligence", "Relational coherence", "Stability at scale", "SSRN preprint"]), hoursAgo: 8),
         item(id: "sample-ai-chaos-plan", title: "Prompt: make the hard decision obvious", description: "Reusable AI prompt: I'm stuck on a hard decision. Act as a clear-thinking advisor. Ask me the 5 questions that matter most, separate fear from facts, identify the option I'm avoiding, compare the paths by upside/downside/regret, then recommend the next smallest move I can take today.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "decision", "life", "planning"], thumbnail: sampleAIPromptThumb(), hoursAgo: 16),
         item(id: "sample-life-insurance-card", title: "Insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-private-vault", tags: ["sample", "private", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 10, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
         item(id: "sample-meme-typo", title: "Rick Astley - Never Gonna Give You Up", description: "The classic bait-and-switch music video, saved because some memes are infrastructure.", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "rickroll", "youtube", "internet-history"], thumbnail: youtubeThumb("dQw4w9WgXcQ"), hoursAgo: 19, metadataPolicy: .liveMetadata),
@@ -1530,7 +1529,7 @@ enum SaviSeeds {
         item(id: "sample-ai-inbox-zero", title: "Inbox zero with shortcuts", description: "A workflow link for shortcuts, reminders, and calmer inboxes.", url: "https://support.apple.com/guide/shortcuts/welcome/ios", source: "Apple Support", type: .article, folderId: "f-growth", tags: ["workflow", "shortcuts", "productivity"], thumbnailSeed: "savi-inbox-zero", hoursAgo: 80),
         item(id: "sample-ai-workspace", title: "Prompt: find my strongest talents", description: "Reusable AI prompt: Look at my work history, hobbies, saved notes, and the problems people ask me to solve. Identify my recurring strengths, where they are useful, and a 7-day experiment to test one direction.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "talent", "reflection", "career"], thumbnail: sampleTalentPromptThumb(), hoursAgo: 92),
 
-        item(id: "sample-meme-cursed", title: "Numa Numa: the webcam dance that ate the internet", description: "A classic early internet video save for the Memes & LOLs folder.", url: "https://www.youtube.com/watch?v=Cqd1Gvq-RBY", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "numa-numa", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("Cqd1Gvq-RBY"), hoursAgo: 9, metadataPolicy: .liveMetadata),
+        item(id: "sample-meme-cursed", title: "Numa Numa: the webcam dance that ate the internet", description: "A classic early internet video save for the LOLZ folder.", url: "https://www.youtube.com/watch?v=Cqd1Gvq-RBY", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "numa-numa", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("Cqd1Gvq-RBY"), hoursAgo: 9, metadataPolicy: .liveMetadata),
         item(id: "sample-meme-group-chat", title: "Charlie Bit My Finger: early YouTube history", description: "A famous family video moment saved as internet-history, not a random clip.", url: "https://www.youtube.com/watch?v=0EqSXDwTq6U", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "charlie-bit-my-finger", "classic-youtube", "internet-history"], thumbnail: youtubeThumb("0EqSXDwTq6U"), hoursAgo: 13, metadataPolicy: .liveMetadata),
         item(id: "sample-meme-review", title: "Dramatic Look", description: "Five seconds of dramatic zoom, somehow a whole era of the internet.", url: "https://www.youtube.com/watch?v=y8Kyi0WNg40", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "reaction", "internet-history"], thumbnail: youtubeThumb("y8Kyi0WNg40"), hoursAgo: 31, metadataPolicy: .liveMetadata),
         item(id: "sample-meme-badger", title: "Badger Badger Badger", description: "A looping Flash-era internet song that still explains an entire corner of web history.", url: "https://www.youtube.com/watch?v=EIyixC9NsLI", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "flash", "internet-history"], thumbnail: youtubeThumb("EIyixC9NsLI"), hoursAgo: 104, metadataPolicy: .liveMetadata),
@@ -1629,7 +1628,7 @@ enum SaviSeeds {
             "f-paste-bin": ["Paste Bin", "Notes & Clips"],
             "f-wtf-favorites": ["Science Stuff", "Science Finds"],
             "f-growth": ["AI Hacks", "AI & Work"],
-            "f-lmao": ["LULZ", "Memes & Laughs", "Memes & LOLs"],
+            "f-lmao": ["LULZ", "LOLZ", "Memes & Laughs", "Memes & LOLs", "Memes & LOLZ"],
             "f-travel": ["Places", "Places & Trips"],
             "f-health": ["Health Hacks", "Health"],
             "f-research": ["Research", "Research & PDFs"],
@@ -1673,8 +1672,15 @@ enum SaviSeeds {
                 legacyFolderColors[folder.id].map({ folder.color.caseInsensitiveCompare($0) == .orderedSame }) == true {
                 next.color = seed.color
             }
+            if folder.id == "f-lmao" {
+                next.color = seed.color
+            }
             if next.image?.nilIfBlank == nil, let seedImage = seed.image?.nilIfBlank {
                 next.image = seedImage
+                next.usesImageBackground = seed.usesImageBackground
+            }
+            if folder.id == "f-lmao" {
+                next.image = seed.image
                 next.usesImageBackground = seed.usesImageBackground
             }
             return next

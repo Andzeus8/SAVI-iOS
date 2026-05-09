@@ -1,0 +1,47 @@
+{
+  "dashboards": [
+    {
+      "name": "Pulse",
+      "description": "DAU, WAU, MAU, sessions, retention, and build adoption.",
+      "events": ["app_opened", "session_duration"]
+    },
+    {
+      "name": "Share Sheet Rocket",
+      "description": "Share extension opened to save completed to metadata success.",
+      "events": ["share_extension_opened", "save_completed", "save_failed", "metadata_success", "metadata_failure"]
+    },
+    {
+      "name": "Save Engine",
+      "description": "Saves per user, item types, source groups, folder auto-pick confidence.",
+      "events": ["save_completed", "folder_selected", "folder_created"]
+    },
+    {
+      "name": "Search Brain",
+      "description": "Search usage, result-count buckets, zero-result rate, refine usage.",
+      "events": ["search_performed"]
+    },
+    {
+      "name": "Social Lab",
+      "description": "Public links, follows, hearts, friend saves, reports, and blocks.",
+      "events": ["public_link_published", "feed_viewed", "friend_added", "like_added", "friend_link_saved", "report_submitted", "block_action"]
+    },
+    {
+      "name": "Reliability Room",
+      "description": "Save failures, metadata failures, slow devices, crashes from external crash tooling.",
+      "events": ["save_failed", "metadata_failure"]
+    }
+  ],
+  "privacyRules": {
+    "autocapture": false,
+    "sessionReplay": false,
+    "forbiddenProperties": [
+      "private_note_text",
+      "pdf_contents",
+      "screenshot_ocr",
+      "private_vault_contents",
+      "raw_clipboard",
+      "contacts",
+      "private_file_name"
+    ]
+  }
+}

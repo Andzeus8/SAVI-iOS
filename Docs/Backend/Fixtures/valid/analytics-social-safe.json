@@ -1,0 +1,15 @@
+{
+  "name": "public_link_published",
+  "timestamp": "2026-05-08T12:40:00Z",
+  "properties": {
+    "app_version": "1.0",
+    "build_number": "33",
+    "device_tier": "modern",
+    "item_type": "article",
+    "save_source_group": "web",
+    "folder_id": "f-science",
+    "is_public": true,
+    "domain": "nasa.gov",
+    "canonical_url": "https://science.nasa.gov/"
+  }
+}

@@ -39,7 +39,8 @@ enum ShareItemExtractor {
 
     static func extract(from context: NSExtensionContext?) async throws -> PendingShare {
         guard let item = (context?.inputItems.first as? NSExtensionItem) ?? (context?.inputItems.compactMap({ $0 as? NSExtensionItem }).first),
-              let provider = item.attachments?.first
+              let providers = item.attachments,
+              !providers.isEmpty
         else {
             throw ShareItemExtractorError.missingInputItem
         }
@@ -48,6 +49,78 @@ enum ShareItemExtractor {
         let timestamp = Date().timeIntervalSince1970 * 1000
         let itemTitle: String? = nil
         let itemText: String? = nil
+        var lastError: Error?
+
+        for provider in providers {
+            do {
+                return try await extract(
+                    from: provider,
+                    sourceBundleID: sourceBundleID,
+                    timestamp: timestamp,
+                    itemTitle: itemTitle,
+                    itemText: itemText
+                )
+            } catch {
+                lastError = error
+            }
+        }
+
+        throw lastError ?? ShareItemExtractorError.unsupportedAttachment
+    }
+
+    private static func extract(
+        from provider: NSItemProvider,
+        sourceBundleID: String,
+        timestamp: Double,
+        itemTitle: String?,
+        itemText: String?
+    ) async throws -> PendingShare {
+        if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+            return try await makeImagePendingShare(
+                provider: provider,
+                sourceBundleID: sourceBundleID,
+                timestamp: timestamp,
+                itemTitle: itemTitle,
+                itemText: itemText
+            )
+        }
+
+        if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+            return try await makeLocalFilePendingShare(
+                provider: provider,
+                preferredTypeIdentifier: UTType.fileURL.identifier,
+                sourceBundleID: sourceBundleID,
+                timestamp: timestamp,
+                itemTitle: itemTitle,
+                itemText: itemText
+            )
+        }
+
+        if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) ||
+            provider.hasItemConformingToTypeIdentifier(UTType.video.identifier) {
+            return try await makeLocalFilePendingShare(
+                provider: provider,
+                preferredTypeIdentifier: provider.preferredTypeIdentifier(conformingTo: .movie) ??
+                    provider.preferredTypeIdentifier(conformingTo: .video) ??
+                    UTType.movie.identifier,
+                sourceBundleID: sourceBundleID,
+                timestamp: timestamp,
+                itemTitle: itemTitle,
+                itemText: itemText
+            )
+        }
+
+        if provider.hasItemConformingToTypeIdentifier(UTType.audio.identifier) {
+            return try await makeLocalFilePendingShare(
+                provider: provider,
+                preferredTypeIdentifier: provider.preferredTypeIdentifier(conformingTo: .audio) ??
+                    UTType.audio.identifier,
+                sourceBundleID: sourceBundleID,
+                timestamp: timestamp,
+                itemTitle: itemTitle,
+                itemText: itemText
+            )
+        }
 
         if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
             let url = try await provider.loadURL()
@@ -94,28 +167,12 @@ enum ShareItemExtractor {
         }
 
         if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-            let copiedURL = try await provider.copyFileRepresentation(
-                preferredTypeIdentifier: UTType.image.identifier
-            )
-            let data = try Data(contentsOf: copiedURL)
-            let dataURL = "data:\(UTType.image.identifier);base64,\(data.base64EncodedString())"
-            let title = itemTitle ?? copiedURL.lastPathComponent
-            let tags = inferredTags(type: "image", url: nil, title: title, description: itemText, source: sourceBundleID, fileName: copiedURL.lastPathComponent, mimeType: UTType.image.identifier)
-            return PendingShare(
-                id: UUID().uuidString,
-                url: nil,
-                title: title,
-                type: "image",
-                thumbnail: dataURL,
+            return try await makeImagePendingShare(
+                provider: provider,
+                sourceBundleID: sourceBundleID,
                 timestamp: timestamp,
-                sourceApp: sourceLabel(from: sourceBundleID, sharedURL: nil),
-                text: itemText,
-                fileName: copiedURL.lastPathComponent,
-                filePath: copiedURL.path,
-                mimeType: UTType.image.identifier,
-                itemDescription: itemText,
-                folderId: suggestedFolderId(type: "image", url: nil, title: title, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: UTType.image.identifier, tags: tags, source: sourceBundleID),
-                tags: tags
+                itemTitle: itemTitle,
+                itemText: itemText
             )
         }
 
@@ -123,7 +180,7 @@ enum ShareItemExtractor {
             let copiedURL = try await provider.copyFileRepresentation(
                 preferredTypeIdentifier: UTType.pdf.identifier
             )
-            let title = itemTitle ?? copiedURL.lastPathComponent
+            let title = itemTitle ?? displayTitle(forFileName: copiedURL.lastPathComponent)
             let tags = inferredTags(type: "file", url: nil, title: title, description: itemText, source: sourceBundleID, fileName: copiedURL.lastPathComponent, mimeType: UTType.pdf.identifier)
             return PendingShare(
                 id: UUID().uuidString,
@@ -144,30 +201,151 @@ enum ShareItemExtractor {
         }
 
         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) || provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
-            let preferred = provider.registeredTypeIdentifiers.first ?? UTType.data.identifier
-            let copiedURL = try await provider.copyFileRepresentation(preferredTypeIdentifier: preferred)
-            let title = itemTitle ?? copiedURL.lastPathComponent
-            let shareType = localFileShareType(fileName: copiedURL.lastPathComponent, mimeType: preferred)
-            let tags = inferredTags(type: shareType, url: nil, title: title, description: itemText, source: sourceBundleID, fileName: copiedURL.lastPathComponent, mimeType: preferred)
-            return PendingShare(
-                id: UUID().uuidString,
-                url: nil,
-                title: title,
-                type: shareType,
-                thumbnail: nil,
+            let preferred = provider.preferredFileOrDataTypeIdentifier()
+            return try await makeLocalFilePendingShare(
+                provider: provider,
+                preferredTypeIdentifier: preferred,
+                sourceBundleID: sourceBundleID,
                 timestamp: timestamp,
-                sourceApp: sourceLabel(from: sourceBundleID, sharedURL: nil),
-                text: itemText,
-                fileName: copiedURL.lastPathComponent,
-                filePath: copiedURL.path,
-                mimeType: preferred,
-                itemDescription: itemText,
-                folderId: suggestedFolderId(type: shareType, url: nil, title: title, description: itemText, fileName: copiedURL.lastPathComponent, mimeType: preferred, tags: tags, source: sourceBundleID),
-                tags: tags
+                itemTitle: itemTitle,
+                itemText: itemText
+            )
+        }
+
+        if let preferred = provider.preferredTypeIdentifier(conformingTo: .item) ??
+            provider.registeredTypeIdentifiers.first {
+            return try await makeLocalFilePendingShare(
+                provider: provider,
+                preferredTypeIdentifier: preferred,
+                sourceBundleID: sourceBundleID,
+                timestamp: timestamp,
+                itemTitle: itemTitle,
+                itemText: itemText
             )
         }
 
         throw ShareItemExtractorError.unsupportedAttachment
+    }
+
+    private static func makeImagePendingShare(
+        provider: NSItemProvider,
+        sourceBundleID: String,
+        timestamp: Double,
+        itemTitle: String?,
+        itemText: String?
+    ) async throws -> PendingShare {
+        let imageTypeIdentifier = provider.preferredImageTypeIdentifier()
+        let copiedURL: URL
+        do {
+            copiedURL = try await provider.copyFileRepresentation(
+                preferredTypeIdentifier: imageTypeIdentifier
+            )
+        } catch {
+            let data: Data
+            do {
+                data = try await provider.loadData(preferredTypeIdentifier: imageTypeIdentifier)
+            } catch {
+                data = try await provider.loadImageData(preferredTypeIdentifier: imageTypeIdentifier)
+            }
+            copiedURL = try copyImageDataToSharedContainer(
+                data,
+                preferredTitle: itemTitle,
+                typeIdentifier: imageTypeIdentifier
+            )
+        }
+        let data = try Data(contentsOf: copiedURL)
+        let mimeType = imageMimeType(for: copiedURL, fallback: imageTypeIdentifier)
+        let thumbnailDataURL = imageThumbnailDataURL(from: data, mimeType: mimeType)
+        let fileName = copiedURL.lastPathComponent
+        let baseTitle = itemTitle ?? displayTitle(forFileName: fileName)
+        let practice = practiceShareMetadata(fileName: fileName, title: baseTitle)
+        let title = practice?.title ?? baseTitle
+        let description = practice?.description ?? itemText
+        let tags = practice?.tags ?? inferredTags(type: "image", url: nil, title: title, description: description, source: sourceBundleID, fileName: fileName, mimeType: mimeType)
+        return PendingShare(
+            id: UUID().uuidString,
+            url: nil,
+            title: title,
+            type: "image",
+            thumbnail: thumbnailDataURL,
+            timestamp: timestamp,
+            sourceApp: practice?.sourceApp ?? sourceLabel(from: sourceBundleID, sharedURL: nil),
+            text: itemText,
+            fileName: practice?.fileName ?? fileName,
+            filePath: copiedURL.path,
+            mimeType: mimeType,
+            itemDescription: description,
+            folderId: practice?.folderId ?? suggestedFolderId(type: "image", url: nil, title: title, description: description, fileName: fileName, mimeType: mimeType, tags: tags, source: sourceBundleID),
+            folderSource: practice?.folderSource,
+            folderConfidence: practice?.folderConfidence,
+            folderReason: practice?.folderReason,
+            tags: tags
+        )
+    }
+
+    private static func makeLocalFilePendingShare(
+        provider: NSItemProvider,
+        preferredTypeIdentifier: String,
+        sourceBundleID: String,
+        timestamp: Double,
+        itemTitle: String?,
+        itemText: String?
+    ) async throws -> PendingShare {
+        let copiedURL: URL
+        if preferredTypeIdentifier == UTType.fileURL.identifier,
+           let originalURL = try? await provider.loadURL(),
+           originalURL.isFileURL {
+            copiedURL = try copyFileToAccessibleLocation(
+                from: originalURL,
+                preferredName: originalURL.lastPathComponent
+            )
+        } else {
+            do {
+                copiedURL = try await provider.copyFileRepresentation(preferredTypeIdentifier: preferredTypeIdentifier)
+            } catch {
+                let data = try await provider.loadData(preferredTypeIdentifier: preferredTypeIdentifier)
+                copiedURL = try copyDataToAccessibleFile(
+                    data,
+                    preferredTitle: itemTitle,
+                    typeIdentifier: preferredTypeIdentifier
+                )
+            }
+        }
+        let fileName = copiedURL.lastPathComponent
+        let baseTitle = itemTitle ?? displayTitle(forFileName: fileName)
+        let practice = practiceShareMetadata(fileName: fileName, title: baseTitle)
+        let title = practice?.title ?? baseTitle
+        let shareType = localFileShareType(fileName: fileName, mimeType: preferredTypeIdentifier)
+        let thumbnail: String?
+        let mimeType: String
+        if shareType == "image", let data = try? Data(contentsOf: copiedURL) {
+            mimeType = imageMimeType(for: copiedURL, fallback: preferredTypeIdentifier)
+            thumbnail = imageThumbnailDataURL(from: data, mimeType: mimeType)
+        } else {
+            mimeType = preferredTypeIdentifier
+            thumbnail = nil
+        }
+        let description = practice?.description ?? itemText
+        let tags = practice?.tags ?? inferredTags(type: shareType, url: nil, title: title, description: description, source: sourceBundleID, fileName: fileName, mimeType: mimeType)
+        return PendingShare(
+            id: UUID().uuidString,
+            url: nil,
+            title: title,
+            type: shareType,
+            thumbnail: thumbnail,
+            timestamp: timestamp,
+            sourceApp: practice?.sourceApp ?? sourceLabel(from: sourceBundleID, sharedURL: nil),
+            text: itemText,
+            fileName: practice?.fileName ?? fileName,
+            filePath: copiedURL.path,
+            mimeType: mimeType,
+            itemDescription: description,
+            folderId: practice?.folderId ?? suggestedFolderId(type: shareType, url: nil, title: title, description: description, fileName: fileName, mimeType: mimeType, tags: tags, source: sourceBundleID),
+            folderSource: practice?.folderSource,
+            folderConfidence: practice?.folderConfidence,
+            folderReason: practice?.folderReason,
+            tags: tags
+        )
     }
 
     static func enrich(_ share: PendingShare) async -> PendingShare {
@@ -182,6 +360,10 @@ enum ShareItemExtractor {
         }
 
         resolved = await enrichLocalAttachmentIfNeeded(resolved)
+
+        if let practice = practiceShareMetadata(fileName: resolved.fileName, title: resolved.title) {
+            return applyingPracticeShareMetadata(practice, to: resolved)
+        }
 
         guard let urlString = resolved.url,
               let url = URL(string: urlString),
@@ -264,6 +446,9 @@ enum ShareItemExtractor {
     }
 
     static func improveWithAppleIntelligence(_ share: PendingShare) async -> PendingShare {
+        if let practice = practiceShareMetadata(fileName: share.fileName, title: share.title) {
+            return applyingPracticeShareMetadata(practice, to: share)
+        }
 #if DEBUG && canImport(FoundationModels)
         if #available(iOS 26.0, *) {
             return await improveWithFoundationModels(share)
@@ -287,6 +472,18 @@ private struct ShareIntelligenceDraft: Codable {
     var confidence: Int?
     var reason: String?
     var tags: [String]?
+}
+
+private struct PracticeShareMetadata {
+    let title: String
+    let description: String
+    let sourceApp: String
+    let fileName: String
+    let folderId: String
+    let folderSource: String
+    let folderConfidence: Int
+    let folderReason: String
+    let tags: [String]
 }
 
 private enum MetadataFetchResult {
@@ -377,7 +574,7 @@ extension ShareItemExtractor {
         .init(id: "f-life-admin", name: "Life Admin", symbolName: "key.fill", colorHex: "#FFD15C"),
         .init(id: "f-must-see", name: "Watch / Read Later", symbolName: "bookmark.fill", colorHex: "#7A35E8"),
         .init(id: "f-growth", name: "AI & Work", symbolName: "bolt.fill", colorHex: "#F47A3B"),
-        .init(id: "f-lmao", name: "Memes & Laughs", symbolName: "theatermasks.fill", colorHex: "#D6F83A"),
+        .init(id: "f-lmao", name: "LOLZ", symbolName: "theatermasks.fill", colorHex: "#D6F83A"),
         .init(id: "f-travel", name: "Places & Trips", symbolName: "mappin.and.ellipse", colorHex: "#68C6E8"),
         .init(id: "f-recipes", name: "Recipes & Food", symbolName: "fork.knife", colorHex: "#FFB978"),
         .init(id: "f-paste-bin", name: "Notes & Clips", symbolName: "clipboard.fill", colorHex: "#9286A8"),
@@ -487,6 +684,166 @@ private extension ShareItemExtractor {
         if let fileName = share.fileName, !fileName.isEmpty { return fileName }
         if let url = share.url { return fallbackTitleForURLString(url) }
         return "Shared item"
+    }
+
+    static func displayTitle(forFileName fileName: String) -> String {
+        let baseName = (fileName as NSString).deletingPathExtension
+        let cleaned = baseName
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? fileName : cleaned
+    }
+
+    static func practiceShareMetadata(fileName: String?, title: String?) -> PracticeShareMetadata? {
+        let candidates = [
+            normalizedPracticeIdentifier(fileName),
+            normalizedPracticeIdentifier(title)
+        ]
+
+        guard candidates.contains(where: { candidate in
+            candidate == "savi first save" ||
+                candidate == "i love savi practice image" ||
+                candidate.contains("savi share sheet practice") ||
+                candidate.contains("savi first save")
+        })
+        else {
+            return nil
+        }
+
+        return PracticeShareMetadata(
+            title: "SAVI Share Sheet Practice",
+            description: "A tiny practice card for learning the Share Sheet. Save it once, then future-you can stop hunting through apps.",
+            sourceApp: "Photos",
+            fileName: "SAVI Share Sheet Practice.png",
+            folderId: "f-paste-bin",
+            folderSource: "rules",
+            folderConfidence: 96,
+            folderReason: "SAVI setup practice card.",
+            tags: ["savi", "share-sheet", "practice", "first-save", "image", "photos", "setup"]
+        )
+    }
+
+    static func applyingPracticeShareMetadata(_ metadata: PracticeShareMetadata, to share: PendingShare) -> PendingShare {
+        var resolved = share
+        resolved.title = metadata.title
+        resolved.itemDescription = metadata.description
+        resolved.sourceApp = metadata.sourceApp
+        resolved.fileName = metadata.fileName
+        resolved.folderId = metadata.folderId
+        resolved.folderSource = metadata.folderSource
+        resolved.folderConfidence = metadata.folderConfidence
+        resolved.folderReason = metadata.folderReason
+        resolved.tags = metadata.tags
+        return resolved
+    }
+
+    static func normalizedPracticeIdentifier(_ value: String?) -> String {
+        guard let value = value?.nilIfBlank else { return "" }
+        let base = (value as NSString).deletingPathExtension
+        return base
+            .lowercased()
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: ".", with: " ")
+            .split(separator: " ")
+            .joined(separator: " ")
+    }
+
+    static func imageMimeType(for url: URL, fallback: String = "image/png") -> String {
+        if let mimeType = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType,
+           mimeType.hasPrefix("image/") {
+            return mimeType
+        }
+        if fallback.hasPrefix("image/") {
+            return fallback
+        }
+        return "image/png"
+    }
+
+    static func imageThumbnailDataURL(from data: Data, mimeType: String) -> String {
+        guard let image = UIImage(data: data) else {
+            return "data:\(mimeType);base64,\(data.base64EncodedString())"
+        }
+
+        let maxPixel: CGFloat = 720
+        let longestSide = max(image.size.width, image.size.height)
+        let scale = longestSide > maxPixel ? maxPixel / longestSide : 1
+        let targetSize = CGSize(width: max(1, image.size.width * scale), height: max(1, image.size.height * scale))
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let rendered = UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+
+        if let jpegData = rendered.jpegData(compressionQuality: 0.82) {
+            return "data:image/jpeg;base64,\(jpegData.base64EncodedString())"
+        }
+        return "data:\(mimeType);base64,\(data.base64EncodedString())"
+    }
+
+    static func copyImageDataToSharedContainer(
+        _ data: Data,
+        preferredTitle: String?,
+        typeIdentifier: String
+    ) throws -> URL {
+        try copyDataToAccessibleFile(data, preferredTitle: preferredTitle, typeIdentifier: typeIdentifier)
+    }
+
+    static func copyDataToAccessibleFile(
+        _ data: Data,
+        preferredTitle: String?,
+        typeIdentifier: String
+    ) throws -> URL {
+        let type = UTType(typeIdentifier)
+        let fileExtension = type?.preferredFilenameExtension ?? "dat"
+        let baseName = preferredTitle?.nilIfBlank ?? "Shared item"
+        let safeBaseName = displayTitle(forFileName: baseName)
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+        let temporaryURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString)-\(safeBaseName)")
+            .appendingPathExtension(fileExtension)
+        try data.write(to: temporaryURL, options: .atomic)
+        do {
+            let sharedURL = try PendingShareStore.shared.copyAssetToSharedContainer(
+                from: temporaryURL,
+                preferredName: "\(safeBaseName).\(fileExtension)"
+            )
+            try? FileManager.default.removeItem(at: temporaryURL)
+            return sharedURL
+        } catch {
+            return temporaryURL
+        }
+    }
+
+    static func copyFileToAccessibleLocation(from sourceURL: URL, preferredName: String?) throws -> URL {
+        do {
+            return try PendingShareStore.shared.copyAssetToSharedContainer(
+                from: sourceURL,
+                preferredName: preferredName ?? sourceURL.lastPathComponent
+            )
+        } catch {
+            let fallbackDirectory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("SAVIShareExtensionAssets", isDirectory: true)
+            try FileManager.default.createDirectory(
+                at: fallbackDirectory,
+                withIntermediateDirectories: true
+            )
+            let safeName = displayTitle(forFileName: preferredName ?? sourceURL.lastPathComponent)
+                .replacingOccurrences(of: "/", with: "-")
+                .replacingOccurrences(of: ":", with: "-")
+            let base = (safeName as NSString).deletingPathExtension.nilIfBlank ?? "Shared item"
+            let ext = (safeName as NSString).pathExtension
+            let suffix = UUID().uuidString.prefix(8)
+            let fallbackName = ext.isEmpty ? "\(base)-\(suffix)" : "\(base)-\(suffix).\(ext)"
+            let fallbackURL = fallbackDirectory.appendingPathComponent(fallbackName)
+            if FileManager.default.fileExists(atPath: fallbackURL.path) {
+                try FileManager.default.removeItem(at: fallbackURL)
+            }
+            try FileManager.default.copyItem(at: sourceURL, to: fallbackURL)
+            return fallbackURL
+        }
     }
 
     static func fallbackTitleForURLString(_ urlString: String) -> String {
@@ -970,7 +1327,7 @@ private extension ShareItemExtractor {
         If screenshot/OCR text mentions warranty, serial number, model number, appliance, booking confirmation, or door/Wi-Fi code, strongly prefer Life Admin unless it is an actual ID, banking, tax, medical, password, or credential.
         For actual private documents, IDs, medical records, insurance cards, banking, credentials, passwords, tax files, or sensitive receipts, choose f-private-vault instead of Life Admin.
         Entertainment, trailers, news, and fandom posts are not private just because their title says secret, leaked, vault, or password.
-        Entertainment videos default to Watch / Read Later unless clearly comedy/meme, then Memes & Laughs.
+        Entertainment videos default to Watch / Read Later unless clearly comedy/meme, then LOLZ.
         Never choose Science Finds unless the item has real science, space, research, or discovery intent.
         Return only JSON.
         """
@@ -2172,6 +2529,76 @@ private extension String {
 }
 
 private extension NSItemProvider {
+    func preferredTypeIdentifier(conformingTo type: UTType) -> String? {
+        registeredTypeIdentifiers.first { identifier in
+            UTType(identifier)?.conforms(to: type) == true
+        }
+    }
+
+    func preferredFileOrDataTypeIdentifier() -> String {
+        preferredTypeIdentifier(conformingTo: .pdf) ??
+            preferredTypeIdentifier(conformingTo: .image) ??
+            preferredTypeIdentifier(conformingTo: .movie) ??
+            preferredTypeIdentifier(conformingTo: .video) ??
+            preferredTypeIdentifier(conformingTo: .audio) ??
+            preferredTypeIdentifier(conformingTo: .data) ??
+            preferredTypeIdentifier(conformingTo: .item) ??
+            registeredTypeIdentifiers.first ??
+            UTType.data.identifier
+    }
+
+    func preferredImageTypeIdentifier() -> String {
+        preferredTypeIdentifier(conformingTo: .image) ?? UTType.image.identifier
+    }
+
+    func loadData(preferredTypeIdentifier: String) async throws -> Data {
+        try await withCheckedThrowingContinuation { continuation in
+            loadDataRepresentation(forTypeIdentifier: preferredTypeIdentifier) { data, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let data else {
+                    continuation.resume(throwing: ShareItemExtractorError.failedToLoadContent)
+                    return
+                }
+
+                continuation.resume(returning: data)
+            }
+        }
+    }
+
+    func loadImageData(preferredTypeIdentifier: String) async throws -> Data {
+        try await withCheckedThrowingContinuation { continuation in
+            loadItem(forTypeIdentifier: preferredTypeIdentifier, options: nil) { item, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                if let data = item as? Data {
+                    continuation.resume(returning: data)
+                    return
+                }
+
+                if let image = item as? UIImage,
+                   let data = image.pngData() {
+                    continuation.resume(returning: data)
+                    return
+                }
+
+                if let url = item as? URL,
+                   let data = try? Data(contentsOf: url) {
+                    continuation.resume(returning: data)
+                    return
+                }
+
+                continuation.resume(throwing: ShareItemExtractorError.failedToLoadContent)
+            }
+        }
+    }
+
     func loadURL() async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
             loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, error in
@@ -2245,10 +2672,30 @@ private extension NSItemProvider {
                 }
 
                 do {
-                    let destination = try PendingShareStore.shared.copyAssetToSharedContainer(
-                        from: url,
-                        preferredName: url.lastPathComponent
-                    )
+                    let destination: URL
+                    do {
+                        destination = try PendingShareStore.shared.copyAssetToSharedContainer(
+                            from: url,
+                            preferredName: url.lastPathComponent
+                        )
+                    } catch {
+                        let fallbackDirectory = FileManager.default.temporaryDirectory
+                            .appendingPathComponent("SAVIShareExtensionAssets", isDirectory: true)
+                        try FileManager.default.createDirectory(
+                            at: fallbackDirectory,
+                            withIntermediateDirectories: true
+                        )
+                        let suffix = UUID().uuidString.prefix(8)
+                        let base = (url.lastPathComponent as NSString).deletingPathExtension
+                        let ext = (url.lastPathComponent as NSString).pathExtension
+                        let fallbackName = ext.isEmpty ? "\(base)-\(suffix)" : "\(base)-\(suffix).\(ext)"
+                        let fallbackURL = fallbackDirectory.appendingPathComponent(fallbackName)
+                        if FileManager.default.fileExists(atPath: fallbackURL.path) {
+                            try FileManager.default.removeItem(at: fallbackURL)
+                        }
+                        try FileManager.default.copyItem(at: url, to: fallbackURL)
+                        destination = fallbackURL
+                    }
                     continuation.resume(returning: destination)
                 } catch {
                     continuation.resume(throwing: error)

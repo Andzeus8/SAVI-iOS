@@ -1,0 +1,252 @@
+openapi: 3.1.0
+info:
+  title: SAVI Admin Moderation API Contract
+  version: 0.1.0
+  description: >
+    Internal-only moderation API draft. This API must never be called from the
+    consumer iPhone app or share extension. Live implementation should sit
+    behind protected admin authentication and a server-side admin backend.
+servers:
+  - url: https://admin.savi.app
+    description: Future protected admin backend
+security:
+  - adminBearerAuth: []
+paths:
+  /admin/moderation/reports:
+    get:
+      summary: List moderation reports
+      description: Returns redacted report queue rows for internal moderators.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [open, reviewing, actioned, dismissed]
+        - name: targetType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [profile, public_link]
+      responses:
+        "200":
+          description: Redacted moderation reports
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reports]
+                properties:
+                  reports:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ModerationReportRow"
+  /admin/moderation/reports/{id}/status:
+    post:
+      summary: Update report status
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportStatusUpdate"
+      responses:
+        "200":
+          description: Updated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModerationReportRow"
+  /admin/moderation/public-links/{id}/hide:
+    post:
+      summary: Hide a public link from feeds
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModerationActionRequest"
+      responses:
+        "204":
+          description: Public link hidden
+  /admin/moderation/public-links/{id}/unhide:
+    post:
+      summary: Restore a hidden public link
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModerationActionRequest"
+      responses:
+        "204":
+          description: Public link restored
+  /admin/moderation/audit-log:
+    get:
+      summary: List moderation audit rows
+      description: Returns internal admin audit rows without private content bodies.
+      parameters:
+        - name: reportId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: targetUserId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Moderation audit log
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [audit]
+                properties:
+                  audit:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ModerationAuditRow"
+components:
+  securitySchemes:
+    adminBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Internal staff/admin token. Never ship this path in consumer apps.
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    ModerationReportRow:
+      type: object
+      required:
+        - id
+        - reporterId
+        - targetType
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        reporterId:
+          type: string
+          format: uuid
+        reportedUserId:
+          type: string
+          format: uuid
+        targetLinkId:
+          type: string
+          format: uuid
+        targetType:
+          type: string
+          enum: [profile, public_link]
+        status:
+          type: string
+          enum: [open, reviewing, actioned, dismissed]
+        reason:
+          type: string
+          enum: [spam, harassment, illegal, harmful, copyright, other]
+        publicUrl:
+          type: string
+          format: uri
+          description: Public web URL only. Never private file or vault content.
+        domain:
+          type: string
+        reporterCount:
+          type: integer
+          minimum: 0
+        blockCount:
+          type: integer
+          minimum: 0
+        isHidden:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    ReportStatusUpdate:
+      type: object
+      required: [status, reasonCategory, notePresent]
+      properties:
+        status:
+          type: string
+          enum: [open, reviewing, actioned, dismissed]
+        reasonCategory:
+          type: string
+          enum: [spam, harassment, illegal, harmful, copyright, other]
+        notePresent:
+          type: boolean
+          description: Whether an internal staff note exists; note body is not returned.
+    ModerationActionRequest:
+      type: object
+      required: [reasonCategory, notePresent]
+      properties:
+        reasonCategory:
+          type: string
+          enum: [spam, harassment, illegal, harmful, copyright, other]
+        notePresent:
+          type: boolean
+    ModerationAuditRow:
+      type: object
+      required:
+        - actionId
+        - moderatorId
+        - actionType
+        - notePresent
+        - createdAt
+      properties:
+        actionId:
+          type: string
+          format: uuid
+        moderatorId:
+          type: string
+          format: uuid
+        actionType:
+          type: string
+          enum:
+            - mark_reviewing
+            - dismiss_report
+            - action_report
+            - hide_public_link
+            - unhide_public_link
+            - escalate
+        targetUserId:
+          type: string
+          format: uuid
+        targetLinkId:
+          type: string
+          format: uuid
+        reportId:
+          type: string
+          format: uuid
+        previousStatus:
+          type: string
+          enum: [open, reviewing, actioned, dismissed]
+        newStatus:
+          type: string
+          enum: [open, reviewing, actioned, dismissed]
+        reasonCategory:
+          type: string
+          enum: [spam, harassment, illegal, harmful, copyright, other]
+        notePresent:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time

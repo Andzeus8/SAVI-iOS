@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example-savi-domain.com/schemas/analytics-event.schema.json",
+  "title": "SAVI Analytics Event",
+  "type": "object",
+  "required": ["name", "timestamp", "properties"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "enum": [
+        "app_opened",
+        "session_duration",
+        "onboarding_started",
+        "onboarding_completed",
+        "share_extension_opened",
+        "save_completed",
+        "save_failed",
+        "metadata_success",
+        "metadata_failure",
+        "folder_created",
+        "folder_selected",
+        "search_performed",
+        "public_link_published",
+        "feed_viewed",
+        "friend_added",
+        "like_added",
+        "friend_link_saved",
+        "report_submitted",
+        "block_action"
+      ]
+    },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "properties": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "boolean", "null"]
+      }
+    }
+  },
+  "additionalProperties": false
+}

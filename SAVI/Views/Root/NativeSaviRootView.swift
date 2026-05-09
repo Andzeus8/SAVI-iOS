@@ -184,11 +184,13 @@ struct NativeSaviRootView: View {
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    store.recordAppBecameActive()
                     Task {
                         await store.refreshForegroundWork()
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+                    store.recordAppWillResignActive()
                     store.lockProtectedFolders()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
@@ -254,11 +256,11 @@ struct NativeSaviRootView: View {
                 ToastView(message: toast)
                     .padding(.bottom, store.prefs.onboarded ? 104 : 72)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                            if store.toast == toast {
-                                withAnimation { store.toast = nil }
-                            }
+                    .task(id: toast) {
+                        try? await Task.sleep(nanoseconds: 2_200_000_000)
+                        guard !Task.isCancelled, store.toast == toast else { return }
+                        await MainActor.run {
+                            withAnimation { store.toast = nil }
                         }
                     }
             }
