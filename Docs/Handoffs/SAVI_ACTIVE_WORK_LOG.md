@@ -16,6 +16,24 @@ working in `/Users/guest1/Documents/SAVI-iOS` at the same time.
 
 ## Active / Recent Entries
 
+### 2026-05-09 12:43 CEST - Home clear sample button de-emphasis
+
+- Owner: current Codex chat
+- Status: completed at 2026-05-09 12:47 CEST
+- Intended files:
+  - `/Users/guest1/Documents/SAVI-iOS/SAVI/Views/Home/HomeScreen.swift`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/Handoffs/SAVI_ACTIVE_WORK_LOG.md`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/ChangeLog/2026-05-09.md`
+- Notes:
+  - User wants the Home sample-clear action to stop standing out so much.
+  - Keep one clear button, mute the red treatment, and do not change the sample-clear confirmation or logic.
+- Result:
+  - Replaced the prominent sample-library explanation card with one quieter `Clear sample saves` button.
+  - Muted the red treatment to a soft text/stroke accent on a neutral surface and removed the large red fill, chartreuse icon, gradient card, and shadow.
+  - Clear confirmation and sample-clear logic remain unchanged.
+  - `git diff --check` passed.
+  - Debug iPhone simulator build passed and the latest app was relaunched on the booted iPhone 17 Pro simulator.
+
 ### 2026-05-09 12:35 CEST - Share Sheet note and tag alignment cleanup
 
 - Owner: current Codex chat

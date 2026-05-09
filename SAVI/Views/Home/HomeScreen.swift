@@ -1175,45 +1175,23 @@ private struct HomeSampleLibraryNotice: View {
     @State private var confirmClearSamples = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 11) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "sparkles")
-                    .font(SaviType.ui(.caption2, weight: .black))
-                    .foregroundStyle(.black)
-                    .frame(width: 26, height: 26)
-                    .background(SaviTheme.chartreuse)
-                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Sample library is loaded")
-                        .font(SaviType.ui(.subheadline, weight: .black))
-                        .foregroundStyle(SaviTheme.text)
-                    Text("Play with the examples, then clear them when you want SAVI to feel like yours. Your own saves stay safe.")
-                        .font(SaviType.reading(.caption, weight: .regular))
-                        .foregroundStyle(SaviTheme.textMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
-            Button {
-                confirmClearSamples = true
-            } label: {
-                Label("Clear sample saves", systemImage: "trash.fill")
-                    .font(SaviType.ui(.caption, weight: .black))
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 38)
-            }
-            .foregroundStyle(Color.white)
-            .background(Color.red.opacity(colorScheme == .dark ? 0.84 : 0.92))
-            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .stroke(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.24), lineWidth: 1)
-            )
-            .shadow(color: Color.red.opacity(colorScheme == .dark ? 0.18 : 0.12), radius: 10, x: 0, y: 5)
-            .buttonStyle(SaviPressScaleButtonStyle())
-            .accessibilityHint("Only SAVI's sample saves will be removed. Personal saves stay untouched.")
+        Button {
+            confirmClearSamples = true
+        } label: {
+            Label("Clear sample saves", systemImage: "trash")
+                .font(SaviType.ui(.caption, weight: .semibold))
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 36)
         }
+        .foregroundStyle(Color.red.opacity(colorScheme == .dark ? 0.66 : 0.62))
+        .background(SaviTheme.surfaceRaised.opacity(colorScheme == .dark ? 0.34 : 0.58))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.red.opacity(colorScheme == .dark ? 0.16 : 0.13), lineWidth: 1)
+        )
+        .buttonStyle(SaviPressScaleButtonStyle())
+        .accessibilityHint("Only SAVI's sample saves will be removed. Personal saves stay untouched.")
         .alert("Clear sample saves?", isPresented: $confirmClearSamples) {
             Button("Cancel", role: .cancel) {}
             Button("Clear samples", role: .destructive) {
@@ -1222,23 +1200,6 @@ private struct HomeSampleLibraryNotice: View {
         } message: {
             Text("You can clear the examples whenever you are ready. This only removes SAVI's sample saves. Anything you added stays untouched.")
         }
-        .padding(12)
-        .background(
-            LinearGradient(
-                colors: [
-                    SaviTheme.surface.opacity(colorScheme == .dark ? 0.88 : 0.96),
-                    SaviTheme.surfaceRaised.opacity(colorScheme == .dark ? 0.62 : 0.74)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(SaviTheme.chartreuse.opacity(colorScheme == .dark ? 0.20 : 0.30), lineWidth: 1)
-        )
-        .shadow(color: SaviTheme.cardShadow.opacity(colorScheme == .dark ? 0.10 : 0.08), radius: 14, x: 0, y: 7)
     }
 }
 
