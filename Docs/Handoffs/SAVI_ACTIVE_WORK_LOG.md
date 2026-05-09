@@ -16,6 +16,26 @@ working in `/Users/guest1/Documents/SAVI-iOS` at the same time.
 
 ## Active / Recent Entries
 
+### 2026-05-09 12:58 CEST - Share Sheet details-before-folder suggestion clarity
+
+- Owner: current Codex chat
+- Status: completed at 2026-05-09 13:00 CEST
+- Intended files:
+  - `/Users/guest1/Documents/SAVI-iOS/SAVIShareExtension/ShareViewController.swift`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/Handoffs/SAVI_ACTIVE_WORK_LOG.md`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/ChangeLog/2026-05-09.md`
+- Notes:
+  - User wants tags and note above folders, plus clearer explanation of how SAVI suggested the folder.
+  - Keep share extraction, metadata enrichment, persistence, and build/TestFlight settings unchanged.
+- Result:
+  - Moved the Share Sheet `Tags` and `Note` details card above folder selection.
+  - Folder summary now shows `Suggested: <folder>` when SAVI auto-selects a concrete folder, while manual choices keep the plain folder name.
+  - Folder hint copy now explains whether the suggestion came from metadata, title/source/type rules, Apple Intelligence, or manual choice.
+- Verification:
+  - `git diff --check` passed.
+  - Debug iPhone simulator build passed with `SAVIShareExtension`.
+  - Latest Debug app/share extension was reinstalled/launched on the iPhone 17 Pro simulator.
+
 ### 2026-05-09 12:52 CEST - Share Sheet full UI cleanup
 
 - Owner: current Codex chat

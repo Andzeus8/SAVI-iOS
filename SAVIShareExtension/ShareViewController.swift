@@ -314,7 +314,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         configureFolderGrid()
         folderSection.addArrangedSubview(folderGridStack)
 
-        [previewCard, folderSection, detailsSection].forEach { contentStack.addArrangedSubview($0) }
+        [previewCard, detailsSection, folderSection].forEach { contentStack.addArrangedSubview($0) }
 
         setNotesExpanded(false, animated: false)
         rebuildFolderButtons()
@@ -1430,6 +1430,7 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         let selectedPreset = presets.first(where: { $0.id == selectedFolderId }) ?? ShareFolderSelection.autoPreset
         let selectedIsPublic = showsPublicBadge(for: selectedPreset)
         let isAutoSelection = ShareFolderSelection.isAuto(selectedFolderId)
+        let isSmartSuggestion = folderSelectionSource != .manual
         let selectedVisual = folderVisualTheme(for: selectedPreset, selected: true)
 
         previewCard.layer.borderWidth = 1
@@ -1445,7 +1446,13 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
         let iconName = isAutoSelection ? "brain.head.profile" : selectedPreset.symbolName
         folderSummaryIconView.image = UIImage(systemName: iconName)
         folderSummaryIconView.tintColor = isAutoSelection ? ShareTheme.text : selectedVisual.iconForeground
-        folderSummaryTitleLabel.text = isAutoSelection ? "SAVI Brain" : selectedName
+        if isAutoSelection {
+            folderSummaryTitleLabel.text = "SAVI Brain"
+        } else if isSmartSuggestion {
+            folderSummaryTitleLabel.text = "Suggested: \(selectedName)"
+        } else {
+            folderSummaryTitleLabel.text = selectedName
+        }
         let hint = folderSummaryHint(for: selectedPreset)
         folderSummaryHintLabel.text = selectedIsPublic ? "\(hint) • Public" : hint
 
@@ -1530,16 +1537,16 @@ final class ShareViewController: UIViewController, UIGestureRecognizerDelegate, 
 
         switch folderSelectionSource {
         case .intelligence:
-            return "Suggested by Apple Intelligence\(suffix)"
+            return "Apple Intelligence suggested this from the content\(suffix)"
         case .metadata:
-            return "Suggested from link metadata\(suffix)"
+            return "SAVI suggested this from link metadata\(suffix)"
         case .rules:
-            return "Suggested by SAVI Brain\(suffix)"
+            return "SAVI suggested this from title, source, and type\(suffix)"
         case .auto:
             if ShareFolderSelection.isAuto(preset.id) {
-                return "SAVI will pick the best folder"
+                return "SAVI will pick from title, source, and type"
             }
-            return "Suggested by SAVI Brain\(suffix)"
+            return "SAVI suggested this from title, source, and type\(suffix)"
         case .manual:
             return "You picked this folder"
         }
