@@ -16,6 +16,25 @@ working in `/Users/guest1/Documents/SAVI-iOS` at the same time.
 
 ## Active / Recent Entries
 
+### 2026-05-09 13:42 CEST - Share Sheet single note label
+
+- Owner: current Codex chat
+- Status: completed at 2026-05-09 13:43 CEST
+- Intended files:
+  - `/Users/guest1/Documents/SAVI-iOS/SAVIShareExtension/ShareViewController.swift`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/Handoffs/SAVI_ACTIVE_WORK_LOG.md`
+  - `/Users/guest1/Documents/SAVI-iOS/Docs/ChangeLog/2026-05-09.md`
+- Notes:
+  - User wants the Share Sheet to keep the note button but avoid saying note twice.
+  - Keep tags above folders and keep share extraction, metadata, persistence, build/TestFlight settings unchanged.
+- Result:
+  - Removed the extra `Note / Optional context` header from the Share Sheet details card.
+  - Kept the single `Add note` / `Edit note` button directly under tags.
+- Verification:
+  - `git diff --check` passed.
+  - Debug iPhone simulator build passed with `SAVIShareExtension`.
+  - Latest Debug app/share extension was reinstalled/launched on the iPhone 17 Pro simulator.
+
 ### 2026-05-09 12:58 CEST - Share Sheet details-before-folder suggestion clarity
 
 - Owner: current Codex chat
