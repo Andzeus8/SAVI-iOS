@@ -1,0 +1,46 @@
+-- SAVI Social V1 RLS test plan.
+-- Run only in a disposable Supabase dev project after social_v1_schema.sql.
+-- This file is intentionally credential-free and does not contain real user IDs.
+
+-- Manual setup:
+-- 1. Create three auth users in Supabase dev: alice, bob, blocked_user.
+-- 2. Replace these placeholders with their auth.users ids:
+--    00000000-0000-0000-0000-000000000001 = alice
+--    00000000-0000-0000-0000-000000000002 = bob
+--    00000000-0000-0000-0000-000000000003 = blocked_user
+-- 3. Run each test as the intended user through an authenticated client or SQL
+--    test harness that sets auth.uid().
+
+-- Expected results:
+-- - Alice can edit Alice profile only.
+-- - Alice can follow Bob, not herself.
+-- - Alice can publish only allowed web-link item types.
+-- - Alice cannot publish screenshots, PDFs, files, or Private Vault content.
+-- - Bob can see Alice public link unless either user blocks the other.
+-- - Bob can like Alice visible public link once.
+-- - Bob cannot inspect likes on Alice links after either user blocks the other.
+-- - Bob can report Alice link/profile.
+-- - Report status must stay one of: open, reviewing, actioned, dismissed.
+-- - Alice cannot read Bob's private report body through client policies.
+-- - Blocks hide feed content in both directions.
+-- - Account deletion should cascade profile, follows, public links, likes,
+--   reports, and blocks through auth.users foreign keys.
+
+-- Recommended test scenarios:
+-- select profile as signed-in user.
+-- update own profile.
+-- attempt update another user's profile: should fail.
+-- insert follow from alice to bob: should pass.
+-- insert follow from alice to alice: should fail.
+-- insert public link with item_type = 'video': should pass.
+-- insert public link with item_type = 'pdf': should fail.
+-- insert public link with url = 'file:///private.pdf': should fail.
+-- insert block from bob to alice: should pass.
+-- select public links as alice/bob after block: blocked links should be hidden.
+-- select likes on alice links as bob after block: blocked likes should be hidden.
+-- insert like as bob on visible link: should pass.
+-- insert duplicate like: should fail.
+-- insert report as bob: should pass.
+-- insert/update report with status = 'random': should fail.
+-- delete alice auth user through an admin/dev harness: alice profile, follows,
+-- public links, likes, reports, and blocks should be removed by cascade.

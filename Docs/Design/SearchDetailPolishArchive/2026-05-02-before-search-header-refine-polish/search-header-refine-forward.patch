@@ -1,0 +1,349 @@
+--- Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/SAVI/Views/Search/SearchScreen.swift	2026-05-02 23:17:30
++++ SAVI/Views/Search/SearchScreen.swift	2026-05-02 23:18:19
+@@ -31,9 +31,7 @@
+
+         NavigationStack {
+             ScrollView {
+-                VStack(alignment: .leading, spacing: 12) {
+-                    SearchHeaderBlock(resultCount: store.items.count)
+-
++                VStack(alignment: .leading, spacing: 10) {
+                     SearchBar(
+                         text: $draftQuery,
+                         prompt: "Search titles, folders, tags, PDFs...",
+@@ -46,24 +44,16 @@
+
+                     SearchKindRail()
+
+-                    HStack(spacing: 10) {
+-                        SearchRefineButton()
++                    SearchControlRow(resultCount: results.count, hasLiveSearch: hasLiveSearch)
+
+-                        Spacer(minLength: 8)
+-
+-                        if store.hasActiveSearchControls {
+-                            SearchClearAllButton {
+-                                store.resetFilters()
+-                            }
+-                            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+-                        }
+-                    }
+-
+                     if hasLiveSearch {
+                         ActiveSearchFiltersRow()
+                     }
+
+-                    SearchResultsHeading(resultCount: results.count)
++                    SearchResultsHeading(
++                        title: hasLiveSearch ? "Results" : "Recently saved",
++                        resultCount: results.count
++                    )
+
+                     LazyVStack(alignment: .leading, spacing: 10) {
+                         if hasLiveSearch {
+@@ -103,7 +93,7 @@
+                     }
+                 }
+                 .padding(.horizontal, 18)
+-                .padding(.top, 8)
++                .padding(.top, 14)
+                 .padding(.bottom, 28)
+             }
+             .scrollContentBackground(.hidden)
+@@ -232,22 +222,17 @@
+ }
+
+ struct SearchResultsHeading: View {
+-    @EnvironmentObject private var store: SaviStore
++    var title = "Results"
+     let resultCount: Int
+
+     var body: some View {
+         HStack(alignment: .center, spacing: 12) {
+-            Text("Results")
++            Text(title)
+                 .font(SaviType.ui(.title3, weight: .black))
+                 .foregroundStyle(SaviTheme.text)
+
+             Spacer(minLength: 10)
+-
+-            HStack(spacing: 8) {
+-                Text("\(resultCount) result\(resultCount == 1 ? "" : "s")")
+-                    .font(SaviType.ui(.caption, weight: .black))
+-                    .foregroundStyle(SaviTheme.textMuted)
+-            }
+         }
++        .accessibilityLabel("\(title), \(resultCount) result\(resultCount == 1 ? "" : "s")")
+     }
+ }
+--- Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/SAVI/Views/Search/SearchComponents.swift	2026-05-02 23:17:30
++++ SAVI/Views/Search/SearchComponents.swift	2026-05-02 23:27:13
+@@ -188,23 +188,74 @@
+                         .font(SaviType.ui(.caption2, weight: .black))
+                         .padding(.horizontal, 6)
+                         .padding(.vertical, 2)
+-                        .background(store.refineFilterCount > 0 ? Color.black.opacity(0.12) : Color.clear)
++                        .background(Color.black.opacity(0.12))
+                         .clipShape(Capsule())
+                 }
+             }
+-            .font(SaviType.ui(.caption, weight: .bold))
+-            .padding(.horizontal, 11)
+-            .padding(.vertical, 8)
+-            .background(store.refineFilterCount > 0 ? SaviTheme.softAccent : SaviTheme.surface)
++            .font(SaviType.ui(.caption, weight: .black))
++            .padding(.horizontal, 12)
++            .frame(height: 36)
++            .background(store.refineFilterCount > 0 ? SaviTheme.softAccent : SaviTheme.surfaceRaised.opacity(0.88))
+             .foregroundStyle(store.refineFilterCount > 0 ? .black : SaviTheme.text)
+             .clipShape(Capsule())
+             .overlay(
+                 Capsule()
+-                    .stroke(store.refineFilterCount > 0 ? Color.clear : SaviTheme.cardStroke, lineWidth: 1)
++                    .stroke(store.refineFilterCount > 0 ? Color.clear : SaviTheme.cardStroke.opacity(0.72), lineWidth: 1)
+             )
+         }
+         .buttonStyle(SaviPressScaleButtonStyle())
++    }
++}
++
++struct SearchControlRow: View {
++    @EnvironmentObject private var store: SaviStore
++    let resultCount: Int
++    let hasLiveSearch: Bool
++
++    var body: some View {
++        HStack(spacing: 8) {
++            Label(countTitle, systemImage: hasLiveSearch ? "line.3.horizontal.decrease.circle.fill" : "tray.full.fill")
++                .font(SaviType.ui(.caption, weight: .black))
++                .foregroundStyle(SaviTheme.metadataText)
++                .lineLimit(1)
++                .padding(.horizontal, 11)
++                .frame(height: 34)
++                .background(SaviTheme.subtleSurface.opacity(0.48))
++                .clipShape(Capsule())
++                .overlay(Capsule().stroke(SaviTheme.cardStroke.opacity(0.5), lineWidth: 1))
++                .accessibilityLabel("\(resultCount) \(hasLiveSearch ? "matching results" : "recent saves")")
++
++            Spacer(minLength: 8)
++
++            SearchRefineButton()
++
++            if store.hasActiveSearchControls {
++                Button {
++                    store.resetFilters()
++                } label: {
++                    Label("Clear", systemImage: "xmark.circle.fill")
++                        .labelStyle(.titleAndIcon)
++                        .font(SaviType.ui(.caption, weight: .black))
++                        .padding(.horizontal, 11)
++                        .frame(height: 36)
++                        .foregroundStyle(SaviTheme.accentText)
++                        .background(SaviTheme.surfaceRaised.opacity(0.88))
++                        .clipShape(Capsule())
++                        .overlay(Capsule().stroke(SaviTheme.cardStroke.opacity(0.72), lineWidth: 1))
++                }
++                .buttonStyle(SaviPressScaleButtonStyle())
++                .accessibilityLabel("Clear all search filters")
++                .transition(.opacity.combined(with: .scale(scale: 0.96)))
++            }
++        }
+     }
++
++    private var countTitle: String {
++        if hasLiveSearch {
++            return "\(resultCount) result\(resultCount == 1 ? "" : "s")"
++        }
++        return "\(resultCount) saved"
++    }
+ }
+
+ struct SearchFacetBar: View {
+@@ -446,101 +497,86 @@
+             ScrollView {
+                 VStack(alignment: .leading, spacing: 12) {
+                     SearchRefineSection(title: "Type") {
+-                        ScrollView(.horizontal, showsIndicators: false) {
+-                            HStack(spacing: 8) {
+-                                ForEach(store.searchKindOptions(includeEmpty: true), id: \.kind.id) { option in
+-                                    Chip(
+-                                        title: option.kind.id == "all" ? "All" : option.kind.title,
+-                                        systemImage: option.kind.symbolName,
+-                                        count: option.count,
+-                                        active: store.typeFilter == option.kind.id
+-                                    ) {
+-                                        store.typeFilter = option.kind.id
+-                                    }
++                        LazyVGrid(columns: compactChipGridColumns, alignment: .leading, spacing: 8) {
++                            ForEach(store.searchKindOptions(includeEmpty: true), id: \.kind.id) { option in
++                                Chip(
++                                    title: option.kind.id == "all" ? "All" : option.kind.title,
++                                    systemImage: option.kind.symbolName,
++                                    count: option.count,
++                                    active: store.typeFilter == option.kind.id
++                                ) {
++                                    store.typeFilter = option.kind.id
+                                 }
+                             }
+-                            .padding(.vertical, 1)
+                         }
+                     }
+
+                     SearchRefineSection(title: "Folders") {
+-                        ScrollView(.horizontal, showsIndicators: false) {
+-                            HStack(spacing: 8) {
+-                                Chip(
+-                                    title: "All Folders",
+-                                    systemImage: "square.grid.2x2.fill",
+-                                    count: store.folder(for: "f-all").map { store.count(in: $0) },
+-                                    active: store.folderFilter == "f-all"
+-                                ) {
+-                                    store.folderFilter = "f-all"
+-                                }
++                        LazyVGrid(columns: wideChipGridColumns, alignment: .leading, spacing: 8) {
++                            Chip(
++                                title: "All Folders",
++                                systemImage: "square.grid.2x2.fill",
++                                count: store.folder(for: "f-all").map { store.count(in: $0) },
++                                active: store.folderFilter == "f-all"
++                            ) {
++                                store.folderFilter = "f-all"
++                            }
+
+-                                Chip(title: "Manage", systemImage: "slider.horizontal.3", active: false) {
+-                                    store.openFoldersManagement()
+-                                    dismiss()
+-                                }
++                            Chip(title: "Manage", systemImage: "slider.horizontal.3", active: false) {
++                                store.openFoldersManagement()
++                                dismiss()
++                            }
+
+-                                ForEach(store.orderedFoldersForDisplay()) { folder in
+-                                    let locked = folder.locked && !store.isProtectedKeeperUnlocked(folder)
+-                                    Chip(
+-                                        title: folder.name,
+-                                        systemImage: folder.isPublic ? "person.2.fill" : locked ? "lock.fill" : folder.symbolName,
+-                                        count: locked ? nil : store.count(in: folder),
+-                                        active: store.folderFilter == folder.id
+-                                    ) {
+-                                        store.selectFolderFilter(folder)
+-                                    }
++                            ForEach(store.orderedFoldersForDisplay()) { folder in
++                                let locked = folder.locked && !store.isProtectedKeeperUnlocked(folder)
++                                Chip(
++                                    title: folder.name,
++                                    systemImage: folder.isPublic ? "person.2.fill" : locked ? "lock.fill" : folder.symbolName,
++                                    count: locked ? nil : store.count(in: folder),
++                                    active: store.folderFilter == folder.id
++                                ) {
++                                    store.selectFolderFilter(folder)
+                                 }
+                             }
+-                            .padding(.vertical, 1)
+                         }
+                     }
+
+                     SearchRefineSection(title: "Date") {
+-                        ScrollView(.horizontal, showsIndicators: false) {
+-                            HStack(spacing: 8) {
+-                                ForEach(SearchDateFilter.allCases) { option in
+-                                    Chip(title: option.title, systemImage: option.symbolName, active: store.dateFilter == option.rawValue) {
+-                                        store.dateFilter = option.rawValue
+-                                    }
++                        LazyVGrid(columns: compactChipGridColumns, alignment: .leading, spacing: 8) {
++                            ForEach(SearchDateFilter.allCases) { option in
++                                Chip(title: option.title, systemImage: option.symbolName, active: store.dateFilter == option.rawValue) {
++                                    store.dateFilter = option.rawValue
+                                 }
+                             }
+-                            .padding(.vertical, 1)
+                         }
+                     }
+
+                     SearchRefineSection(title: "Has") {
+-                        ScrollView(.horizontal, showsIndicators: false) {
+-                            HStack(spacing: 8) {
+-                                ForEach(SearchHasFilter.allCases) { option in
+-                                    Chip(title: option.title, systemImage: option.symbolName, active: store.hasFilter == option.rawValue) {
+-                                        store.hasFilter = option.rawValue
+-                                    }
++                        LazyVGrid(columns: compactChipGridColumns, alignment: .leading, spacing: 8) {
++                            ForEach(SearchHasFilter.allCases) { option in
++                                Chip(title: option.title, systemImage: option.symbolName, active: store.hasFilter == option.rawValue) {
++                                    store.hasFilter = option.rawValue
+                                 }
+                             }
+-                            .padding(.vertical, 1)
+                         }
+                     }
+
+                     SearchRefineSection(title: "Source") {
+-                        ScrollView(.horizontal, showsIndicators: false) {
+-                            HStack(spacing: 8) {
+-                                Chip(title: "Any source", systemImage: "square.and.arrow.down", active: store.sourceFilter == "all") {
+-                                    store.sourceFilter = "all"
+-                                }
++                        LazyVGrid(columns: compactChipGridColumns, alignment: .leading, spacing: 8) {
++                            Chip(title: "Any source", systemImage: "square.and.arrow.down", active: store.sourceFilter == "all") {
++                                store.sourceFilter = "all"
++                            }
+
+-                                ForEach(store.sourceOptions(), id: \.key) { source in
+-                                    Chip(
+-                                        title: source.label,
+-                                        systemImage: SaviSearchPresentation.sourceSymbolName(for: source.key),
+-                                        count: source.count,
+-                                        active: store.sourceFilter == source.key
+-                                    ) {
+-                                        store.sourceFilter = source.key
+-                                    }
++                            ForEach(store.sourceOptions(), id: \.key) { source in
++                                Chip(
++                                    title: source.label,
++                                    systemImage: SaviSearchPresentation.sourceSymbolName(for: source.key),
++                                    count: source.count,
++                                    active: store.sourceFilter == source.key
++                                ) {
++                                    store.sourceFilter = source.key
+                                 }
+                             }
+-                            .padding(.vertical, 1)
+                         }
+                     }
+
+@@ -600,6 +636,14 @@
+         return options.filter { tag in
+             tag.key.contains(normalized) || tag.label.lowercased().contains(normalized)
+         }
++    }
++
++    private var compactChipGridColumns: [GridItem] {
++        [GridItem(.adaptive(minimum: 112), spacing: 8, alignment: .leading)]
++    }
++
++    private var wideChipGridColumns: [GridItem] {
++        [GridItem(.adaptive(minimum: 132), spacing: 8, alignment: .leading)]
+     }
+ }
+
+--- Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/Docs/ChangeLog/2026-05-02.md	2026-05-02 23:17:30
++++ Docs/ChangeLog/2026-05-02.md	2026-05-02 23:29:45
+@@ -204,6 +204,18 @@
+ - Item detail action panel QA screenshots:
+   `/Users/guest1/Desktop/SAVI_QA/item_detail_action_panel_after.jpg`,
+   `/Users/guest1/Desktop/SAVI_QA/item_detail_action_panel_theme_check.jpg`
++- Archived the Search screen before the header/refine cleanup:
++  `/Users/guest1/Documents/SAVI-iOS/Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-header-refine-polish/`
++- Simplified Search so the screen now opens directly on the search field,
++  removing the redundant `Find it fast` header and moving the save/result count
++  into a quiet control row beside `Refine`.
++- Reworked the Refine sheet into clearer grouped sections for Type, Folders,
++  Date, Has, Source, and Tags, using visible wrapping grids for the primary
++  filter choices instead of horizontal chip rows that hid options off-screen.
++- Search header/refine QA screenshots:
++  `/Users/guest1/Desktop/SAVI_QA/search_before_header_refine_polish.jpg`,
++  `/Users/guest1/Desktop/SAVI_QA/search_after_header_refine_grid_polish.jpg`,
++  `/Users/guest1/Desktop/SAVI_QA/search_refine_after_header_refine_grid_polish.jpg`
+
+ ## Affected Areas

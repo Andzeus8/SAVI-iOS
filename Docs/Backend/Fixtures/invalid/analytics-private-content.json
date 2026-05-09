@@ -1,0 +1,11 @@
+{
+  "name": "save_completed",
+  "timestamp": "2026-05-08T13:00:00Z",
+  "properties": {
+    "item_type": "note",
+    "folder_id": "f-private-vault",
+    "is_public": false,
+    "private_note_text": "Door code 2486 and Wi-Fi password Pinehouse Guest",
+    "private_file_name": "passport-scan.pdf"
+  }
+}

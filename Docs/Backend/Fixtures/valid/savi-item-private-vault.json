@@ -1,0 +1,15 @@
+{
+  "id": "item_sample_insurance_card",
+  "title": "Insurance card",
+  "createdAt": "2026-05-08T12:10:00Z",
+  "updatedAt": "2026-05-08T12:10:00Z",
+  "folderId": "f-private-vault",
+  "type": "image",
+  "source": "SAVI Sample",
+  "tags": ["sample", "insurance", "private", "document"],
+  "isPrivate": true,
+  "isArchived": false,
+  "isDemo": true,
+  "mimeType": "image/png",
+  "folderConfidence": 0.98
+}

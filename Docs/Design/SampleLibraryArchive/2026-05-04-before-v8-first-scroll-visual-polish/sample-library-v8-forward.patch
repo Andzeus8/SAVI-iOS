@@ -1,0 +1,295 @@
+--- Docs/Design/SampleLibraryArchive/2026-05-04-before-v8-first-scroll-visual-polish/files/LegacyAndUtilities.swift	2026-05-04 15:11:16
++++ SAVI/Services/LegacyAndUtilities.swift	2026-05-04 15:14:27
+@@ -668,10 +668,223 @@
+
+         guard let data = image.pngData() else {
+             return picsumThumb("savi-sample-hotel-booking", width: 720, height: 720)
++        }
++        return "data:image/png;base64,\(data.base64EncodedString())"
++    }
++
++    private enum SampleEditorialScene {
++        case stay
++        case food
++        case health
++        case aiAgent
++        case mythCheck
++    }
++
++    private static func sampleEditorialThumb(
++        title: String,
++        kicker: String,
++        subtitle: String,
++        accentHex: String,
++        symbolName: String,
++        scene: SampleEditorialScene
++    ) -> String {
++        let size = CGSize(width: 720, height: 720)
++        let format = UIGraphicsImageRendererFormat()
++        format.scale = 2
++        format.opaque = true
++
++        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
++            let bounds = CGRect(origin: .zero, size: size)
++            let ink = UIColor(red: 0.12, green: 0.07, blue: 0.20, alpha: 1)
++            let muted = UIColor(red: 0.36, green: 0.30, blue: 0.48, alpha: 1)
++            let accent = UIColor(hex: accentHex)
++            let colors: [UIColor]
++            switch scene {
++            case .stay:
++                colors = [UIColor(hex: "#78C7E8"), UIColor(hex: "#FFD15C"), UIColor(hex: "#FF8A5C")]
++            case .food:
++                colors = [UIColor(hex: "#FFB978"), UIColor(hex: "#F47A3B"), UIColor(hex: "#70D59B")]
++            case .health:
++                colors = [UIColor(hex: "#70D59B"), UIColor(hex: "#5ADDCB"), UIColor(hex: "#D6F83A")]
++            case .aiAgent:
++                colors = [UIColor(hex: "#2A1745"), UIColor(hex: "#7A35E8"), UIColor(hex: "#F47A3B")]
++            case .mythCheck:
++                colors = [UIColor(hex: "#FFD15C"), UIColor(hex: "#FFB978"), UIColor(hex: "#F4EEF9")]
++            }
++
++            let cgColors = colors.map(\.cgColor) as CFArray
++            let colorSpace = CGColorSpaceCreateDeviceRGB()
++            if let gradient = CGGradient(colorsSpace: colorSpace, colors: cgColors, locations: [0, 0.58, 1]) {
++                context.cgContext.drawLinearGradient(
++                    gradient,
++                    start: CGPoint(x: 0, y: 0),
++                    end: CGPoint(x: bounds.maxX, y: bounds.maxY),
++                    options: []
++                )
++            } else {
++                colors.first?.setFill()
++                context.fill(bounds)
++            }
++
++            switch scene {
++            case .stay:
++                UIColor(hex: "#2A1745").withAlphaComponent(0.22).setFill()
++                UIBezierPath(roundedRect: CGRect(x: 428, y: 84, width: 178, height: 320), cornerRadius: 34).fill()
++                UIColor.white.withAlphaComponent(0.72).setFill()
++                UIBezierPath(roundedRect: CGRect(x: 460, y: 142, width: 114, height: 204), cornerRadius: 24).fill()
++                accent.setFill()
++                UIBezierPath(roundedRect: CGRect(x: 486, y: 226, width: 62, height: 52), cornerRadius: 16).fill()
++                for row in 0..<2 {
++                    for col in 0..<3 {
++                        UIColor.white.withAlphaComponent(0.88).setFill()
++                        UIBezierPath(ovalIn: CGRect(x: 498 + CGFloat(col) * 15, y: 238 + CGFloat(row) * 14, width: 7, height: 7)).fill()
++                    }
++                }
++                UIColor.white.withAlphaComponent(0.44).setFill()
++                UIBezierPath(roundedRect: CGRect(x: -28, y: 390, width: 802, height: 210), cornerRadius: 82).fill()
++                UIColor(hex: "#70D59B").withAlphaComponent(0.62).setFill()
++                UIBezierPath(ovalIn: CGRect(x: -70, y: 338, width: 350, height: 210)).fill()
++            case .food:
++                UIColor.white.withAlphaComponent(0.58).setFill()
++                UIBezierPath(ovalIn: CGRect(x: 98, y: 112, width: 410, height: 330)).fill()
++                UIColor(hex: "#2A1745").withAlphaComponent(0.14).setStroke()
++                for offset in stride(from: 0, through: 190, by: 38) {
++                    let path = UIBezierPath()
++                    path.move(to: CGPoint(x: 184 + CGFloat(offset), y: 224))
++                    path.addCurve(to: CGPoint(x: 206 + CGFloat(offset), y: 360), controlPoint1: CGPoint(x: 118 + CGFloat(offset), y: 278), controlPoint2: CGPoint(x: 278 + CGFloat(offset), y: 314))
++                    path.lineWidth = 14
++                    path.stroke()
++                }
++                accent.setFill()
++                UIBezierPath(ovalIn: CGRect(x: 390, y: 252, width: 82, height: 82)).fill()
++                UIColor(hex: "#D6F83A").withAlphaComponent(0.82).setFill()
++                UIBezierPath(ovalIn: CGRect(x: 218, y: 168, width: 72, height: 48)).fill()
++            case .health:
++                UIColor.white.withAlphaComponent(0.28).setFill()
++                for index in 0..<14 {
++                    let x = CGFloat((index * 97) % 610) + 34
++                    let y = CGFloat((index * 151) % 430) + 42
++                    let size = CGFloat(42 + (index % 4) * 18)
++                    UIBezierPath(ovalIn: CGRect(x: x, y: y, width: size, height: size)).fill()
++                }
++                UIColor(hex: "#2A1745").withAlphaComponent(0.15).setStroke()
++                let strand = UIBezierPath()
++                strand.move(to: CGPoint(x: 120, y: 188))
++                strand.addCurve(to: CGPoint(x: 560, y: 390), controlPoint1: CGPoint(x: 238, y: 86), controlPoint2: CGPoint(x: 424, y: 508))
++                strand.lineWidth = 18
++                strand.stroke()
++                accent.withAlphaComponent(0.72).setFill()
++                UIBezierPath(ovalIn: CGRect(x: 494, y: 136, width: 92, height: 92)).fill()
++            case .aiAgent:
++                UIColor.white.withAlphaComponent(0.14).setFill()
++                for index in 0..<8 {
++                    let x = CGFloat(94 + (index % 4) * 138)
++                    let y = CGFloat(112 + (index / 4) * 132)
++                    UIBezierPath(ovalIn: CGRect(x: x, y: y, width: 72, height: 72)).fill()
++                    if index < 7 {
++                        let path = UIBezierPath()
++                        path.move(to: CGPoint(x: x + 36, y: y + 36))
++                        path.addLine(to: CGPoint(x: x + 174, y: y + (index % 2 == 0 ? 168 : 36)))
++                        UIColor.white.withAlphaComponent(0.22).setStroke()
++                        path.lineWidth = 8
++                        path.stroke()
++                    }
++                }
++                accent.setFill()
++                UIBezierPath(roundedRect: CGRect(x: 260, y: 250, width: 200, height: 124), cornerRadius: 38).fill()
++                if let icon = UIImage(systemName: "play.fill")?.withTintColor(ink, renderingMode: .alwaysOriginal) {
++                    icon.draw(in: CGRect(x: 342, y: 288, width: 44, height: 50))
++                }
++            case .mythCheck:
++                UIColor.white.withAlphaComponent(0.52).setFill()
++                for index in 0..<5 {
++                    UIBezierPath(roundedRect: CGRect(x: 112 + CGFloat(index) * 72, y: 148 + CGFloat(index % 2) * 44, width: 88, height: 88), cornerRadius: 18).fill()
++                }
++                UIColor(hex: "#7A35E8").withAlphaComponent(0.20).setStroke()
++                let check = UIBezierPath()
++                check.move(to: CGPoint(x: 258, y: 360))
++                check.addLine(to: CGPoint(x: 326, y: 422))
++                check.addLine(to: CGPoint(x: 482, y: 236))
++                check.lineWidth = 34
++                check.lineCapStyle = .round
++                check.lineJoinStyle = .round
++                check.stroke()
++            }
++
++            UIColor.white.withAlphaComponent(0.86).setFill()
++            UIBezierPath(roundedRect: CGRect(x: 48, y: 472, width: 624, height: 176), cornerRadius: 40).fill()
++            accent.setFill()
++            UIBezierPath(roundedRect: CGRect(x: 82, y: 504, width: 86, height: 86), cornerRadius: 24).fill()
++            if let icon = UIImage(systemName: symbolName)?.withTintColor(ink, renderingMode: .alwaysOriginal) {
++                icon.draw(in: CGRect(x: 108, y: 530, width: 34, height: 34))
++            }
++
++            drawText(kicker.uppercased(), in: CGRect(x: 190, y: 508, width: 398, height: 22), font: .monospacedSystemFont(ofSize: 13, weight: .black), color: muted, lineBreakMode: .byTruncatingTail)
++            drawText(title, in: CGRect(x: 190, y: 536, width: 408, height: 58), font: .systemFont(ofSize: 28, weight: .black), color: ink, lineBreakMode: .byWordWrapping)
++            drawText(subtitle, in: CGRect(x: 190, y: 600, width: 398, height: 28), font: .systemFont(ofSize: 17, weight: .semibold), color: muted, lineBreakMode: .byTruncatingTail)
+         }
++
++        guard let data = image.pngData() else {
++            return picsumThumb("savi-sample-\(title)", width: 720, height: 720)
++        }
+         return "data:image/png;base64,\(data.base64EncodedString())"
+     }
+
++    private static func sampleFullBleedStayThumb() -> String {
++        sampleEditorialThumb(
++            title: "Door code + Wi-Fi",
++            kicker: "Stay access",
++            subtitle: "The tiny details you need fast.",
++            accentHex: "#FFD15C",
++            symbolName: "key.fill",
++            scene: .stay
++        )
++    }
++
++    private static func sampleFoodRecommendationThumb() -> String {
++        sampleEditorialThumb(
++            title: "Jennifer's ramen rec",
++            kicker: "Place from a friend",
++            subtitle: "A map pin plus the reason.",
++            accentHex: "#D6F83A",
++            symbolName: "mappin.and.ellipse",
++            scene: .food
++        )
++    }
++
++    private static func sampleHealthResearchThumb() -> String {
++        sampleEditorialThumb(
++            title: "Fasting research",
++            kicker: "Health notes",
++            subtitle: "Saved evidence, not advice.",
++            accentHex: "#70D59B",
++            symbolName: "cross.case.fill",
++            scene: .health
++        )
++    }
++
++    private static func sampleAIAgentVideoThumb() -> String {
++        sampleEditorialThumb(
++            title: "Use your AI agent better",
++            kicker: "AI & Work",
++            subtitle: "A practical saved guide.",
++            accentHex: "#D6F83A",
++            symbolName: "sparkles",
++            scene: .aiAgent
++        )
++    }
++
++    private static func sampleMythCheckThumb() -> String {
++        sampleEditorialThumb(
++            title: "Sugar and cancer myths",
++            kicker: "Evidence check",
++            subtitle: "A source to revisit calmly.",
++            accentHex: "#FFD15C",
++            symbolName: "checkmark.seal.fill",
++            scene: .mythCheck
++        )
++    }
++
+     private static func sampleContractThumb() -> String {
+         sampleGraphicThumb(
+             title: "Contract template",
+@@ -861,19 +1074,20 @@
+
+     static let items: [SaviItem] = [
+         // First-run utility saves, ordered to prove SAVI's practical value immediately.
+-        item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi", description: "SAMPLE stay note: front door 2486, Wi-Fi Pinehouse Guest, checkout 11 AM.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "airbnb", "door-code", "wifi", "travel"], thumbnail: sampleAccessThumb(), hoursAgo: 1),
+-        item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 2),
+-        item(id: "sample-health-parasites-gut", title: "Parasites and gut health: evidence notes", description: "Neutral reading list from CDC and PubMed on parasite risk, prevention, and the gut parasitome.", url: "https://www.cdc.gov/parasites/causes/index.html", source: "CDC", type: .article, folderId: "f-health", tags: ["research", "gut-health", "parasites", "questions-for-doctor"], thumbnailSeed: "savi-cdc-parasite-notes", hoursAgo: 3),
+-        item(id: "sample-ai-prompts", title: "Prompt: turn chaos into a plan", description: "Reusable AI prompt: I have a messy goal and scattered context. Ask me three sharp questions, state your assumptions, then turn this into a practical step-by-step plan with risks, tradeoffs, and next actions.", source: "Prompt", type: .text, folderId: "f-growth", tags: ["prompt", "ai", "ai-prompt", "workflow", "template"], thumbnail: sampleAIPromptThumb(), hoursAgo: 4),
+-        item(id: "sample-life-driver-license", title: "Sample driver license copy", description: "Watermarked fake ID copy with invented demo data for testing document saves.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 5, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
+-        item(id: "sample-health-fasting-autophagy", title: "Fasting and autophagy research", description: "A research save about fasting mechanisms and autophagy, kept as notes to discuss with a clinician.", url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5411330/", source: "PMC", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "questions-for-doctor"], thumbnailSeed: "savi-fasting-autophagy", hoursAgo: 6),
+-        item(id: "sample-place-ramen", title: "Tokyo ramen map pin", description: "A restaurant idea saved from Maps for a future trip.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Maps", type: .place, folderId: "f-travel", tags: ["maps", "tokyo", "food"], thumbnailSeed: "savi-tokyo-ramen", hoursAgo: 7),
+-        item(id: "sample-life-insurance-card", title: "Sample insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 8, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
+-        item(id: "sample-research-mebendazole", title: "Anti-parasitic drugs in cancer trials", description: "Clinical-trial and phase 1 research links about mebendazole. Saved as research, not medical advice.", url: "https://www.clinicaltrials.gov/study/NCT03628079", source: "ClinicalTrials.gov", type: .article, folderId: "f-research", tags: ["clinical-trial", "research", "mebendazole", "questions-for-doctor"], thumbnailSeed: "savi-mebendazole-trials", hoursAgo: 9),
+-        item(id: "sample-meme-goyo", title: "Goyo goyo with lyrics", description: "A funny video save that shows how memes land in SAVI.", url: "https://www.youtube.com/results?search_query=goyo+goyo+with+lyrics", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "youtube"], thumbnail: sampleVideoThumb(title: "Goyo goyo with lyrics"), hoursAgo: 10),
+-        item(id: "sample-life-contract-template", title: "Contract template to reuse", description: "A reusable service agreement template saved where life admin documents live.", source: "Files", type: .file, folderId: "f-life-admin", tags: ["contract", "template", "docx", "important"], thumbnail: sampleContractThumb(), hoursAgo: 11, assetName: "sample-service-contract-template.docx", assetMime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", assetSize: 312_000),
+-        item(id: "sample-science-webb", title: "NASA Webb image explainer", description: "A space discovery save for the science things worth revisiting.", url: "https://science.nasa.gov/mission/webb/", source: "NASA", type: .article, folderId: "f-wtf-favorites", tags: ["space", "nasa", "science"], thumbnailSeed: "savi-webb-space", hoursAgo: 12),
+-        item(id: "sample-life-recovery-code", title: "Emergency recovery code", description: "SAMPLE long code: RK8F-Q44P-29LM-7DZQ. Shows how SAVI keeps exact text findable.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "recovery-code", "important", "admin"], thumbnail: sampleRecoveryThumb(), hoursAgo: 13),
++        item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi", description: "SAMPLE stay note: front door 2486, Wi-Fi Pinehouse Guest, checkout 11 AM.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "airbnb", "door-code", "wifi", "travel"], thumbnail: sampleFullBleedStayThumb(), hoursAgo: 1),
++        item(id: "sample-place-ramen", title: "Jennifer's ramen recommendation", description: "Jennifer said to order the spicy miso, sit at the counter, and save the pin before the group chat buries it.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Jennifer", type: .place, folderId: "f-travel", tags: ["maps", "restaurant", "friend-rec", "tokyo", "food"], thumbnail: sampleFoodRecommendationThumb(), hoursAgo: 2),
++        item(id: "sample-health-fasting-autophagy", title: "Fasting and autophagy: what research says", description: "A research save on fasting mechanisms and autophagy, kept as evidence notes to discuss with a clinician.", url: "https://pubmed.ncbi.nlm.nih.gov/34383300/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "questions-for-doctor"], thumbnail: sampleHealthResearchThumb(), hoursAgo: 3),
++        item(id: "sample-ai-agent-guide", title: "How to get more out of your AI agent", description: "A practical guide save for using agents well: define the task, give context, set guardrails, and review the result.", url: "https://www.anthropic.com/engineering/building-effective-agents", source: "Anthropic", type: .article, folderId: "f-growth", tags: ["ai", "agent", "productivity", "life-hack"], thumbnail: sampleAIAgentVideoThumb(), hoursAgo: 4),
++        item(id: "sample-health-sugar-cancer-myths", title: "Sugar and cancer myths: evidence notes", description: "A calm source-backed save about common cancer myths, diet questions, and what major cancer organizations actually say.", url: "https://www.cancer.gov/about-cancer/causes-prevention/risk/myths", source: "NCI", type: .article, folderId: "f-health", tags: ["research", "cancer-myths", "nutrition", "questions-for-doctor"], thumbnail: sampleMythCheckThumb(), hoursAgo: 5),
++        item(id: "sample-life-driver-license", title: "Sample driver license copy", description: "Watermarked fake ID copy with invented demo data for testing document saves.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 6, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
++        item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 7),
++        item(id: "sample-life-recovery-code", title: "Emergency recovery code", description: "SAMPLE long code: RK8F-Q44P-29LM-7DZQ. Shows how SAVI keeps exact text findable.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "recovery-code", "important", "admin"], thumbnail: sampleRecoveryThumb(), hoursAgo: 8),
++        item(id: "sample-meme-goyo", title: "Goyo goyo with lyrics", description: "A funny video save that shows how memes land in SAVI.", url: "https://www.youtube.com/results?search_query=goyo+goyo+with+lyrics", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "youtube"], thumbnail: sampleVideoThumb(title: "Goyo goyo with lyrics"), hoursAgo: 9),
++        item(id: "sample-science-webb", title: "NASA Webb image explainer", description: "A space discovery save for the science things worth revisiting.", url: "https://science.nasa.gov/mission/webb/", source: "NASA", type: .article, folderId: "f-wtf-favorites", tags: ["space", "nasa", "science"], thumbnailSeed: "savi-webb-space", hoursAgo: 10),
++        item(id: "sample-life-insurance-card", title: "Sample insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 11, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
++        item(id: "sample-health-parasites-gut", title: "Parasites and gut health: evidence notes", description: "Neutral reading list from CDC and PubMed on parasite risk, prevention, and the gut parasitome.", url: "https://www.cdc.gov/parasites/causes/index.html", source: "CDC", type: .article, folderId: "f-health", tags: ["research", "gut-health", "parasites", "questions-for-doctor"], thumbnail: sampleHealthResearchThumb(), hoursAgo: 12),
++        item(id: "sample-research-mebendazole", title: "Anti-parasitic drugs in cancer trials", description: "Clinical-trial and phase 1 research links about mebendazole. Saved as research, not medical advice.", url: "https://www.clinicaltrials.gov/study/NCT03628079", source: "ClinicalTrials.gov", type: .article, folderId: "f-research", tags: ["clinical-trial", "research", "mebendazole", "questions-for-doctor"], thumbnailSeed: "savi-mebendazole-trials", hoursAgo: 13),
++        item(id: "sample-life-contract-template", title: "Contract template to reuse", description: "A reusable service agreement template saved where life admin documents live.", source: "Files", type: .file, folderId: "f-life-admin", tags: ["contract", "template", "docx", "important"], thumbnail: sampleContractThumb(), hoursAgo: 14, assetName: "sample-service-contract-template.docx", assetMime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", assetSize: 312_000),
+
+         item(id: "sample-watch-claude", title: "How to use Claude like a thinking partner", description: "A practical setup for long-context productivity and better saved research.", url: "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview", source: "Anthropic", type: .article, folderId: "f-must-see", tags: ["read-later", "ai", "productivity"], thumbnailSeed: "savi-claude-thinking", hoursAgo: 16),
+         item(id: "sample-watch-wwdc", title: "Apple WWDC recap", description: "A conference video page to watch when you have ten quiet minutes.", url: "https://developer.apple.com/videos/wwdc2024/", source: "Apple", type: .video, folderId: "f-must-see", tags: ["video", "apple", "tech"], thumbnailSeed: "savi-wwdc-recap", hoursAgo: 18),
+--- Docs/Design/SampleLibraryArchive/2026-05-04-before-v8-first-scroll-visual-polish/files/SaviCore.swift	2026-05-04 15:11:16
++++ SAVI/Core/SaviCore.swift	2026-05-04 15:14:42
+@@ -1725,7 +1725,7 @@
+     private static let shareSetupSecondReminderDelay: TimeInterval = 3 * 86_400
+     private static let shareSetupLaterReminderDelay: TimeInterval = 7 * 86_400
+     private static let sampleFriendTargetLinkCount = 24
+-    private static let currentLegacySeedVersion = 10
++    private static let currentLegacySeedVersion = 11
+     private static let currentFolderRepairVersion = 2
+     private static let currentSearchTagRepairVersion = 1
+     private static let currentFolderLayoutVersion = 3
+--- Docs/Design/SampleLibraryArchive/2026-05-04-before-v8-first-scroll-visual-polish/files/2026-05-04.md	2026-05-04 15:11:16
++++ Docs/ChangeLog/2026-05-04.md	2026-05-04 15:19:08
+@@ -178,3 +178,21 @@
+   rhythm.
+ - Bumped the native sample seed version to `10` so empty/sample libraries can
+   refresh into the V7 catalog while preserving personal saves.
++
++## Sample Library V8 First-Scroll Visual Polish
++
++- Created rollback archive:
++  `Docs/Design/SampleLibraryArchive/2026-05-04-before-v8-first-scroll-visual-polish/`.
++- Reordered the launch sample timeline so the first scroll shows a stronger mix:
++  Airbnb access, Jennifer's ramen recommendation, fasting/autophagy research,
++  AI agent workflow, sugar/cancer myth-check notes, sample ID, hotel booking,
++  recovery code, a meme/video save, and NASA science.
++- Added richer generated full-bleed sample thumbnails for stay access, food
++  recommendations, health research, AI agent guidance, and myth-check saves.
++- Kept health samples evidence-oriented and neutral, using source-backed titles
++  such as `Fasting and autophagy: what research says` and
++  `Sugar and cancer myths: evidence notes`.
++- Bumped the native sample seed version to `11`; main `SAVI` refreshed to
++  71 sample saves and was cloned into `SAVI Test` for simulator parity.
++- Built and installed both simulator channels, then captured QA screenshot:
++  `/Users/guest1/Desktop/SAVI_QA/savi_v8_sample_home_2026-05-04.png`.

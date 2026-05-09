@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example-savi-domain.com/schemas/public-link.schema.json",
+  "title": "SAVI Public Link",
+  "type": "object",
+  "required": ["id", "ownerId", "title", "url", "canonicalUrl", "domain", "itemType", "sharedAt"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "ownerId": { "type": "string", "format": "uuid" },
+    "localItemId": { "type": "string" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "description": { "type": "string", "maxLength": 500 },
+    "url": { "type": "string", "format": "uri", "pattern": "^https?://" },
+    "canonicalUrl": { "type": "string", "format": "uri", "pattern": "^https?://" },
+    "domain": { "type": "string" },
+    "itemType": { "type": "string", "enum": ["link", "article", "video", "place"] },
+    "folderId": { "type": "string" },
+    "folderName": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "thumbnailUrl": { "type": "string", "format": "uri" },
+    "sharedAt": { "type": "string", "format": "date-time" },
+    "isHidden": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

@@ -2,7 +2,15 @@
 .build/
 .swiftpm/
 DerivedData/
+.DerivedData*/
 .DerivedData-codex/
+.DerivedData-codex*/
+build/
+.codex-screenshots/
+*.xcresult
+*.xcactivitylog
+*.ipa
+*.dSYM.zip
 xcuserdata/
 *.xcuserstate
 *.moved-aside

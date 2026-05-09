@@ -1,0 +1,665 @@
+diff -ruN /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/Docs/ChangeLog/2026-05-02.md /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/Docs/ChangeLog/2026-05-02.md
+--- /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/Docs/ChangeLog/2026-05-02.md	2026-05-02 17:40:26
++++ /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/Docs/ChangeLog/2026-05-02.md	2026-05-02 17:40:26
+@@ -132,26 +132,6 @@
+   `/Users/guest1/Desktop/SAVI_QA/home_after_2026-05-02-compact-editorial-light.png`
+ - Compact editorial Home quick theme check screenshot:
+   `/Users/guest1/Desktop/SAVI_QA/home_after_2026-05-02-compact-editorial-dark.png`
+-- Archived the pre-pass Search/detail state before extending the compact
+-  editorial language beyond Home:
+-  `/Users/guest1/Documents/SAVI-iOS/Docs/Design/SearchDetailPolishArchive/2026-05-02-before-search-detail-minimalist/`
+-- Refactored the Home timeline row into a shared `EditorialTimelineItemRow` and
+-  used it on Search so default results and active filtered results use the same
+-  lighter time-rail, thumbnail, title, and quiet metadata grammar.
+-- Tightened the Search header, kept the type rail as the fast primary filter,
+-  moved deeper controls into a cleaner `Refine` sheet ordered by Type, Folders,
+-  Date, Has, Source, and Tags, and kept `Clear all` available only when filters
+-  are active.
+-- Polished item detail so the preview has one minimal source/type badge, the
+-  folder/type/source/time metadata sits under the title, tags collapse into a
+-  quiet inline row with `Show all tags`, and the prominent in-detail Share
+-  action remains easy to find.
+-- Search/detail minimalist QA screenshots:
+-  `/Users/guest1/Desktop/SAVI_QA/home_after_search_detail_minimalist.png`,
+-  `/Users/guest1/Desktop/SAVI_QA/search_after_minimalist_default_optimized.jpg`,
+-  `/Users/guest1/Desktop/SAVI_QA/search_after_minimalist_filtered.png`,
+-  `/Users/guest1/Desktop/SAVI_QA/search_refine_after_minimalist_optimized.jpg`,
+-  `/Users/guest1/Desktop/SAVI_QA/item_detail_after_minimalist.jpg`
+
+ ## Affected Areas
+
+diff -ruN /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Core/SaviCore.swift /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Core/SaviCore.swift
+--- /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Core/SaviCore.swift	2026-05-02 17:40:26
++++ /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Core/SaviCore.swift	2026-05-02 17:40:26
+@@ -426,8 +426,9 @@
+         .init(id: "docs", title: "Docs", symbolName: "doc.on.doc.fill"),
+         .init(id: "note", title: "Notes", symbolName: "text.alignleft"),
+         .init(id: "video", title: "Videos", symbolName: "play.rectangle.fill"),
+-        .init(id: "place", title: "Places", symbolName: "mappin.and.ellipse"),
+-        .init(id: "image", title: "Images", symbolName: "photo.fill")
++        .init(id: "image", title: "Images", symbolName: "photo.fill"),
++        .init(id: "audio", title: "Audio", symbolName: "waveform"),
++        .init(id: "place", title: "Places", symbolName: "mappin.and.ellipse")
+     ]
+ }
+
+diff -ruN /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Views/Home/HomeScreen.swift /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Views/Home/HomeScreen.swift
+--- /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Views/Home/HomeScreen.swift	2026-05-02 17:40:26
++++ /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Views/Home/HomeScreen.swift	2026-05-02 17:40:26
+@@ -372,14 +372,14 @@
+                         }
+
+                         ForEach(Array(group.items.dropFirst())) { item in
+-                            EditorialTimelineItemRow(item: item, context: .home)
++                            TimelineSaveRow(item: item)
+                         }
+                     case .timeline:
+                         TimelineGroupLabel(title: group.title)
+                             .padding(.top, group.id == groups.first?.id ? 0 : 10)
+
+                         ForEach(group.items) { item in
+-                            EditorialTimelineItemRow(item: item, context: .home)
++                            TimelineSaveRow(item: item)
+                         }
+                     }
+                 }
+@@ -991,6 +991,80 @@
+             Spacer()
+         }
+         .accessibilityAddTraits(.isHeader)
++    }
++}
++
++private struct TimelineSaveRow: View {
++    @EnvironmentObject private var store: SaviStore
++    @Environment(\.colorScheme) private var colorScheme
++    let item: SaviItem
++
++    var body: some View {
++        Button {
++            store.presentItem(item)
++        } label: {
++            HStack(alignment: .center, spacing: 12) {
++                TimelineTimeRail(savedAt: item.savedAt)
++
++                ItemThumb(item: item, enablesPressPreview: false)
++                    .frame(width: 82, height: 82)
++                    .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
++                    .overlay(
++                        RoundedRectangle(cornerRadius: 15, style: .continuous)
++                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.48), lineWidth: 1)
++                    )
++                    .saviThumbnailTypeBadge(for: item)
++
++                VStack(alignment: .leading, spacing: 7) {
++                    Text(SaviItemDisplay.rowTitle(for: item))
++                        .font(SaviType.reading(.subheadline, weight: .bold))
++                        .foregroundStyle(SaviTheme.text)
++                        .lineLimit(2)
++                        .lineSpacing(1.8)
++                        .multilineTextAlignment(.leading)
++                        .frame(maxWidth: .infinity, alignment: .leading)
++                        .layoutPriority(2)
++
++                    ItemTokenRow(
++                        item: item,
++                        folder: store.folder(for: item.folderId),
++                        tags: item.tags,
++                        hidesTags: true
++                    )
++                }
++                .frame(minHeight: 82, alignment: .leading)
++            }
++            .padding(.vertical, 7)
++            .padding(.trailing, 4)
++            .contentShape(Rectangle())
++        }
++        .buttonStyle(SaviPressScaleButtonStyle())
++        .accessibilityLabel("\(SaviItemDisplay.rowTitle(for: item)), saved \(SaviText.relativeSavedTime(item.savedAt))")
++    }
++}
++
++private struct TimelineTimeRail: View {
++    let savedAt: Double
++
++    var body: some View {
++        TimelineView(.periodic(from: Date(), by: 60)) { context in
++            VStack(spacing: 5) {
++                Text(SaviText.compactRelativeSavedTime(savedAt, now: context.date))
++                    .font(SaviType.ui(.caption2, weight: .bold))
++                    .foregroundStyle(SaviTheme.metadataText)
++                    .lineLimit(1)
++                    .minimumScaleFactor(0.7)
++                    .frame(width: 38, alignment: .trailing)
++
++                Rectangle()
++                    .fill(SaviTheme.cardStroke.opacity(0.65))
++                    .frame(width: 1)
++                    .frame(maxHeight: .infinity)
++            }
++            .frame(width: 44)
++            .frame(minHeight: 96)
++            .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: context.date))")
++        }
+     }
+ }
+
+diff -ruN /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Views/Items/ItemViews.swift /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Views/Items/ItemViews.swift
+--- /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Views/Items/ItemViews.swift	2026-05-02 17:40:26
++++ /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Views/Items/ItemViews.swift	2026-05-02 17:40:26
+@@ -188,7 +188,7 @@
+     }
+ }
+
+-struct EditorialTimelineItemRow: View {
++struct SaviTimelineItemRow: View {
+     @EnvironmentObject private var store: SaviStore
+     @Environment(\.colorScheme) private var colorScheme
+     let item: SaviItem
+@@ -200,24 +200,24 @@
+         Button {
+             store.presentItem(item)
+         } label: {
+-            HStack(alignment: .center, spacing: 12) {
+-                EditorialTimelineTimeRail(savedAt: item.savedAt)
++            HStack(alignment: .top, spacing: 10) {
++                SaviTimelineTimeRail(savedAt: item.savedAt)
+
+                 ItemThumb(item: item, enablesPressPreview: false)
+-                    .frame(width: EditorialTimelineItemLayout.thumbnailSize, height: EditorialTimelineItemLayout.thumbnailSize)
+-                    .clipShape(RoundedRectangle(cornerRadius: EditorialTimelineItemLayout.thumbnailCorner, style: .continuous))
++                    .frame(width: SaviTimelineItemLayout.thumbnailSize, height: SaviTimelineItemLayout.thumbnailSize)
++                    .clipShape(RoundedRectangle(cornerRadius: SaviTimelineItemLayout.thumbnailCorner, style: .continuous))
+                     .overlay(
+-                        RoundedRectangle(cornerRadius: EditorialTimelineItemLayout.thumbnailCorner, style: .continuous)
+-                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.22 : 0.48), lineWidth: 1)
++                        RoundedRectangle(cornerRadius: SaviTimelineItemLayout.thumbnailCorner, style: .continuous)
++                            .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.28 : 0.5), lineWidth: 1)
+                     )
+                     .saviThumbnailTypeBadge(for: item)
+
+                 VStack(alignment: .leading, spacing: 7) {
+                     Text(SaviItemDisplay.rowTitle(for: item))
+-                        .font(EditorialTimelineItemLayout.titleFont)
++                        .font(SaviTimelineItemLayout.titleFont)
+                         .foregroundStyle(SaviTheme.text)
+                         .lineLimit(2)
+-                        .lineSpacing(1.8)
++                        .lineSpacing(1.6)
+                         .multilineTextAlignment(.leading)
+                         .frame(maxWidth: .infinity, alignment: .leading)
+                         .layoutPriority(2)
+@@ -239,40 +239,31 @@
+                         SearchMatchReasonLine(item: item)
+                     }
+                 }
+-                .frame(minHeight: EditorialTimelineItemLayout.thumbnailSize, alignment: .leading)
++                .padding(.vertical, 5)
++                .frame(minHeight: SaviTimelineItemLayout.thumbnailSize, alignment: .topLeading)
+             }
+-            .padding(.vertical, 7)
+-            .padding(.trailing, 4)
+-            .contentShape(Rectangle())
++            .padding(.vertical, 5)
++            .padding(.trailing, 6)
++            .background(rowBackground)
++            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
++            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+         }
+         .buttonStyle(SaviPressScaleButtonStyle())
+         .accessibilityLabel("\(SaviItemDisplay.rowTitle(for: item)), saved \(SaviText.relativeSavedTime(item.savedAt))")
+     }
+-}
+
+-struct SaviTimelineItemRow: View {
+-    let item: SaviItem
+-    var context: ItemRowContext = .home
+-    var showsMatchReasons = false
+-    var showsSnippet = false
+-
+-    var body: some View {
+-        EditorialTimelineItemRow(
+-            item: item,
+-            context: context,
+-            showsMatchReasons: showsMatchReasons,
+-            showsSnippet: showsSnippet
+-        )
++    private var rowBackground: Color {
++        colorScheme == .light ? Color.white.opacity(0.48) : SaviTheme.surface.opacity(0.28)
+     }
+ }
+
+-private enum EditorialTimelineItemLayout {
+-    static let thumbnailSize: CGFloat = 82
+-    static let thumbnailCorner: CGFloat = 15
++private enum SaviTimelineItemLayout {
++    static let thumbnailSize: CGFloat = 72
++    static let thumbnailCorner: CGFloat = 14
+     static var titleFont: Font { SaviType.reading(.subheadline, weight: .bold) }
+ }
+
+-private struct EditorialTimelineTimeRail: View {
++private struct SaviTimelineTimeRail: View {
+     let savedAt: Double
+
+     var body: some View {
+@@ -291,7 +282,7 @@
+                     .frame(maxHeight: .infinity)
+             }
+             .frame(width: 44)
+-            .frame(minHeight: 96)
++            .frame(minHeight: 82)
+             .accessibilityLabel("Saved \(SaviText.relativeSavedTime(savedAt, now: context.date))")
+         }
+     }
+@@ -971,8 +962,8 @@
+         let reasons = store.matchReasons(for: item)
+         if !reasons.isEmpty {
+             Text("Matched by: \(reasons.joined(separator: " · "))")
+-                .font(SaviType.ui(.caption2, weight: .semibold))
+-                .foregroundStyle(SaviTheme.metadataText.opacity(0.82))
++                .font(SaviItemTypography.matchReason)
++                .foregroundStyle(SaviTheme.accentText.opacity(0.86))
+                 .lineLimit(1)
+                 .minimumScaleFactor(0.75)
+         }
+diff -ruN /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Views/Save/SaveAndEditSheets.swift /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Views/Save/SaveAndEditSheets.swift
+--- /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Views/Save/SaveAndEditSheets.swift	2026-05-02 17:40:26
++++ /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Views/Save/SaveAndEditSheets.swift	2026-05-02 17:40:26
+@@ -752,6 +752,8 @@
+                         )
+                     }
+
++                    ItemDetailTagsCard(tags: item.tags)
++
+                     VStack(alignment: .leading, spacing: 10) {
+                         Text("Actions")
+                             .font(SaviType.ui(.caption, weight: .black))
+@@ -893,11 +895,23 @@
+             ZStack(alignment: .bottomLeading) {
+                 ItemPreview(item: item)
+
+-                ItemDetailPreviewBadge(item: item)
++                HStack(spacing: 8) {
++                    ItemKindBadge(item: item)
++                    if let source = item.readableSource?.nilIfBlank {
++                        ItemTokenCapsule(
++                            title: source,
++                            systemImage: "link",
++                            maxWidth: 150,
++                            foreground: .white.opacity(0.86),
++                            background: .black.opacity(0.34),
++                            stroke: .white.opacity(0.16)
++                        )
++                    }
++                }
+                 .padding(12)
+             }
+
+-            VStack(alignment: .leading, spacing: 10) {
++            VStack(alignment: .leading, spacing: 12) {
+                 Text(SaviItemDisplay.rowTitle(for: item))
+                     .font(SaviItemTypography.detailTitle)
+                     .foregroundStyle(SaviTheme.text)
+@@ -905,13 +919,19 @@
+                     .lineSpacing(2)
+                     .textSelection(.enabled)
+
+-                ItemDetailMetadataRow(
+-                    item: item,
+-                    folder: folder,
+-                    assetName: item.assetName?.nilIfBlank
+-                )
++                ItemTokenRow(item: item, folder: folder, tags: item.tags, hidesTags: true)
+
+-                ItemDetailTagSummary(tags: item.tags)
++                HStack(spacing: 10) {
++                    SavedAgoLabel(savedAt: item.savedAt, prefix: "Saved")
++                    if let assetName = item.assetName?.nilIfBlank {
++                        ItemMetaDivider()
++                        Label(assetName, systemImage: "doc")
++                            .lineLimit(1)
++                            .truncationMode(.middle)
++                    }
++                }
++                .font(SaviItemTypography.meta)
++                .foregroundStyle(SaviTheme.metadataText)
+             }
+             .padding(15)
+         }
+@@ -919,160 +939,23 @@
+     }
+ }
+
+-struct ItemDetailPreviewBadge: View {
+-    let item: SaviItem
+-
+-    private var presentation: ItemSourcePinPresentation {
+-        ItemSourcePinPresentation.make(for: item)
+-    }
+-
+-    var body: some View {
+-        HStack(spacing: 5) {
+-            Image(systemName: presentation.symbolName)
+-                .font(.system(size: 10, weight: .black))
+-            Text(presentation.title)
+-                .lineLimit(1)
+-        }
+-        .font(SaviItemTypography.pill)
+-        .foregroundStyle(.white.opacity(0.92))
+-        .padding(.horizontal, 8)
+-        .frame(height: 25)
+-        .background(.black.opacity(0.36))
+-        .clipShape(Capsule())
+-        .overlay(Capsule().stroke(.white.opacity(0.18), lineWidth: 1))
+-        .accessibilityLabel(presentation.title)
+-    }
+-}
+-
+-struct ItemDetailMetadataRow: View {
+-    let item: SaviItem
+-    let folder: SaviFolder?
+-    let assetName: String?
+-
+-    var body: some View {
+-        ViewThatFits(in: .horizontal) {
+-            HStack(spacing: 8) {
+-                compactIdentity
+-                savedAndAsset
+-            }
+-
+-            VStack(alignment: .leading, spacing: 7) {
+-                compactIdentity
+-                savedAndAsset
+-            }
+-        }
+-    }
+-
+-    private var compactIdentity: some View {
+-        HStack(spacing: 8) {
+-            if let folder {
+-                KeeperPill(folder: folder, maxWidth: 128)
+-                    .layoutPriority(2)
+-            }
+-
+-            ItemTypeSourceText(item: item)
+-                .layoutPriority(1)
+-        }
+-    }
+-
+-    private var savedAndAsset: some View {
+-        HStack(spacing: 8) {
+-            SavedAgoLabel(savedAt: item.savedAt, prefix: "Saved")
+-
+-            if let assetName {
+-                ItemMetaDivider()
+-                Label(assetName, systemImage: "doc")
+-                    .lineLimit(1)
+-                    .truncationMode(.middle)
+-            }
+-        }
+-        .font(SaviItemTypography.meta)
+-        .foregroundStyle(SaviTheme.metadataText)
+-    }
+-}
+-
+-struct ItemDetailTagSummary: View {
+-    @State private var expanded = false
++struct ItemDetailTagsCard: View {
+     let tags: [String]
+
+     var body: some View {
+-        if !displayTags.isEmpty {
+-            VStack(alignment: .leading, spacing: 8) {
+-                if expanded {
+-                    LazyVGrid(
+-                        columns: [GridItem(.adaptive(minimum: 74), spacing: 6)],
+-                        alignment: .leading,
+-                        spacing: 6
+-                    ) {
+-                        ForEach(displayTags, id: \.self) { tag in
+-                            ItemDetailTagChip(title: "#\(tag)")
+-                        }
+-                    }
+-                } else {
+-                    ViewThatFits(in: .horizontal) {
+-                        collapsedRow(count: 3)
+-                        collapsedRow(count: 2)
+-                        collapsedRow(count: 1)
+-                    }
+-                }
++        if !tags.isEmpty {
++            VStack(alignment: .leading, spacing: 9) {
++                Text("Tags")
++                    .font(SaviType.ui(.caption, weight: .black))
++                    .foregroundStyle(SaviTheme.textMuted)
++                    .textCase(.uppercase)
+
+-                if displayTags.count > 3 {
+-                    Button {
+-                        withAnimation(.spring(response: 0.22, dampingFraction: 0.9)) {
+-                            expanded.toggle()
+-                        }
+-                    } label: {
+-                        Text(expanded ? "Hide tags" : "Show all tags")
+-                            .font(SaviType.ui(.caption, weight: .bold))
+-                            .foregroundStyle(SaviTheme.accentText.opacity(0.82))
+-                    }
+-                    .buttonStyle(SaviPressScaleButtonStyle(scale: 0.97))
+-                    .accessibilityLabel(expanded ? "Hide tags" : "Show all tags")
+-                }
++                TagFlow(tags: tags)
+             }
+             .frame(maxWidth: .infinity, alignment: .leading)
++            .padding(12)
++            .saviCard(cornerRadius: 16, shadow: false)
+         }
+-    }
+-
+-    private var displayTags: [String] {
+-        let generic: Set<String> = [
+-            "link", "article", "video", "image", "file", "post", "web", "save",
+-            "twitter", "x", "youtube", "instagram", "tiktok", "reddit", "facebook",
+-            "device", "clipboard", "text", "note", "friend"
+-        ]
+-        let useful = tags.filter { !generic.contains($0.lowercased()) }
+-        return useful.isEmpty ? tags : useful
+-    }
+-
+-    private func collapsedRow(count: Int) -> some View {
+-        HStack(spacing: 6) {
+-            ForEach(Array(displayTags.prefix(count)), id: \.self) { tag in
+-                ItemDetailTagChip(title: "#\(tag)")
+-            }
+-
+-            if displayTags.count > count {
+-                ItemDetailTagChip(title: "+\(displayTags.count - count)", muted: true)
+-                    .accessibilityLabel("\(displayTags.count - count) more tags")
+-            }
+-        }
+-    }
+-}
+-
+-struct ItemDetailTagChip: View {
+-    let title: String
+-    var muted = false
+-
+-    var body: some View {
+-        Text(title)
+-            .font(SaviType.ui(.caption2, weight: .semibold))
+-            .foregroundStyle(SaviTheme.metadataText.opacity(muted ? 0.68 : 0.82))
+-            .lineLimit(1)
+-            .truncationMode(.tail)
+-            .padding(.horizontal, 7)
+-            .frame(height: 24)
+-            .background(SaviTheme.subtleSurface.opacity(muted ? 0.18 : 0.25))
+-            .clipShape(Capsule())
+-            .overlay(Capsule().stroke(SaviTheme.cardStroke.opacity(0.22), lineWidth: 1))
+     }
+ }
+
+diff -ruN /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Views/Search/SearchComponents.swift /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Views/Search/SearchComponents.swift
+--- /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Views/Search/SearchComponents.swift	2026-05-02 17:40:26
++++ /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Views/Search/SearchComponents.swift	2026-05-02 17:40:26
+@@ -427,28 +427,10 @@
+     var body: some View {
+         NavigationStack {
+             ScrollView {
+-                VStack(alignment: .leading, spacing: 12) {
+-                    SearchRefineSection(title: "Type") {
++                VStack(alignment: .leading, spacing: 18) {
++                    SearchRefineSection(title: "Folder") {
+                         ScrollView(.horizontal, showsIndicators: false) {
+                             HStack(spacing: 8) {
+-                                ForEach(store.searchKindOptions(includeEmpty: true), id: \.kind.id) { option in
+-                                    Chip(
+-                                        title: option.kind.id == "all" ? "All" : option.kind.title,
+-                                        systemImage: option.kind.symbolName,
+-                                        count: option.count,
+-                                        active: store.typeFilter == option.kind.id
+-                                    ) {
+-                                        store.typeFilter = option.kind.id
+-                                    }
+-                                }
+-                            }
+-                            .padding(.vertical, 1)
+-                        }
+-                    }
+-
+-                    SearchRefineSection(title: "Folders") {
+-                        ScrollView(.horizontal, showsIndicators: false) {
+-                            HStack(spacing: 8) {
+                                 Chip(
+                                     title: "All Folders",
+                                     systemImage: "square.grid.2x2.fill",
+@@ -479,32 +461,6 @@
+                         }
+                     }
+
+-                    SearchRefineSection(title: "Date") {
+-                        ScrollView(.horizontal, showsIndicators: false) {
+-                            HStack(spacing: 8) {
+-                                ForEach(SearchDateFilter.allCases) { option in
+-                                    Chip(title: option.title, systemImage: option.symbolName, active: store.dateFilter == option.rawValue) {
+-                                        store.dateFilter = option.rawValue
+-                                    }
+-                                }
+-                            }
+-                            .padding(.vertical, 1)
+-                        }
+-                    }
+-
+-                    SearchRefineSection(title: "Has") {
+-                        ScrollView(.horizontal, showsIndicators: false) {
+-                            HStack(spacing: 8) {
+-                                ForEach(SearchHasFilter.allCases) { option in
+-                                    Chip(title: option.title, systemImage: option.symbolName, active: store.hasFilter == option.rawValue) {
+-                                        store.hasFilter = option.rawValue
+-                                    }
+-                                }
+-                            }
+-                            .padding(.vertical, 1)
+-                        }
+-                    }
+-
+                     SearchRefineSection(title: "Source") {
+                         ScrollView(.horizontal, showsIndicators: false) {
+                             HStack(spacing: 8) {
+@@ -552,6 +508,32 @@
+                                 .foregroundStyle(SaviTheme.textMuted)
+                         }
+                     }
++
++                    SearchRefineSection(title: "Date") {
++                        ScrollView(.horizontal, showsIndicators: false) {
++                            HStack(spacing: 8) {
++                                ForEach(SearchDateFilter.allCases) { option in
++                                    Chip(title: option.title, systemImage: option.symbolName, active: store.dateFilter == option.rawValue) {
++                                        store.dateFilter = option.rawValue
++                                    }
++                                }
++                            }
++                            .padding(.vertical, 1)
++                        }
++                    }
++
++                    SearchRefineSection(title: "Has") {
++                        ScrollView(.horizontal, showsIndicators: false) {
++                            HStack(spacing: 8) {
++                                ForEach(SearchHasFilter.allCases) { option in
++                                    Chip(title: option.title, systemImage: option.symbolName, active: store.hasFilter == option.rawValue) {
++                                        store.hasFilter = option.rawValue
++                                    }
++                                }
++                            }
++                            .padding(.vertical, 1)
++                        }
++                    }
+                 }
+                 .padding(18)
+             }
+@@ -602,13 +584,6 @@
+                 .foregroundStyle(SaviTheme.textMuted)
+             content
+         }
+-        .padding(12)
+-        .background(SaviTheme.surface.opacity(0.52))
+-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+-        .overlay(
+-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+-                .stroke(SaviTheme.cardStroke.opacity(0.54), lineWidth: 1)
+-        )
+     }
+ }
+
+diff -ruN /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Views/Search/SearchScreen.swift /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Views/Search/SearchScreen.swift
+--- /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/after/SAVI/Views/Search/SearchScreen.swift	2026-05-02 17:40:26
++++ /var/folders/p2/b94vt2zd7kd1xd9q9fcdsj800000gp/T/tmp.U13v4pVNSh/before/SAVI/Views/Search/SearchScreen.swift	2026-05-02 17:40:26
+@@ -65,7 +65,7 @@
+                     LazyVStack(alignment: .leading, spacing: 10) {
+                         if hasLiveSearch {
+                             ForEach(visibleResults) { item in
+-                                EditorialTimelineItemRow(
++                                SaviTimelineItemRow(
+                                     item: item,
+                                     context: .search,
+                                     showsMatchReasons: true,
+@@ -78,7 +78,7 @@
+                                     .padding(.top, group.id == recentGroups.first?.id ? 0 : 6)
+
+                                 ForEach(group.items) { item in
+-                                    EditorialTimelineItemRow(item: item, context: .search)
++                                    SaviTimelineItemRow(item: item, context: .search)
+                                 }
+                             }
+                         }
+@@ -100,7 +100,7 @@
+                     }
+                 }
+                 .padding(.horizontal, 18)
+-                .padding(.top, 8)
++                .padding(.top, 10)
+                 .padding(.bottom, 28)
+             }
+             .scrollContentBackground(.hidden)
+@@ -191,7 +191,7 @@
+         HStack(alignment: .center) {
+             VStack(alignment: .leading, spacing: 5) {
+                 Text("Find it fast")
+-                    .font(SaviType.display(size: 30, weight: .black))
++                    .font(SaviType.display(size: 34, weight: .black))
+                     .foregroundStyle(SaviTheme.text)
+                     .lineLimit(1)
+                     .minimumScaleFactor(0.82)
+@@ -207,9 +207,8 @@
+                 title: "\(resultCount) saves",
+                 systemImage: "tray.full.fill",
+                 foreground: SaviTheme.metadataText,
+-                background: SaviTheme.subtleSurface.opacity(0.62),
+-                stroke: SaviTheme.cardStroke.opacity(0.66),
+-                height: 25
++                background: SaviTheme.subtleSurface,
++                stroke: SaviTheme.cardStroke
+             )
+                 .accessibilityLabel("\(resultCount) searchable saves")
+         }

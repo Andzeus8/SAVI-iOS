@@ -1,0 +1,203 @@
+--- SAVI/Services/LegacyAndUtilities.swift	2026-05-04 15:53:09
++++ Docs/Design/SampleLibraryArchive/2026-05-04-before-v9-live-metadata-mix/files/LegacyAndUtilities.swift	2026-05-04 15:48:51
+@@ -305,8 +305,7 @@
+         hoursAgo: Double,
+         assetName: String? = nil,
+         assetMime: String? = nil,
+-        assetSize: Int64? = nil,
+-        metadataPolicy: SaviMetadataPolicy? = nil
++        assetSize: Int64? = nil
+     ) -> SaviItem {
+         SaviItem(
+             id: id,
+@@ -323,8 +322,7 @@
+             assetName: assetName,
+             assetMime: assetMime,
+             assetSize: assetSize,
+-            demo: true,
+-            metadataPolicy: metadataPolicy
++            demo: true
+         )
+     }
+
+@@ -1077,20 +1075,19 @@
+     static let items: [SaviItem] = [
+         // First-run utility saves, ordered to prove SAVI's practical value immediately.
+         item(id: "sample-life-airbnb-code", title: "Airbnb door code + Wi-Fi", description: "SAMPLE stay note: front door 2486, Wi-Fi Pinehouse Guest, checkout 11 AM.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "airbnb", "door-code", "wifi", "travel"], thumbnail: sampleFullBleedStayThumb(), hoursAgo: 1),
+-        item(id: "sample-watch-ted-procrastination", title: "Inside the Mind of a Master Procrastinator | Tim Urban | TED", description: "Tim Urban via YouTube", url: "https://www.youtube.com/watch?v=arj7oStGLkU", source: "YouTube", type: .video, folderId: "f-must-see", tags: ["youtube", "video", "productivity", "life-hack"], thumbnail: youtubeThumb("arj7oStGLkU"), hoursAgo: 2, metadataPolicy: .liveMetadata),
+-        item(id: "sample-place-ramen", title: "Jennifer's ramen recommendation", description: "Jennifer said to order the spicy miso, sit at the counter, and save the pin before the group chat buries it.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Jennifer", type: .place, folderId: "f-travel", tags: ["maps", "restaurant", "friend-rec", "tokyo", "food"], thumbnail: sampleFoodRecommendationThumb(), hoursAgo: 3),
+-        item(id: "sample-health-fasting-autophagy", title: "Intermittent fasting in the prevention and treatment of cancer - PubMed", description: "Chronic caloric restriction has powerful anticarcinogenic actions in both preclinical and clinical studies but may be difficult to sustain.", url: "https://pubmed.ncbi.nlm.nih.gov/34383300/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "questions-for-doctor"], thumbnail: "https://cdn.ncbi.nlm.nih.gov/pubmed/persistent/pubmed-meta-image-v2.jpg", hoursAgo: 4, metadataPolicy: .liveMetadata),
+-        item(id: "sample-ai-agent-guide", title: "Building Effective AI Agents", description: "Discover how Anthropic approaches the development of reliable AI agents.", url: "https://www.anthropic.com/engineering/building-effective-agents", source: "Anthropic", type: .article, folderId: "f-growth", tags: ["ai", "agent", "productivity", "life-hack"], thumbnail: "https://cdn.sanity.io/images/4zrzovbb/website/76b5733c669f0dfb9c7aa7fc512a495867cf12e6-2400x1260.png", hoursAgo: 5, metadataPolicy: .liveMetadata),
+-        item(id: "sample-health-sugar-cancer-myths", title: "Common Cancer Myths and Misconceptions", description: "The latest science-based information concerning some common misconceptions about cancer.", url: "https://www.cancer.gov/about-cancer/causes-prevention/risk/myths", source: "NCI", type: .article, folderId: "f-health", tags: ["research", "cancer-myths", "nutrition", "questions-for-doctor"], thumbnail: "https://www.cancer.gov/sites/www/files/cgov_image/social_media/900/700/files/pensive-woman-blue-background-social-media.jpg", hoursAgo: 6, metadataPolicy: .liveMetadata),
+-        item(id: "sample-life-driver-license", title: "Sample driver license copy", description: "Watermarked fake ID copy with invented demo data for testing document saves.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 7, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
+-        item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 8),
+-        item(id: "sample-life-recovery-code", title: "Emergency recovery code", description: "SAMPLE long code: RK8F-Q44P-29LM-7DZQ. Shows how SAVI keeps exact text findable.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "recovery-code", "important", "admin"], thumbnail: sampleRecoveryThumb(), hoursAgo: 9),
+-        item(id: "sample-meme-goyo", title: "Goyo goyo with lyrics", description: "A funny video save that shows how memes land in SAVI.", url: "https://www.youtube.com/results?search_query=goyo+goyo+with+lyrics", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "youtube"], thumbnail: sampleVideoThumb(title: "Goyo goyo with lyrics"), hoursAgo: 10),
+-        item(id: "sample-science-webb", title: "James Webb Space Telescope - NASA Science", description: "Webb is the premier observatory of the next decade, serving thousands of astronomers worldwide.", url: "https://science.nasa.gov/mission/webb/", source: "NASA", type: .article, folderId: "f-wtf-favorites", tags: ["space", "nasa", "science"], thumbnail: "https://science.nasa.gov/wp-content/uploads/2024/05/jwst_artist_concept_0.png", hoursAgo: 11, metadataPolicy: .liveMetadata),
+-        item(id: "sample-life-insurance-card", title: "Sample insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 12, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
+-        item(id: "sample-health-parasites-gut", title: "Parasites and gut health: evidence notes", description: "Neutral reading list from CDC and PubMed on parasite risk, prevention, and the gut parasitome.", url: "https://www.cdc.gov/parasites/causes/index.html", source: "CDC", type: .article, folderId: "f-health", tags: ["research", "gut-health", "parasites", "questions-for-doctor"], thumbnail: sampleHealthResearchThumb(), hoursAgo: 13),
+-        item(id: "sample-research-mebendazole", title: "Anti-parasitic drugs in cancer trials", description: "Clinical-trial and phase 1 research links about mebendazole. Saved as research, not medical advice.", url: "https://www.clinicaltrials.gov/study/NCT03628079", source: "ClinicalTrials.gov", type: .article, folderId: "f-research", tags: ["clinical-trial", "research", "mebendazole", "questions-for-doctor"], thumbnailSeed: "savi-mebendazole-trials", hoursAgo: 14),
+-        item(id: "sample-life-contract-template", title: "Contract template to reuse", description: "A reusable service agreement template saved where life admin documents live.", source: "Files", type: .file, folderId: "f-life-admin", tags: ["contract", "template", "docx", "important"], thumbnail: sampleContractThumb(), hoursAgo: 15, assetName: "sample-service-contract-template.docx", assetMime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", assetSize: 312_000),
++        item(id: "sample-place-ramen", title: "Jennifer's ramen recommendation", description: "Jennifer said to order the spicy miso, sit at the counter, and save the pin before the group chat buries it.", url: "https://maps.apple.com/?q=Tokyo%20ramen", source: "Jennifer", type: .place, folderId: "f-travel", tags: ["maps", "restaurant", "friend-rec", "tokyo", "food"], thumbnail: sampleFoodRecommendationThumb(), hoursAgo: 2),
++        item(id: "sample-health-fasting-autophagy", title: "Fasting and autophagy: what research says", description: "A research save on fasting mechanisms and autophagy, kept as evidence notes to discuss with a clinician.", url: "https://pubmed.ncbi.nlm.nih.gov/34383300/", source: "PubMed", type: .article, folderId: "f-health", tags: ["research", "fasting", "autophagy", "questions-for-doctor"], thumbnail: sampleHealthResearchThumb(), hoursAgo: 3),
++        item(id: "sample-ai-agent-guide", title: "How to get more out of your AI agent", description: "A practical guide save for using agents well: define the task, give context, set guardrails, and review the result.", url: "https://www.anthropic.com/engineering/building-effective-agents", source: "Anthropic", type: .article, folderId: "f-growth", tags: ["ai", "agent", "productivity", "life-hack"], thumbnail: sampleAIAgentVideoThumb(), hoursAgo: 4),
++        item(id: "sample-health-sugar-cancer-myths", title: "Sugar and cancer myths: evidence notes", description: "A calm source-backed save about common cancer myths, diet questions, and what major cancer organizations actually say.", url: "https://www.cancer.gov/about-cancer/causes-prevention/risk/myths", source: "NCI", type: .article, folderId: "f-health", tags: ["research", "cancer-myths", "nutrition", "questions-for-doctor"], thumbnail: sampleMythCheckThumb(), hoursAgo: 5),
++        item(id: "sample-life-driver-license", title: "Sample driver license copy", description: "Watermarked fake ID copy with invented demo data for testing document saves.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "driver-license", "id", "document"], thumbnail: sampleLicenseThumb(), hoursAgo: 6, assetName: "sample-driver-license-copy.png", assetMime: "image/png", assetSize: 248_000),
++        item(id: "sample-life-hotel-booking", title: "Hotel booking confirmation", description: "SAMPLE booking card: Hotel Nube Demo, May 14-17, confirmation SVI-48291.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "hotel", "booking", "confirmation", "travel"], thumbnail: sampleBookingThumb(), hoursAgo: 7),
++        item(id: "sample-life-recovery-code", title: "Emergency recovery code", description: "SAMPLE long code: RK8F-Q44P-29LM-7DZQ. Shows how SAVI keeps exact text findable.", source: "SAVI", type: .text, folderId: "f-life-admin", tags: ["sample", "recovery-code", "important", "admin"], thumbnail: sampleRecoveryThumb(), hoursAgo: 8),
++        item(id: "sample-meme-goyo", title: "Goyo goyo with lyrics", description: "A funny video save that shows how memes land in SAVI.", url: "https://www.youtube.com/results?search_query=goyo+goyo+with+lyrics", source: "YouTube", type: .video, folderId: "f-lmao", tags: ["meme", "funny", "youtube"], thumbnail: sampleVideoThumb(title: "Goyo goyo with lyrics"), hoursAgo: 9),
++        item(id: "sample-science-webb", title: "NASA Webb image explainer", description: "A space discovery save for the science things worth revisiting.", url: "https://science.nasa.gov/mission/webb/", source: "NASA", type: .article, folderId: "f-wtf-favorites", tags: ["space", "nasa", "science"], thumbnailSeed: "savi-webb-space", hoursAgo: 10),
++        item(id: "sample-life-insurance-card", title: "Sample insurance card", description: "Fake insurance card with demo policy numbers and a clear SAMPLE watermark.", source: "Device", type: .file, folderId: "f-life-admin", tags: ["sample", "insurance", "card", "document"], thumbnail: sampleInsuranceThumb(), hoursAgo: 11, assetName: "sample-insurance-card.png", assetMime: "image/png", assetSize: 196_000),
++        item(id: "sample-health-parasites-gut", title: "Parasites and gut health: evidence notes", description: "Neutral reading list from CDC and PubMed on parasite risk, prevention, and the gut parasitome.", url: "https://www.cdc.gov/parasites/causes/index.html", source: "CDC", type: .article, folderId: "f-health", tags: ["research", "gut-health", "parasites", "questions-for-doctor"], thumbnail: sampleHealthResearchThumb(), hoursAgo: 12),
++        item(id: "sample-research-mebendazole", title: "Anti-parasitic drugs in cancer trials", description: "Clinical-trial and phase 1 research links about mebendazole. Saved as research, not medical advice.", url: "https://www.clinicaltrials.gov/study/NCT03628079", source: "ClinicalTrials.gov", type: .article, folderId: "f-research", tags: ["clinical-trial", "research", "mebendazole", "questions-for-doctor"], thumbnailSeed: "savi-mebendazole-trials", hoursAgo: 13),
++        item(id: "sample-life-contract-template", title: "Contract template to reuse", description: "A reusable service agreement template saved where life admin documents live.", source: "Files", type: .file, folderId: "f-life-admin", tags: ["contract", "template", "docx", "important"], thumbnail: sampleContractThumb(), hoursAgo: 14, assetName: "sample-service-contract-template.docx", assetMime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", assetSize: 312_000),
+
+         item(id: "sample-watch-claude", title: "How to use Claude like a thinking partner", description: "A practical setup for long-context productivity and better saved research.", url: "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview", source: "Anthropic", type: .article, folderId: "f-must-see", tags: ["read-later", "ai", "productivity"], thumbnailSeed: "savi-claude-thinking", hoursAgo: 16),
+         item(id: "sample-watch-wwdc", title: "Apple WWDC recap", description: "A conference video page to watch when you have ten quiet minutes.", url: "https://developer.apple.com/videos/wwdc2024/", source: "Apple", type: .video, folderId: "f-must-see", tags: ["video", "apple", "tech"], thumbnailSeed: "savi-wwdc-recap", hoursAgo: 18),
+--- SAVI/Core/SaviCore.swift	2026-05-04 15:51:28
++++ Docs/Design/SampleLibraryArchive/2026-05-04-before-v9-live-metadata-mix/files/SaviCore.swift	2026-05-04 15:48:51
+@@ -653,11 +653,6 @@
+     let items: [SaviItem]
+     let statusText: String
+     let seenCount: Int
+-}
+-
+-enum SaviMetadataPolicy: String, Codable, Equatable {
+-    case preserveSeed
+-    case liveMetadata
+ }
+
+ struct SaviSearchRefineKindOption: Identifiable, Equatable {
+@@ -872,7 +867,6 @@
+     var height: Int?
+     var thumbnailRetryCount: Int
+     var thumbnailLastAttemptAt: Double?
+-    var metadataPolicy: SaviMetadataPolicy?
+
+     enum CodingKeys: String, CodingKey {
+         case id
+@@ -895,7 +889,6 @@
+         case height
+         case thumbnailRetryCount
+         case thumbnailLastAttemptAt
+-        case metadataPolicy
+     }
+
+     init(
+@@ -918,8 +911,7 @@
+         width: Int? = nil,
+         height: Int? = nil,
+         thumbnailRetryCount: Int = 0,
+-        thumbnailLastAttemptAt: Double? = nil,
+-        metadataPolicy: SaviMetadataPolicy? = nil
++        thumbnailLastAttemptAt: Double? = nil
+     ) {
+         self.id = id
+         self.title = title
+@@ -941,7 +933,6 @@
+         self.height = height
+         self.thumbnailRetryCount = thumbnailRetryCount
+         self.thumbnailLastAttemptAt = thumbnailLastAttemptAt
+-        self.metadataPolicy = metadataPolicy
+     }
+
+     init(from decoder: Decoder) throws {
+@@ -979,7 +970,6 @@
+         height = try container.decodeIfPresent(Int.self, forKey: .height)
+         thumbnailRetryCount = try container.decodeIfPresent(Int.self, forKey: .thumbnailRetryCount) ?? 0
+         thumbnailLastAttemptAt = try container.decodeIfPresent(Double.self, forKey: .thumbnailLastAttemptAt)
+-        metadataPolicy = try container.decodeIfPresent(SaviMetadataPolicy.self, forKey: .metadataPolicy)
+     }
+ }
+
+@@ -1735,7 +1725,7 @@
+     private static let shareSetupSecondReminderDelay: TimeInterval = 3 * 86_400
+     private static let shareSetupLaterReminderDelay: TimeInterval = 7 * 86_400
+     private static let sampleFriendTargetLinkCount = 24
+-    private static let currentLegacySeedVersion = 12
++    private static let currentLegacySeedVersion = 11
+     private static let currentFolderRepairVersion = 2
+     private static let currentSearchTagRepairVersion = 1
+     private static let currentFolderLayoutVersion = 3
+@@ -5675,42 +5665,28 @@
+         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
+         var item = items[index]
+         let before = item
+-        let prefersLiveMetadata = item.metadataPolicy == .liveMetadata
+
+-        if prefersLiveMetadata, let title = metadata.title?.nilIfBlank {
+-            item.title = title
+-        } else if SaviText.shouldReplaceTitle(current: item.title, fetched: metadata.title) {
++        if SaviText.shouldReplaceTitle(current: item.title, fetched: metadata.title) {
+             item.title = metadata.title ?? item.title
+         }
+-        if prefersLiveMetadata, let description = metadata.description?.nilIfBlank {
+-            item.itemDescription = description
+-        } else if shouldReplaceDescription(current: item.itemDescription, fetched: metadata.description, url: url),
++        if shouldReplaceDescription(current: item.itemDescription, fetched: metadata.description, url: url),
+            let description = metadata.description?.nilIfBlank {
+             item.itemDescription = description
+         }
+-        if prefersLiveMetadata, let imageURL = metadata.imageURL?.nilIfBlank {
++        if item.thumbnail?.nilIfBlank == nil, let imageURL = metadata.imageURL?.nilIfBlank {
+             item.thumbnail = imageURL
+-        } else if item.thumbnail?.nilIfBlank == nil, let imageURL = metadata.imageURL?.nilIfBlank {
+-            item.thumbnail = imageURL
+         }
+         if item.thumbnail?.nilIfBlank != nil {
+             item.thumbnailRetryCount = 0
+             item.thumbnailLastAttemptAt = nil
+         }
+-        if prefersLiveMetadata {
++        if item.source.isEmpty || item.source == "Web" || item.source == "Share Extension" {
+             item.source = metadata.provider?.nilIfBlank ?? SaviText.sourceLabel(for: url.absoluteString, fallback: item.source)
+-        } else if item.source.isEmpty || item.source == "Web" || item.source == "Share Extension" {
+-            item.source = metadata.provider?.nilIfBlank ?? SaviText.sourceLabel(for: url.absoluteString, fallback: item.source)
+         }
+-        if prefersLiveMetadata {
++        if item.type == .link || item.type == .article {
+             item.type = metadata.type ?? item.type
+-        } else if item.type == .link || item.type == .article {
+-            item.type = metadata.type ?? item.type
+         }
+         item.tags = SaviText.dedupeTags(item.tags + metadata.tags)
+-        if prefersLiveMetadata {
+-            item.metadataPolicy = nil
+-        }
+         if item.folderId == "f-random" || item.folderId.isEmpty {
+             item.folderId = guessFolderId(
+                 title: item.title,
+@@ -5857,10 +5833,6 @@
+               url.scheme?.hasPrefix("http") == true
+         else { return false }
+
+-        if item.metadataPolicy == .liveMetadata {
+-            return true
+-        }
+-
+         let normalizedTitle = item.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+         let genericTitle = normalizedTitle.isEmpty ||
+             SaviText.isGenericFetchedTitle(normalizedTitle) ||
+--- Docs/ChangeLog/2026-05-04.md	2026-05-04 15:57:46
++++ Docs/Design/SampleLibraryArchive/2026-05-04-before-v9-live-metadata-mix/files/2026-05-04.md	2026-05-04 15:48:51
+@@ -196,20 +196,3 @@
+   71 sample saves and was cloned into `SAVI Test` for simulator parity.
+ - Built and installed both simulator channels, then captured QA screenshot:
+   `/Users/guest1/Desktop/SAVI_QA/savi_v8_sample_home_2026-05-04.png`.
+-
+-## Sample Library V9 Live Metadata Mix
+-
+-- Created rollback archive:
+-  `Docs/Design/SampleLibraryArchive/2026-05-04-before-v9-live-metadata-mix/`.
+-- Added a per-item sample metadata policy so real launch links can opt into a
+-  one-time live metadata refresh while fake utility/admin samples preserve
+-  their generated thumbnails.
+-- Added a real YouTube sample near the top:
+-  `Inside the Mind of a Master Procrastinator | Tim Urban | TED`, using
+-  YouTube metadata and thumbnail.
+-- Converted top real links for PubMed, Anthropic, NCI/Cancer, and NASA to use
+-  actual metadata/image URLs instead of SAVI-generated editorial art.
+-- Bumped the native sample seed version to `12`; main `SAVI` refreshed to
+-  72 sample saves and was cloned into `SAVI Test` for simulator parity.
+-- Built and installed both simulator channels, then captured QA screenshot:
+-  `/Users/guest1/Desktop/SAVI_QA/savi_v9_live_metadata_home_2026-05-04.png`.

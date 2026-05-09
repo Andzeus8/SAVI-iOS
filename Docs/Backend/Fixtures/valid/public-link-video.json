@@ -1,0 +1,17 @@
+{
+  "id": "3f2b8c9e-c8e6-4a37-8d9e-69db2b4578a5",
+  "ownerId": "6b3d60a9-b4fb-4359-8b64-73a28434fe5a",
+  "localItemId": "item_rickroll",
+  "title": "Rick Astley - Never Gonna Give You Up",
+  "description": "Classic public web video link saved by a friend.",
+  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "canonicalUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "domain": "youtube.com",
+  "itemType": "video",
+  "folderId": "f-lmao",
+  "folderName": "Memes & LOLZ",
+  "tags": ["video", "meme", "classic"],
+  "thumbnailUrl": "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+  "sharedAt": "2026-05-08T12:20:00Z",
+  "isHidden": false
+}

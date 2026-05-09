@@ -1,0 +1,146 @@
+diff --git a/Docs/Design/SampleLibraryArchive/2026-05-04-before-sample-reseed/SAVI/Core/SaviCore.swift b/SAVI/Core/SaviCore.swift
+index d1d8a46..ea9c37f 100644
+--- a/Docs/Design/SampleLibraryArchive/2026-05-04-before-sample-reseed/SAVI/Core/SaviCore.swift
++++ b/SAVI/Core/SaviCore.swift
+@@ -1793,6 +1793,16 @@ final class SaviStore: ObservableObject {
+         let seededFolders = SaviSeeds.withSeedDefaults(loaded?.folders ?? seedFolders)
+         self.folders = shouldUpgradeFolderLayout ? SaviSeeds.refreshingDefaultFolderPresentation(seededFolders) : seededFolders
+         let storedItems = loaded?.items
++        let storedPersonalItems = (storedItems ?? []).filter { $0.demo != true }
++        let shouldRestoreSuppressedEmptySampleLibrary = SaviReleaseGate.demoLibraryEnabled &&
++            loadedPrefs.demoSuppressed &&
++            storedPersonalItems.isEmpty &&
++            (storedItems?.isEmpty ?? true) &&
++            (loadedPrefs.legacySeedVersion ?? 0) < Self.currentLegacySeedVersion
++        if shouldRestoreSuppressedEmptySampleLibrary {
++            loadedPrefs.demoSuppressed = false
++            shouldPersistPreferenceNormalization = true
++        }
+         let shouldSeedSampleLibrary = SaviReleaseGate.demoLibraryEnabled &&
+             !loadedPrefs.demoSuppressed &&
+             (storedItems == nil || storedItems?.isEmpty == true)
+@@ -1801,7 +1811,7 @@ final class SaviStore: ObservableObject {
+             (loadedPrefs.legacySeedVersion ?? 0) < Self.currentLegacySeedVersion &&
+             (storedItems ?? []).contains { $0.demo == true }
+         let initialItems = (shouldSeedSampleLibrary || shouldRefreshSampleLibrary)
+-            ? SaviSeeds.items + (storedItems ?? []).filter { $0.demo != true }
++            ? SaviSeeds.items + storedPersonalItems
+             : (storedItems ?? [])
+         if shouldSeedSampleLibrary || shouldRefreshSampleLibrary {
+             loadedPrefs.legacySeedVersion = Self.currentLegacySeedVersion
+@@ -5005,8 +5015,9 @@ final class SaviStore: ObservableObject {
+     }
+
+     func restoreSeeds() {
+-        folders = SaviSeeds.folders
+-        items = SaviSeeds.items
++        let personalItems = items.filter { $0.demo != true }
++        folders = personalItems.isEmpty ? SaviSeeds.folders : SaviSeeds.withSeedDefaults(folders)
++        items = SaviSeeds.items + personalItems
+         prefs.demoSuppressed = false
+         prefs.legacySeedVersion = Self.currentLegacySeedVersion
+         persist()
+diff --git a/Docs/Design/SampleLibraryArchive/2026-05-04-before-sample-reseed/SAVI/Views/Home/HomeScreen.swift b/SAVI/Views/Home/HomeScreen.swift
+index 0f59280..58e3043 100644
+--- a/Docs/Design/SampleLibraryArchive/2026-05-04-before-sample-reseed/SAVI/Views/Home/HomeScreen.swift
++++ b/SAVI/Views/Home/HomeScreen.swift
+@@ -71,11 +71,8 @@ struct HomeScreen: View {
+                     }
+
+                     if allRecentItems.isEmpty {
+-                        EmptyStateView(
+-                            symbol: "tray.fill",
+-                            title: "Nothing saved yet",
+-                            message: "Use Add or the iOS share sheet and SAVI will start filling this space."
+-                        )
++                        HomeEmptyLibraryView()
++                            .environmentObject(store)
+                     }
+                 }
+                 .padding(.horizontal, 18)
+@@ -1241,6 +1238,40 @@ private struct HomeSampleLibraryNotice: View {
+     }
+ }
+
++private struct HomeEmptyLibraryView: View {
++    @EnvironmentObject private var store: SaviStore
++
++    var body: some View {
++        VStack(spacing: 14) {
++            Image(systemName: "tray.fill")
++                .font(SaviType.display(size: 38, weight: .black))
++                .foregroundStyle(SaviTheme.accentText)
++
++            VStack(spacing: 6) {
++                Text("Nothing saved yet")
++                    .font(SaviType.ui(.headline, weight: .black))
++                    .foregroundStyle(SaviTheme.text)
++                Text("Use Add or the iOS share sheet and SAVI will start filling this space.")
++                    .font(SaviType.ui(.subheadline))
++                    .multilineTextAlignment(.center)
++                    .foregroundStyle(SaviTheme.textMuted)
++            }
++
++            if SaviReleaseGate.demoLibraryEnabled, !store.hasSampleLibraryContent {
++                Button {
++                    store.restoreSeeds()
++                } label: {
++                    Label("Load sample library", systemImage: "sparkles")
++                }
++                .buttonStyle(SaviSecondaryButtonStyle())
++            }
++        }
++        .frame(maxWidth: .infinity)
++        .padding(26)
++        .saviCard(cornerRadius: 18)
++    }
++}
++
+ private struct HomeSearchQuickFilter: Identifiable {
+     let title: String
+     let symbolName: String
+diff --git a/Docs/Design/SampleLibraryArchive/2026-05-04-before-sample-reseed/SAVI/Views/Profile/ProfileAndFriends.swift b/SAVI/Views/Profile/ProfileAndFriends.swift
+index 064f598..a821b5b 100644
+--- a/Docs/Design/SampleLibraryArchive/2026-05-04-before-sample-reseed/SAVI/Views/Profile/ProfileAndFriends.swift
++++ b/SAVI/Views/Profile/ProfileAndFriends.swift
+@@ -1224,7 +1224,7 @@ struct LibrarySettingsCard: View {
+                         Button {
+                             store.restoreSeeds()
+                         } label: {
+-                            Label("Restore sample library", systemImage: "arrow.clockwise")
++                            Label("Load sample library", systemImage: "sparkles")
+                         }
+                         .buttonStyle(SaviSecondaryButtonStyle())
+                     }
+diff --git a/Docs/Design/SampleLibraryArchive/2026-05-04-before-sample-reseed/Docs/ChangeLog/2026-05-04.md b/Docs/ChangeLog/2026-05-04.md
+index 9784a55..79f1b9c 100644
+--- a/Docs/Design/SampleLibraryArchive/2026-05-04-before-sample-reseed/Docs/ChangeLog/2026-05-04.md
++++ b/Docs/ChangeLog/2026-05-04.md
+@@ -57,3 +57,14 @@
+   fixed title-block alignment, and slightly smaller icon badges.
+ - Applied the same folder title treatment to Home folder tiles and the full
+   Folders grid so one-line and two-line names feel intentionally aligned.
++
++## Sample Library Reseed Safety
++
++- Fixed main `SAVI` not showing the launch sample library after sample content
++  had been cleared on an empty simulator library.
++- Empty, sample-suppressed libraries now restore the 65-save sample library once
++  when `SAVISampleLibraryEnabled` is on and the stored seed version is older.
++- `Restore sample library` now preserves personal saves by adding sample saves
++  alongside user content instead of replacing the library.
++- Added a Home empty-state `Load sample library` action and renamed the Profile
++  recovery action to the same clearer copy.
+diff --git a/Docs/Design/SampleLibraryArchive/2026-05-04-before-sample-reseed/Docs/CHANGELOG.md b/Docs/CHANGELOG.md
+index db86658..6cc9244 100644
+--- a/Docs/Design/SampleLibraryArchive/2026-05-04-before-sample-reseed/Docs/CHANGELOG.md
++++ b/Docs/CHANGELOG.md
+@@ -10,6 +10,8 @@ targets, and QA evidence.
+   off, and `SAVI Test` is Debug/internal development with Social on.
+ - Added the TestFlight launch sample library: clearer default folder names,
+   65 removable sample saves, and visible `Clear sample saves` controls.
++- Fixed sample-library recovery so an empty cleared beta library can reload the
++  samples once, while manual sample restore preserves personal saves.
+ - Polished folder tile readability while preserving the colorful card palette.
+ - Removed the need for a third `SAVI Pilot` channel for now.
+ - Refreshed both simulator installs from the current source tree.

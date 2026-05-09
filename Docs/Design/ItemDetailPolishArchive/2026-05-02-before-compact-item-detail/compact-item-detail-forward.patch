@@ -1,0 +1,258 @@
+diff -ruN before/Docs/ChangeLog/2026-05-02.md after/Docs/ChangeLog/2026-05-02.md
+--- before/Docs/ChangeLog/2026-05-02.md	2026-05-02 21:32:58
++++ after/Docs/ChangeLog/2026-05-02.md	2026-05-02 21:32:58
+@@ -184,6 +184,17 @@
+   `/Users/guest1/Desktop/SAVI_QA/search_after_home_links_chip.jpg`,
+   `/Users/guest1/Desktop/SAVI_QA/search_refine_after_home_filter_button.jpg`,
+   `/Users/guest1/Desktop/SAVI_QA/home_search_launcher_system_dark_check.jpg`
++- Archived the pre-pass item detail files before compacting the tapped-save
++  screen:
++  `/Users/guest1/Documents/SAVI-iOS/Docs/Design/ItemDetailPolishArchive/2026-05-02-before-compact-item-detail/`
++- Tightened the item detail sheet so it matches the compact Home language:
++  shorter preview height, one integrated hero/info card, inline summary under
++  the metadata, no separate bulky body card, generic-only tags hidden, and a
++  compact action strip with Share still prominent.
++- Item detail compact QA screenshot:
++  `/Users/guest1/Desktop/SAVI_QA/item_detail_compact_after.jpg`
++- Item detail quick theme check screenshot:
++  `/Users/guest1/Desktop/SAVI_QA/item_detail_compact_theme_check.jpg`
+
+ ## Affected Areas
+
+@@ -192,6 +203,8 @@
+   `SAVI/Views/Search/SearchComponents.swift`
+ - Shared saved-item row presentation:
+   `SAVI/Views/Items/ItemViews.swift`
++- Item detail presentation:
++  `SAVI/Views/Save/SaveAndEditSheets.swift`
+ - Home scroll-to-top behavior:
+   `SAVI/Core/SaviCore.swift`,
+   `SAVI/Views/Home/HomeScreen.swift`,
+diff -ruN before/SAVI/Views/Items/ItemViews.swift after/SAVI/Views/Items/ItemViews.swift
+--- before/SAVI/Views/Items/ItemViews.swift	2026-05-02 21:32:58
++++ after/SAVI/Views/Items/ItemViews.swift	2026-05-02 21:32:58
+@@ -521,9 +521,9 @@
+     }
+
+     static func detailPreviewHeight(for item: SaviItem) -> CGFloat {
+-        if isNoteLike(item) { return 132 }
+-        if item.type == .file && item.thumbnail?.nilIfBlank == nil { return 156 }
+-        return 210
++        if isNoteLike(item) { return 104 }
++        if item.type == .file && item.thumbnail?.nilIfBlank == nil { return 128 }
++        return 170
+     }
+
+     private static func normalized(_ value: String) -> String? {
+diff -ruN before/SAVI/Views/Save/SaveAndEditSheets.swift after/SAVI/Views/Save/SaveAndEditSheets.swift
+--- before/SAVI/Views/Save/SaveAndEditSheets.swift	2026-05-02 21:32:58
++++ after/SAVI/Views/Save/SaveAndEditSheets.swift	2026-05-02 21:32:58
+@@ -738,26 +738,15 @@
+     var body: some View {
+         NavigationStack {
+             ScrollView {
+-                VStack(alignment: .leading, spacing: 16) {
++                VStack(alignment: .leading, spacing: 12) {
+                     ItemDetailHeroCard(
+                         item: item,
+-                        folder: store.folder(for: item.folderId)
++                        folder: store.folder(for: item.folderId),
++                        bodyTitle: SaviItemDisplay.detailBodyTitle(for: item),
++                        bodyText: SaviItemDisplay.detailBody(for: item)
+                     )
+
+-                    if let bodyText = SaviItemDisplay.detailBody(for: item) {
+-                        ItemDetailBodyCard(
+-                            title: SaviItemDisplay.detailBodyTitle(for: item),
+-                            text: bodyText,
+-                            isNoteLike: SaviItemDisplay.isNoteLike(item)
+-                        )
+-                    }
+-
+-                    VStack(alignment: .leading, spacing: 10) {
+-                        Text("Actions")
+-                            .font(SaviType.ui(.caption, weight: .black))
+-                            .foregroundStyle(SaviTheme.textMuted)
+-                            .textCase(.uppercase)
+-
++                    VStack(alignment: .leading, spacing: 8) {
+                         if let urlString = item.url,
+                            let url = URL(string: urlString) {
+                             HStack(spacing: 10) {
+@@ -782,21 +771,25 @@
+                                 Label("Preview file", systemImage: "eye.fill")
+                                     .frame(maxWidth: .infinity)
+                             }
+-                            .buttonStyle(SaviPrimaryButtonStyle())
++                            .buttonStyle(ItemDetailActionButtonStyle())
+                         }
+
+-                        primaryShareAction
++                        HStack(spacing: 10) {
++                            primaryShareAction
+
+-                        Button {
+-                            store.editItem(item)
+-                        } label: {
+-                            Label("Edit", systemImage: "pencil")
+-                                .frame(maxWidth: .infinity)
++                            Button {
++                                store.editItem(item)
++                            } label: {
++                                Label("Edit", systemImage: "pencil")
++                                    .labelStyle(.iconOnly)
++                                    .frame(width: 54)
++                            }
++                            .buttonStyle(ItemDetailActionButtonStyle())
++                            .accessibilityLabel("Edit save")
+                         }
+-                        .buttonStyle(SaviSecondaryButtonStyle())
+                     }
+-                    .padding(12)
+-                    .saviCard(cornerRadius: 18, shadow: false)
++                    .padding(10)
++                    .saviCard(cornerRadius: 16, shadow: false)
+
+                     Button(role: .destructive) {
+                         store.deleteItem(item)
+@@ -808,7 +801,7 @@
+                     .buttonStyle(SaviDangerButtonStyle())
+                 }
+                 .padding(.horizontal, 16)
+-                .padding(.top, 14)
++                .padding(.top, 10)
+                 .padding(.bottom, 28)
+             }
+             .background(SaviTheme.background.ignoresSafeArea())
+@@ -839,14 +832,14 @@
+                 Label("Share", systemImage: "square.and.arrow.up.fill")
+                     .frame(maxWidth: .infinity)
+             }
+-            .buttonStyle(SaviPrimaryButtonStyle())
++            .buttonStyle(ItemDetailShareButtonStyle())
+             .accessibilityLabel("Share \(SaviItemDisplay.rowTitle(for: item))")
+         } else {
+             ShareLink(item: shareText) {
+                 Label("Share", systemImage: "square.and.arrow.up.fill")
+                     .frame(maxWidth: .infinity)
+             }
+-            .buttonStyle(SaviPrimaryButtonStyle())
++            .buttonStyle(ItemDetailShareButtonStyle())
+             .accessibilityLabel("Share \(SaviItemDisplay.rowTitle(for: item))")
+         }
+     }
+@@ -887,6 +880,8 @@
+ struct ItemDetailHeroCard: View {
+     let item: SaviItem
+     let folder: SaviFolder?
++    let bodyTitle: String
++    let bodyText: String?
+
+     var body: some View {
+         VStack(alignment: .leading, spacing: 0) {
+@@ -897,11 +892,11 @@
+                 .padding(12)
+             }
+
+-            VStack(alignment: .leading, spacing: 10) {
++            VStack(alignment: .leading, spacing: 9) {
+                 Text(SaviItemDisplay.rowTitle(for: item))
+                     .font(SaviItemTypography.detailTitle)
+                     .foregroundStyle(SaviTheme.text)
+-                    .lineLimit(4)
++                    .lineLimit(3)
+                     .lineSpacing(2)
+                     .textSelection(.enabled)
+
+@@ -912,10 +907,22 @@
+                 )
+
+                 ItemDetailTagSummary(tags: item.tags)
++
++                if let bodyText {
++                    Divider()
++                        .overlay(SaviTheme.cardStroke.opacity(0.55))
++                        .padding(.vertical, 2)
++
++                    ItemDetailInlineSummary(
++                        title: bodyTitle,
++                        text: bodyText,
++                        isNoteLike: SaviItemDisplay.isNoteLike(item)
++                    )
++                }
+             }
+-            .padding(15)
++            .padding(13)
+         }
+-        .saviCard(cornerRadius: 24)
++        .saviCard(cornerRadius: 22)
+     }
+ }
+
+@@ -1041,7 +1048,7 @@
+             "device", "clipboard", "text", "note", "friend"
+         ]
+         let useful = tags.filter { !generic.contains($0.lowercased()) }
+-        return useful.isEmpty ? tags : useful
++        return useful
+     }
+
+     private func collapsedRow(count: Int) -> some View {
+@@ -1079,10 +1086,10 @@
+ struct ItemDetailActionButtonStyle: ButtonStyle {
+     func makeBody(configuration: Configuration) -> some View {
+         configuration.label
+-            .font(SaviType.ui(.subheadline, weight: .black))
+-            .padding(.vertical, 12)
++            .font(SaviType.ui(.caption, weight: .black))
++            .padding(.vertical, 10)
+             .padding(.horizontal, 10)
+-            .frame(minHeight: 48)
++            .frame(minHeight: 44)
+             .background(SaviTheme.surfaceRaised.opacity(configuration.isPressed ? 0.70 : 1))
+             .foregroundStyle(SaviTheme.text)
+             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+@@ -1091,6 +1098,44 @@
+                     .stroke(SaviTheme.cardStroke.opacity(0.86), lineWidth: 1)
+             )
+             .scaleEffect(configuration.isPressed ? 0.985 : 1)
++    }
++}
++
++struct ItemDetailShareButtonStyle: ButtonStyle {
++    func makeBody(configuration: Configuration) -> some View {
++        configuration.label
++            .font(SaviType.ui(.caption, weight: .black))
++            .padding(.vertical, 10)
++            .padding(.horizontal, 12)
++            .frame(minHeight: 44)
++            .background(SaviTheme.chartreuse.opacity(configuration.isPressed ? 0.78 : 1))
++            .foregroundStyle(.black)
++            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
++            .scaleEffect(configuration.isPressed ? 0.985 : 1)
++    }
++}
++
++struct ItemDetailInlineSummary: View {
++    let title: String
++    let text: String
++    let isNoteLike: Bool
++
++    var body: some View {
++        VStack(alignment: .leading, spacing: 5) {
++            Label(title, systemImage: isNoteLike ? "text.alignleft" : "quote.bubble.fill")
++                .font(SaviType.ui(.caption2, weight: .black))
++                .foregroundStyle(SaviTheme.textMuted)
++                .textCase(.uppercase)
++
++            Text(text)
++                .font(SaviType.reading(.subheadline, weight: .regular))
++                .foregroundStyle(SaviTheme.text)
++                .lineSpacing(2)
++                .lineLimit(isNoteLike ? 8 : 3)
++                .multilineTextAlignment(.leading)
++                .textSelection(.enabled)
++        }
++        .frame(maxWidth: .infinity, alignment: .leading)
+     }
+ }

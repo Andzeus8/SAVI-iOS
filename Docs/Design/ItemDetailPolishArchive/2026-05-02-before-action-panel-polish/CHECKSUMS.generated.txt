@@ -1,0 +1,5 @@
+441792c19247b43cc4c1e4ce3bb10c738d35ec7675fb2cf7c8b8cc26941413b3  /Users/guest1/Documents/SAVI-iOS/Docs/Design/ItemDetailPolishArchive/2026-05-02-before-action-panel-polish/item-detail-action-panel-forward.patch
+81dd6fed1dfafb43dfebaa936faa36ecba5274aff2b8695d39f8b5a7ce75b86a  /Users/guest1/Documents/SAVI-iOS/Docs/Design/ItemDetailPolishArchive/2026-05-02-before-action-panel-polish/item-detail-action-panel-revert.patch
+6e5f2996514e0ab48fc14aebe3e18a5aee07e9dd7553472001c3aea0eb7e3c84  /Users/guest1/Documents/SAVI-iOS/Docs/Design/ItemDetailPolishArchive/2026-05-02-before-action-panel-polish/screenshots/item_detail_before_action_panel.jpg
+38c0c0f3891688cb42bf87dd3267851c4fcbdaafd1d47100127fce7566ed6615  /Users/guest1/Documents/SAVI-iOS/Docs/Design/ItemDetailPolishArchive/2026-05-02-before-action-panel-polish/screenshots/item_detail_action_panel_after.jpg
+b19b960efb93432f508af6cac780103af9df8f56f9cbd8d20a98b457fe089b67  /Users/guest1/Documents/SAVI-iOS/Docs/Design/ItemDetailPolishArchive/2026-05-02-before-action-panel-polish/screenshots/item_detail_action_panel_theme_check.jpg

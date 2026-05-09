@@ -1,0 +1,318 @@
+--- before/SAVI/Views/Save/SaveAndEditSheets.swift
++++ after/SAVI/Views/Save/SaveAndEditSheets.swift
+@@ -1386,8 +1386,8 @@
+     @State private var usesImageBackground: Bool
+     @State private var locked: Bool
+     @State private var isPublic: Bool
+-    @State private var selectedIconPhoto: PhotosPickerItem?
+-    @State private var iconLoadMessage: String?
++    @State private var selectedCoverPhoto: PhotosPickerItem?
++    @State private var artworkMessage: String?
+     @State private var showFolderImageSearch = false
+     @State private var colorExpanded = true
+     @State private var artworkExpanded = true
+@@ -1480,8 +1480,8 @@
+                             .accessibilityHidden(true)
+
+                             VStack(alignment: .leading, spacing: 8) {
+-                                PhotosPicker(selection: $selectedIconPhoto, matching: .images) {
+-                                    Label(folderImage == nil ? "Choose image" : "Change image", systemImage: "photo.fill")
++                                PhotosPicker(selection: $selectedCoverPhoto, matching: .images) {
++                                    Label(folderImage == nil ? "Choose cover" : "Change cover", systemImage: "photo.fill")
+                                         .font(SaviType.ui(.subheadline, weight: .black))
+                                         .frame(maxWidth: .infinity)
+                                         .padding(.vertical, 11)
+@@ -1493,11 +1493,7 @@
+                                 .buttonStyle(.plain)
+
+                                 Button {
+-                                    if SaviImageSearchService.isConfigured {
+-                                        showFolderImageSearch = true
+-                                    } else {
+-                                        iconLoadMessage = "Image search needs the SAVI image proxy to be configured."
+-                                    }
++                                    showFolderImageSearch = true
+                                 } label: {
+                                     Label("Find image", systemImage: "magnifyingglass")
+                                         .font(SaviType.ui(.subheadline, weight: .black))
+@@ -1509,14 +1505,15 @@
+                                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                 }
+                                 .buttonStyle(SaviPressScaleButtonStyle())
++                                .disabled(!SaviImageSearchService.isConfigured)
+
+                                 if folderImage != nil {
+                                     Button {
+                                         folderImage = nil
+                                         usesImageBackground = false
+-                                        iconLoadMessage = nil
++                                        artworkMessage = nil
+                                     } label: {
+-                                        Label("Use symbol instead", systemImage: "square.grid.2x2.fill")
++                                        Label("Remove cover image", systemImage: "xmark.circle.fill")
+                                             .font(SaviType.ui(.caption, weight: .bold))
+                                             .foregroundStyle(SaviTheme.accentText)
+                                     }
+@@ -1530,10 +1527,10 @@
+                             if folderImage != nil {
+                                 Toggle(isOn: $usesImageBackground) {
+                                     VStack(alignment: .leading, spacing: 2) {
+-                                        Text("Use as card background")
++                                        Text("Use as cover background")
+                                             .font(SaviType.ui(.caption, weight: .bold))
+                                             .foregroundStyle(SaviTheme.text)
+-                                        Text("SAVI adds a soft overlay so the folder name stays readable.")
++                                        Text("The symbol stays separate. SAVI adds an overlay so names remain readable.")
+                                             .font(SaviType.ui(.caption2, weight: .semibold))
+                                             .foregroundStyle(SaviTheme.textMuted)
+                                     }
+@@ -1542,16 +1539,22 @@
+                                 .tint(SaviTheme.chartreuse)
+                             }
+
+-                            if let iconLoadMessage {
+-                                Text(iconLoadMessage)
++                            if !SaviImageSearchService.isConfigured {
++                                Text("Web image search is not set up on this build. Choose a cover from Photos for now.")
+                                     .font(.caption2.weight(.semibold))
+                                     .foregroundStyle(SaviTheme.textMuted)
+                             }
++
++                            if let artworkMessage {
++                                Text(artworkMessage)
++                                    .font(.caption2.weight(.semibold))
++                                    .foregroundStyle(SaviTheme.textMuted)
++                            }
+                         }
+                     } label: {
+                         FolderEditorSectionLabel(
+-                            title: "Image",
+-                            subtitle: "Use a photo or stock-safe web image as the Folder art.",
++                            title: "Cover image",
++                            subtitle: "Use a photo as the Folder background. The symbol stays separate.",
+                             systemImage: "photo.on.rectangle.angled"
+                         )
+                     }
+@@ -1563,15 +1566,13 @@
+                             ForEach(symbols, id: \.self) { symbol in
+                                 Button {
+                                     symbolName = symbol
+-                                    folderImage = nil
+-                                    usesImageBackground = false
+-                                    iconLoadMessage = nil
++                                    artworkMessage = nil
+                                 } label: {
+                                     Image(systemName: symbol)
+                                         .font(.subheadline.weight(.black))
+                                         .frame(maxWidth: .infinity, minHeight: 42)
+-                                        .background(folderImage == nil && symbolName == symbol ? SaviTheme.chartreuse : SaviTheme.surface)
+-                                        .foregroundStyle(folderImage == nil && symbolName == symbol ? .black : SaviTheme.text)
++                                        .background(symbolName == symbol ? SaviTheme.chartreuse : SaviTheme.surface)
++                                        .foregroundStyle(symbolName == symbol ? .black : SaviTheme.text)
+                                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                         .overlay(
+                                             RoundedRectangle(cornerRadius: 12, style: .continuous)
+@@ -1585,7 +1586,7 @@
+                     } label: {
+                         FolderEditorSectionLabel(
+                             title: "Symbol",
+-                            subtitle: "Pick the simple icon shown when no image is used.",
++                            subtitle: "Pick the small icon that sits above the Folder name.",
+                             systemImage: "square.grid.2x2.fill"
+                         )
+                     }
+@@ -1680,8 +1681,8 @@
+             .background(SaviTheme.background.ignoresSafeArea())
+             .navigationTitle(folder == nil ? "New Folder" : "Edit Folder")
+             .navigationBarTitleDisplayMode(.inline)
+-            .onChange(of: selectedIconPhoto) { item in
+-                loadCustomIcon(item)
++            .onChange(of: selectedCoverPhoto) { item in
++                loadCoverImage(item)
+             }
+             .sheet(isPresented: $showFolderImageSearch) {
+                 WebImageSearchSheet(
+@@ -1691,7 +1692,8 @@
+                     cropToSquare: true
+                 ) { dataURL in
+                     folderImage = dataURL
+-                    iconLoadMessage = "Image selected from Pexels."
++                    usesImageBackground = true
++                    artworkMessage = "Cover image selected from Pexels."
+                 }
+             }
+             .toolbar {
+@@ -1740,36 +1742,38 @@
+         return "Private by default."
+     }
+
+-    private func loadCustomIcon(_ item: PhotosPickerItem?) {
++    private func loadCoverImage(_ item: PhotosPickerItem?) {
+         guard let item else { return }
+-        iconLoadMessage = "Preparing icon..."
++        artworkMessage = "Preparing cover..."
+         Task {
+             do {
+                 if let data = try await item.loadTransferable(type: Data.self),
+-                   let dataURL = Self.folderIconDataURL(from: data) {
++                   let dataURL = Self.folderCoverDataURL(from: data) {
+                     await MainActor.run {
+                         folderImage = dataURL
+-                        iconLoadMessage = nil
++                        usesImageBackground = true
++                        artworkMessage = nil
+                     }
+                 } else {
+                     await MainActor.run {
+-                        iconLoadMessage = "That image could not be used."
++                        artworkMessage = "That image could not be used."
+                     }
+                 }
+             } catch {
+                 await MainActor.run {
+-                    iconLoadMessage = "That image could not be used."
++                    artworkMessage = "That image could not be used."
+                 }
+             }
+         }
+     }
+
+-    private static func folderIconDataURL(from data: Data) -> String? {
+-        SaviImageDataURL.make(from: data, maxPixelSize: 256, cropToSquare: true)
++    private static func folderCoverDataURL(from data: Data) -> String? {
++        SaviImageDataURL.make(from: data, maxPixelSize: 960, cropToSquare: true)
+     }
+ }
+
+ private struct FolderEditorPreviewCard: View {
++    @Environment(\.colorScheme) private var colorScheme
+     let name: String
+     let color: String
+     let symbolName: String
+@@ -1779,24 +1783,50 @@
+     let isPublic: Bool
+
+     var body: some View {
+-        HStack(alignment: .center, spacing: 13) {
+-            FolderIconBadge(
+-                symbolName: symbolName,
+-                color: color,
+-                imageDataURL: usesImageBackground ? nil : imageDataURL,
+-                size: 62,
+-                cornerRadius: 18,
+-                font: SaviType.ui(.title2, weight: .black)
+-            )
++        let folder = previewFolder
++        let style = SaviFolderVisualStyle.make(for: folder, colorScheme: colorScheme)
+
+-            VStack(alignment: .leading, spacing: 7) {
+-                Text(name)
+-                    .font(SaviType.display(size: 24, weight: .black))
+-                    .foregroundStyle(SaviTheme.text)
++        ZStack(alignment: .topLeading) {
++            FolderTileBackground(folder: folder, style: style)
++
++            VStack(alignment: .leading, spacing: 10) {
++                HStack(alignment: .top) {
++                    FolderIconBadge(
++                        symbolName: symbolName,
++                        color: style.baseHex,
++                        imageDataURL: usesImageBackground ? nil : imageDataURL,
++                        size: 52,
++                        cornerRadius: 16,
++                        font: SaviType.ui(.title3, weight: .black),
++                        background: style.iconBackground,
++                        foreground: style.iconForeground,
++                        publicBadgeStyle: isPublic ? style : nil
++                    )
++
++                    Spacer()
++
++                    if locked {
++                        Image(systemName: "lock.fill")
++                            .font(SaviType.ui(.caption, weight: .black))
++                            .foregroundStyle(style.countForeground)
++                            .frame(width: 28, height: 28)
++                            .background(style.countBackground)
++                            .clipShape(Circle())
++                    }
++                }
++
++                Spacer(minLength: 0)
++
++                Text(SaviFolderNameFormatter.balanced(name))
++                    .font(SaviType.display(size: 25, weight: .heavy))
++                    .foregroundStyle(style.text)
++                    .shadow(color: style.titleShadow, radius: style.titleShadowRadius, x: 0, y: 1)
+                     .lineLimit(2)
++                    .minimumScaleFactor(0.84)
++                    .lineSpacing(1.2)
+
+                 HStack(spacing: 7) {
+-                    FolderEditorMiniChip(text: color.uppercased(), systemImage: "paintpalette.fill")
++                    FolderEditorMiniChip(text: usesImageBackground && imageDataURL?.nilIfBlank != nil ? "Cover" : color.uppercased(), systemImage: usesImageBackground && imageDataURL?.nilIfBlank != nil ? "photo.fill" : "paintpalette.fill")
+                     if locked {
+                         FolderEditorMiniChip(text: "Locked", systemImage: "lock.fill")
+                     } else if isPublic {
+@@ -1804,21 +1834,33 @@
+                     }
+                 }
+             }
+-
+-            Spacer(minLength: 0)
++            .padding(14)
+         }
+-        .padding(14)
+-        .background(
+-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+-                .fill(Color(hex: color).opacity(0.16))
+-        )
++        .frame(maxWidth: .infinity, minHeight: 160, maxHeight: 160, alignment: .leading)
++        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+         .overlay(
+             RoundedRectangle(cornerRadius: 22, style: .continuous)
+-                .stroke(Color(hex: color).opacity(0.30), lineWidth: 1)
++                .stroke(style.stroke, lineWidth: 1)
+         )
++        .shadow(color: style.shadow, radius: 12, x: 0, y: 8)
+         .accessibilityElement(children: .combine)
+         .accessibilityLabel("Folder preview, \(name)")
+     }
++
++    private var previewFolder: SaviFolder {
++        SaviFolder(
++            id: "folder-editor-preview",
++            name: name,
++            color: color,
++            image: imageDataURL,
++            system: false,
++            symbolName: symbolName,
++            order: 0,
++            locked: locked,
++            isPublic: isPublic,
++            usesImageBackground: imageDataURL?.nilIfBlank != nil && usesImageBackground
++        )
++    }
+ }
+
+ private struct FolderEditorSectionLabel: View {
+--- before/Docs/ChangeLog/2026-05-04.md
++++ after/Docs/ChangeLog/2026-05-04.md
+@@ -115,3 +115,17 @@
+ - Built and installed both simulator channels, cloned main data into `SAVI Test`,
+   and captured QA screenshot:
+   `/Users/guest1/Desktop/SAVI_QA/savi_v5_sample_home_2026-05-04.png`.
++
++## Folder Editor Cover Image Fix
++
++- Created rollback archive:
++  `Docs/Design/FolderEditorArchive/2026-05-04-before-cover-image-editor/`.
++- Fixed Folder editor artwork semantics so choosing a photo/web image now
++  defaults to a full Folder cover background with readability overlay, while
++  the Folder symbol remains a separate icon control.
++- Selecting a new symbol no longer deletes an existing cover image.
++- Updated the preview card to render the same cover-background treatment used
++  by Home and Folders, instead of showing image artwork only as an icon.
++- Changed unconfigured web image search from a tappable error path into a
++  disabled/clear setup state. `Find image` still requires
++  `SAVI_IMAGE_SEARCH_BASE_URL` and the Pexels proxy to be configured.

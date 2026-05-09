@@ -1,0 +1,8 @@
+// SAVI backend config template.
+// Copy values into a local, non-committed xcconfig or Xcode build setting when accounts exist.
+// Do not place passwords, Supabase service-role keys, or PostHog personal API keys in the app.
+
+SAVI_SUPABASE_URL =
+SAVI_SUPABASE_ANON_KEY =
+SAVI_POSTHOG_HOST =
+SAVI_POSTHOG_PROJECT_TOKEN =

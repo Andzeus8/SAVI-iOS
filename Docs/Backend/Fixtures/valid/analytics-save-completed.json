@@ -1,0 +1,15 @@
+{
+  "name": "save_completed",
+  "timestamp": "2026-05-08T12:30:00Z",
+  "properties": {
+    "app_version": "1.0",
+    "build_number": "33",
+    "device_tier": "modern",
+    "source_surface": "share_extension",
+    "item_type": "video",
+    "save_source_group": "youtube",
+    "folder_id": "f-must-see",
+    "is_public": false,
+    "domain": "youtube.com"
+  }
+}

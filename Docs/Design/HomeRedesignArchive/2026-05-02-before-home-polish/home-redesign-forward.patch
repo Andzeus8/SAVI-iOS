@@ -1,0 +1,367 @@
+diff --git a/before/Docs/ChangeLog/2026-05-02.md b/after/Docs/ChangeLog/2026-05-02.md
+index e444d2b..e19e8ef 100644
+--- a/before/Docs/ChangeLog/2026-05-02.md
++++ b/after/Docs/ChangeLog/2026-05-02.md
+@@ -86,6 +86,21 @@ simulator screenshots, and chat context.
+   so the first-read SAVI promise is shorter and clearer.
+ - Home tagline screenshot after install:
+   `/Users/guest1/Desktop/SAVI_QA/home_tagline_save_anything.png`
++- Archived the pre-polish Home implementation before redesigning the Home hero,
++  folder tiles, section actions, and recent-save row spacing:
++  `/Users/guest1/Documents/SAVI-iOS/Docs/Design/HomeRedesignArchive/2026-05-02-before-home-polish/`
++- Replaced the large Home `SAVI` wordmark with the clearer headline
++  `Save it now. Find it instantly.` and the supporting line
++  `Links, videos, files, notes, screenshots, and more.`
++- Made the Home save-count pill smaller/quieter, moved customization to a small
++  icon button, softened Home folder tile contrast, and added a lighter card
++  treatment around timeline rows.
++- Home redesign before screenshot:
++  `/Users/guest1/Desktop/SAVI_QA/home_before_2026-05-02-polish.png`
++- Home redesign after screenshot:
++  `/Users/guest1/Desktop/SAVI_QA/home_after_2026-05-02-polish.png`
++- Home redesign quick dark/system-theme check screenshot:
++  `/Users/guest1/Desktop/SAVI_QA/home_after_2026-05-02-polish-dark.png`
+
+ ## Affected Areas
+
+diff --git a/before/SAVI/Views/Folders/FolderComponents.swift b/after/SAVI/Views/Folders/FolderComponents.swift
+index 5a9fde5..5f9770e 100644
+--- a/before/SAVI/Views/Folders/FolderComponents.swift
++++ b/after/SAVI/Views/Folders/FolderComponents.swift
+@@ -123,14 +123,14 @@ struct SectionHeader: View {
+             if let actionTitle, let action {
+                 Button(action: action) {
+                     Text(actionTitle)
+-                        .font(SaviType.ui(.subheadline, weight: .bold))
++                        .font(SaviType.ui(.caption, weight: .bold))
+                         .lineLimit(1)
+-                        .padding(.horizontal, 12)
+-                        .frame(minHeight: 36)
+-                        .background(SaviTheme.subtleSurface)
+-                        .foregroundStyle(SaviTheme.accentText)
++                        .padding(.horizontal, 10)
++                        .frame(minHeight: 32)
++                        .background(SaviTheme.subtleSurface.opacity(0.66))
++                        .foregroundStyle(SaviTheme.metadataText)
+                         .clipShape(Capsule())
+-                        .overlay(Capsule().stroke(SaviTheme.cardStroke.opacity(0.78), lineWidth: 1))
++                        .overlay(Capsule().stroke(SaviTheme.cardStroke.opacity(0.58), lineWidth: 1))
+                 }
+                 .buttonStyle(SaviPressScaleButtonStyle())
+             }
+diff --git a/before/SAVI/Views/Home/HomeScreen.swift b/after/SAVI/Views/Home/HomeScreen.swift
+index 69d8e76..b853a40 100644
+--- a/before/SAVI/Views/Home/HomeScreen.swift
++++ b/after/SAVI/Views/Home/HomeScreen.swift
+@@ -33,7 +33,7 @@ struct HomeScreen: View {
+         NavigationStack {
+             ScrollViewReader { proxy in
+                 ScrollView {
+-                    VStack(alignment: .leading, spacing: SaviSpacing.lg) {
++                    VStack(alignment: .leading, spacing: 18) {
+                         Color.clear
+                             .frame(height: 0)
+                             .id(HomeScrollTarget.top)
+@@ -72,7 +72,7 @@ struct HomeScreen: View {
+                         }
+                     }
+                     .padding(.horizontal, 18)
+-                    .padding(.top, 16)
++                    .padding(.top, 8)
+                     .padding(.bottom, 28)
+                 }
+                 .scrollContentBackground(.hidden)
+@@ -402,7 +402,7 @@ private struct RecentSavesWidget: View {
+
+     private var verticalSpacing: CGFloat {
+         switch layoutMode {
+-        case .timeline: return 4
++        case .timeline: return 8
+         case .cards: return 9
+         case .featured: return 8
+         }
+@@ -918,11 +918,11 @@ private struct HomeFolderGridTile: View {
+                         symbolName: folder.symbolName,
+                         color: style.baseHex,
+                         imageDataURL: folder.image,
+-                        size: 30,
++                        size: 29,
+                         cornerRadius: 10,
+                         font: SaviType.ui(.caption, weight: .black),
+-                        background: style.iconBackground,
+-                        foreground: style.iconForeground,
++                        background: homeIconBackground(style),
++                        foreground: homeIconForeground(style),
+                         publicBadgeStyle: folder.isPublic ? style : nil
+                     )
+
+@@ -931,9 +931,9 @@ private struct HomeFolderGridTile: View {
+                     if folder.locked {
+                         Image(systemName: isLocked ? "lock.fill" : "lock.open.fill")
+                             .font(.caption2.weight(.black))
+-                            .foregroundStyle(style.countForeground)
++                            .foregroundStyle(homeTextColor(style))
+                             .frame(width: 22, height: 22)
+-                            .background(style.countBackground)
++                            .background(homeControlBackground(style))
+                             .clipShape(Circle())
+                     }
+                 }
+@@ -942,8 +942,8 @@ private struct HomeFolderGridTile: View {
+
+                 Text(displayName)
+                     .font(SaviType.display(size: 17, weight: .black))
+-                    .foregroundStyle(style.text)
+-                    .shadow(color: style.titleShadow, radius: style.titleShadowRadius, x: 0, y: 1)
++                    .foregroundStyle(homeTextColor(style))
++                    .shadow(color: homeTitleShadow, radius: folder.id == "f-private-vault" ? style.titleShadowRadius : 0, x: 0, y: 1)
+                     .lineLimit(2)
+                     .lineSpacing(1)
+                     .minimumScaleFactor(0.78)
+@@ -953,6 +953,8 @@ private struct HomeFolderGridTile: View {
+             .padding(11)
+             .frame(maxWidth: .infinity, minHeight: 104, maxHeight: 104, alignment: .leading)
+             .background(style.backgroundGradient)
++            .saturation(colorScheme == .light && folder.id != "f-private-vault" ? 0.90 : 1)
++            .brightness(colorScheme == .light && folder.id != "f-private-vault" ? 0.015 : 0)
+             .clipShape(RoundedRectangle(cornerRadius: SaviRadius.folder, style: .continuous))
+             .overlay(
+                 RoundedRectangle(cornerRadius: SaviRadius.folder, style: .continuous)
+@@ -968,6 +970,26 @@ private struct HomeFolderGridTile: View {
+         .buttonStyle(SaviPressScaleButtonStyle())
+         .accessibilityLabel("\(folder.name), \(folder.isPublic ? "Public, " : "")\(isLocked ? "Locked" : "\(store.count(in: folder)) saves")")
+     }
++
++    private func homeTextColor(_ style: SaviFolderVisualStyle) -> Color {
++        folder.id == "f-private-vault" ? style.text : Color(hex: "#342448")
++    }
++
++    private func homeIconForeground(_ style: SaviFolderVisualStyle) -> Color {
++        folder.id == "f-private-vault" ? style.iconForeground : Color(hex: "#342448").opacity(0.84)
++    }
++
++    private func homeIconBackground(_ style: SaviFolderVisualStyle) -> Color {
++        folder.id == "f-private-vault" ? style.iconBackground : Color.white.opacity(0.34)
++    }
++
++    private func homeControlBackground(_ style: SaviFolderVisualStyle) -> Color {
++        folder.id == "f-private-vault" ? style.countBackground : Color.white.opacity(0.38)
++    }
++
++    private var homeTitleShadow: Color {
++        folder.id == "f-private-vault" ? Color.black.opacity(0.22) : Color.clear
++    }
+ }
+
+ private struct TimelineGroupLabel: View {
+@@ -1148,58 +1170,56 @@ private struct HomeHeader: View {
+     var customizeAction: (() -> Void)?
+
+     var body: some View {
+-        VStack(alignment: .leading, spacing: 10) {
+-            HStack(alignment: .top, spacing: 12) {
+-                Text("SAVI")
+-                    .font(SaviType.display(size: 42, weight: .black))
++        HStack(alignment: .top, spacing: 12) {
++            VStack(alignment: .leading, spacing: 5) {
++                Text("Save it now. Find it instantly.")
++                    .font(SaviType.display(size: 27, weight: .black))
+                     .foregroundStyle(SaviTheme.text)
+-                    .lineLimit(1)
+-                    .minimumScaleFactor(0.84)
+-
+-                Spacer(minLength: 10)
+-
+-                PillBadge(
+-                    title: "\(saveCount) saves",
+-                    systemImage: "tray.full.fill",
+-                    foreground: SaviTheme.accentText,
+-                    background: SaviTheme.subtleSurface,
+-                    stroke: SaviTheme.cardStroke
+-                )
+-                .padding(.top, 5)
+-                .accessibilityLabel("\(saveCount) saves")
+-            }
+-
+-            VStack(alignment: .leading, spacing: 3) {
+-                Text("Save anything. Find it instantly.")
+-                    .font(SaviType.ui(.headline, weight: .bold))
+-                    .foregroundStyle(SaviTheme.text)
+-                    .lineSpacing(1.5)
++                    .lineLimit(2)
++                    .minimumScaleFactor(0.82)
++                    .lineSpacing(1)
+
+                 Text("Links, videos, files, notes, screenshots, and more.")
+-                    .font(SaviType.ui(.subheadline, weight: .regular))
++                    .font(SaviType.ui(.subheadline, weight: .medium))
+                     .foregroundStyle(SaviTheme.textMuted)
+                     .lineSpacing(1.5)
+             }
+             .fixedSize(horizontal: false, vertical: true)
++            .layoutPriority(1)
+
+-            if let customizeAction {
+-                Button(action: customizeAction) {
+-                    Label("Customize Home", systemImage: "slider.horizontal.3")
+-                        .font(SaviType.ui(.subheadline, weight: .black))
+-                        .lineLimit(1)
+-                        .padding(.horizontal, 12)
+-                        .frame(minHeight: 38)
+-                        .background(SaviTheme.subtleSurface)
+-                        .foregroundStyle(SaviTheme.accentText)
+-                        .clipShape(Capsule())
+-                        .overlay(Capsule().stroke(SaviTheme.cardStroke.opacity(0.78), lineWidth: 1))
++            Spacer(minLength: 4)
++
++            VStack(alignment: .trailing, spacing: 8) {
++                PillBadge(
++                    title: "\(saveCount) saves",
++                    foreground: SaviTheme.metadataText,
++                    background: SaviTheme.subtleSurface.opacity(0.62),
++                    stroke: SaviTheme.cardStroke.opacity(0.72),
++                    height: 25
++                )
++                .fixedSize(horizontal: true, vertical: false)
++                .accessibilityLabel("\(saveCount) saves")
++
++                if let customizeAction {
++                    Button(action: customizeAction) {
++                        Image(systemName: "slider.horizontal.3")
++                            .font(SaviType.ui(.caption, weight: .black))
++                            .frame(width: 36, height: 34)
++                            .background(SaviTheme.subtleSurface.opacity(0.58))
++                            .foregroundStyle(SaviTheme.metadataText)
++                            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
++                            .overlay(
++                                RoundedRectangle(cornerRadius: 13, style: .continuous)
++                                    .stroke(SaviTheme.cardStroke.opacity(0.58), lineWidth: 1)
++                            )
++                    }
++                    .buttonStyle(SaviPressScaleButtonStyle())
++                    .accessibilityLabel("Customize Home")
+                 }
+-                .buttonStyle(SaviPressScaleButtonStyle())
+-                .accessibilityLabel("Customize Home widgets")
+-                .padding(.top, 2)
+             }
+         }
+         .frame(maxWidth: .infinity, alignment: .leading)
++        .padding(.top, 2)
+         .padding(.bottom, 2)
+     }
+ }
+diff --git a/before/SAVI/Views/Items/ItemViews.swift b/after/SAVI/Views/Items/ItemViews.swift
+index ac7d8ff..0a92ba0 100644
+--- a/before/SAVI/Views/Items/ItemViews.swift
++++ b/after/SAVI/Views/Items/ItemViews.swift
+@@ -82,8 +82,8 @@ private struct HomeFolderTile: View {
+                         size: SaviHomeFolderStripMetrics.iconSize,
+                         cornerRadius: SaviHomeFolderStripMetrics.iconCornerRadius,
+                         font: SaviHomeFolderStripMetrics.iconFont,
+-                        background: style.iconBackground,
+-                        foreground: style.iconForeground,
++                        background: homeIconBackground(style),
++                        foreground: homeIconForeground(style),
+                         publicBadgeStyle: folder.isPublic ? style : nil
+                     )
+
+@@ -92,9 +92,9 @@ private struct HomeFolderTile: View {
+                     if folder.locked {
+                         Image(systemName: isLocked ? "lock.fill" : "lock.open.fill")
+                             .font(.caption2.weight(.black))
+-                            .foregroundStyle(style.countForeground)
++                            .foregroundStyle(homeTextColor(style))
+                             .frame(width: 22, height: 22)
+-                            .background(style.countBackground)
++                            .background(homeControlBackground(style))
+                             .clipShape(Circle())
+                     }
+                 }
+@@ -103,8 +103,8 @@ private struct HomeFolderTile: View {
+
+                 Text(displayName)
+                     .font(SaviType.display(size: 17, weight: .black))
+-                    .foregroundStyle(style.text)
+-                    .shadow(color: style.titleShadow, radius: style.titleShadowRadius, x: 0, y: 1)
++                    .foregroundStyle(homeTextColor(style))
++                    .shadow(color: homeTitleShadow, radius: folder.id == "f-private-vault" ? style.titleShadowRadius : 0, x: 0, y: 1)
+                     .lineLimit(2)
+                     .lineSpacing(1)
+                     .minimumScaleFactor(0.78)
+@@ -114,6 +114,8 @@ private struct HomeFolderTile: View {
+             .padding(11)
+             .frame(width: width, height: SaviHomeFolderStripMetrics.tileHeight, alignment: .leading)
+             .background(style.backgroundGradient)
++            .saturation(colorScheme == .light && folder.id != "f-private-vault" ? 0.90 : 1)
++            .brightness(colorScheme == .light && folder.id != "f-private-vault" ? 0.015 : 0)
+             .clipShape(RoundedRectangle(cornerRadius: SaviRadius.folder, style: .continuous))
+             .overlay(
+                 RoundedRectangle(cornerRadius: SaviRadius.folder, style: .continuous)
+@@ -130,12 +132,31 @@ private struct HomeFolderTile: View {
+         .accessibilityLabel("\(folder.name), \(folder.isPublic ? "Public, " : "")\(isLocked ? "Locked" : "\(store.count(in: folder)) saves")")
+     }
+
++    private func homeTextColor(_ style: SaviFolderVisualStyle) -> Color {
++        folder.id == "f-private-vault" ? style.text : Color(hex: "#342448")
++    }
++
++    private func homeIconForeground(_ style: SaviFolderVisualStyle) -> Color {
++        folder.id == "f-private-vault" ? style.iconForeground : Color(hex: "#342448").opacity(0.84)
++    }
++
++    private func homeIconBackground(_ style: SaviFolderVisualStyle) -> Color {
++        folder.id == "f-private-vault" ? style.iconBackground : Color.white.opacity(0.34)
++    }
++
++    private func homeControlBackground(_ style: SaviFolderVisualStyle) -> Color {
++        folder.id == "f-private-vault" ? style.countBackground : Color.white.opacity(0.38)
++    }
++
++    private var homeTitleShadow: Color {
++        folder.id == "f-private-vault" ? Color.black.opacity(0.22) : Color.clear
++    }
+ }
+
+ private enum SaviHomeFolderStripMetrics {
+     static let spacing: CGFloat = 10
+     static let tileHeight: CGFloat = 104
+-    static let iconSize: CGFloat = 30
++    static let iconSize: CGFloat = 29
+     static let iconCornerRadius: CGFloat = 10
+     static var iconFont: Font { SaviType.ui(.caption, weight: .black) }
+ }
+@@ -162,7 +183,7 @@ struct SaviTimelineItemRow: View {
+         Button {
+             store.presentItem(item)
+         } label: {
+-            HStack(alignment: .top, spacing: 10) {
++            HStack(alignment: .top, spacing: 11) {
+                 SaviTimelineTimeRail(savedAt: item.savedAt)
+
+                 ItemThumb(item: item, enablesPressPreview: false)
+@@ -208,6 +229,16 @@ struct SaviTimelineItemRow: View {
+             .padding(.trailing, 6)
+             .background(rowBackground)
+             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
++            .overlay(
++                RoundedRectangle(cornerRadius: 18, style: .continuous)
++                    .stroke(SaviTheme.cardStroke.opacity(colorScheme == .light ? 0.20 : 0.42), lineWidth: 1)
++            )
++            .shadow(
++                color: SaviTheme.cardShadow.opacity(colorScheme == .light ? 0.045 : 0.12),
++                radius: colorScheme == .light ? 9 : 7,
++                x: 0,
++                y: colorScheme == .light ? 4 : 3
++            )
+             .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+         }
+         .buttonStyle(SaviPressScaleButtonStyle())
+@@ -215,7 +246,7 @@ struct SaviTimelineItemRow: View {
+     }
+
+     private var rowBackground: Color {
+-        colorScheme == .light ? Color.white.opacity(0.48) : SaviTheme.surface.opacity(0.28)
++        colorScheme == .light ? Color.white.opacity(0.64) : SaviTheme.surface.opacity(0.34)
+     }
+ }
